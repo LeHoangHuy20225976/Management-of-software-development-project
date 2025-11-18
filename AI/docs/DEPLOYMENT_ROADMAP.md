@@ -5,17 +5,20 @@
 ### Phase 1: Infrastructure Setup (Week 1-2)
 
 #### Objective
+
 Set up core infrastructure, databases, and monitoring stack
 
 #### Tasks
 
 **1.1 Server & Container Setup**
+
 - [ ] Set up Docker / Kubernetes cluster
 - [ ] Configure network & security groups
 - [ ] Set up SSL/TLS certificates
 - [ ] Configure domain names & DNS
 
 **1.2 Database Setup**
+
 - [ ] Deploy PostgreSQL cluster
   - [ ] Set up primary + replica
   - [ ] Configure automated backups
@@ -34,6 +37,7 @@ Set up core infrastructure, databases, and monitoring stack
   - [ ] Enable management plugin
 
 **1.3 Monitoring & Logging**
+
 - [ ] Deploy Prometheus
   - [ ] Configure service discovery
   - [ ] Set up alerting rules
@@ -47,6 +51,7 @@ Set up core infrastructure, databases, and monitoring stack
   - [ ] Enable distributed tracing
 
 **1.4 API Gateway**
+
 - [ ] Deploy Kong / Traefik
 - [ ] Configure routes for all services
 - [ ] Set up rate limiting
@@ -54,6 +59,7 @@ Set up core infrastructure, databases, and monitoring stack
 - [ ] Enable CORS
 
 **Deliverables:**
+
 - ✅ All infrastructure services running
 - ✅ Monitoring dashboards accessible
 - ✅ Database schemas created
@@ -66,12 +72,15 @@ Set up core infrastructure, databases, and monitoring stack
 ### Phase 2: CV Service MVP (Week 3-5)
 
 #### Objective
+
 Build core Computer Vision service with face recognition and basic image analysis
 
 #### Tasks
 
 **2.1 Project Setup**
+
 - [ ] Initialize FastAPI project structure
+
 ```
 cv-service/
 ├── app/
@@ -96,6 +105,7 @@ cv-service/
 ```
 
 **2.2 Face Recognition Module**
+
 - [ ] Integrate face detection model (MTCNN / RetinaFace)
 - [ ] Integrate face embedding model (ArcFace / FaceNet)
 - [ ] Implement liveness detection (anti-spoofing)
@@ -109,6 +119,7 @@ cv-service/
   - [ ] Return employee_id + metadata
 
 **2.3 Image Search Module**
+
 - [ ] Integrate CLIP model for image embeddings
 - [ ] Build image indexing pipeline
 - [ ] Implement similarity search
@@ -117,12 +128,14 @@ cv-service/
   - [ ] POST /api/v1/cv/image/index
 
 **2.4 Room Analysis (Basic)**
+
 - [ ] Train/fine-tune image classification model
   - [ ] Classes: clean, dirty, bed_made, bed_unmade
 - [ ] Build room tagging endpoint
 - [ ] Integrate with image metadata storage
 
 **2.5 Integration**
+
 - [ ] Connect to PostgreSQL for metadata
 - [ ] Connect to Milvus for embeddings
 - [ ] Connect to Redis for caching
@@ -131,17 +144,20 @@ cv-service/
 - [ ] Add health check endpoints
 
 **2.6 Testing**
+
 - [ ] Unit tests for each module
 - [ ] Integration tests
 - [ ] Load testing (50 req/s target)
 - [ ] Accuracy benchmarking
 
 **Test Dataset Requirements:**
+
 - Face recognition: 50+ employees, 5 images each
 - Room images: 100+ images across all categories
 - Test set: 20% of total data
 
 **Deliverables:**
+
 - ✅ Face recognition working (>95% accuracy)
 - ✅ Image search functional
 - ✅ Basic room tagging operational
@@ -155,16 +171,19 @@ cv-service/
 ### Phase 3: ML Service MVP (Week 6-8)
 
 #### Objective
+
 Build ML service with recommendation and forecasting capabilities
 
 #### Tasks
 
 **3.1 Project Setup**
+
 - [ ] Initialize FastAPI project structure
 - [ ] Set up MLflow for experiment tracking
 - [ ] Create model registry
 
 **3.2 Guest Recommendation Module**
+
 - [ ] Data collection pipeline
   - [ ] Historical booking data
   - [ ] Guest interaction logs
@@ -182,6 +201,7 @@ Build ML service with recommendation and forecasting capabilities
   - [ ] Personalized ranking
 
 **3.3 Forecasting Module**
+
 - [ ] Occupancy forecasting
   - [ ] Collect 2+ years historical data
   - [ ] Feature engineering (seasonality, events, holidays)
@@ -195,6 +215,7 @@ Build ML service with recommendation and forecasting capabilities
   - [ ] Weekly aggregates
 
 **3.4 Churn Prediction (Basic)**
+
 - [ ] Define churn metric (cancellation rate)
 - [ ] Feature engineering
   - [ ] Booking lead time
@@ -205,17 +226,20 @@ Build ML service with recommendation and forecasting capabilities
 - [ ] Build prediction endpoint
 
 **3.5 Integration**
+
 - [ ] Connect to PostgreSQL
 - [ ] Set up Redis caching for predictions
 - [ ] Implement model versioning
 - [ ] Add monitoring metrics
 
 **3.6 Testing**
+
 - [ ] Model performance tests
 - [ ] API load testing
 - [ ] Prediction accuracy validation
 
 **Deliverables:**
+
 - ✅ Recommendation engine (CTR >5% improvement)
 - ✅ Occupancy forecasting (MAPE <10%)
 - ✅ Churn prediction (AUC >0.75)
@@ -229,16 +253,19 @@ Build ML service with recommendation and forecasting capabilities
 ### Phase 4: LLM Service MVP (Week 9-11)
 
 #### Objective
+
 Build LLM service with internal assistant and message generation
 
 #### Tasks
 
 **4.1 Project Setup**
+
 - [ ] Choose LLM provider (OpenAI / Anthropic / Local)
 - [ ] Set up LangChain project
 - [ ] Initialize vector store for RAG
 
 **4.2 Internal Assistant**
+
 - [ ] Knowledge base preparation
   - [ ] Collect hotel SOPs, policies
   - [ ] Room information
@@ -262,6 +289,7 @@ Build LLM service with internal assistant and message generation
   - [ ] Error handling
 
 **4.3 Message Generation**
+
 - [ ] Template library
   - [ ] Booking confirmation
   - [ ] Check-in instructions
@@ -277,6 +305,7 @@ Build LLM service with internal assistant and message generation
   - [ ] WhatsApp messages
 
 **4.4 Intelligent Routing**
+
 - [ ] Classification model
   - [ ] Categories: housekeeping, maintenance, reception, complaint
   - [ ] Entity extraction (room number, items, urgency)
@@ -285,18 +314,21 @@ Build LLM service with internal assistant and message generation
 - [ ] Build routing endpoint
 
 **4.5 Integration**
+
 - [ ] Connect to all other services (CV, ML, Prefect)
 - [ ] Implement circuit breakers for external calls
 - [ ] Set up cost tracking (token usage)
 - [ ] Add response caching
 
 **4.6 Testing**
+
 - [ ] Accuracy testing on classification
 - [ ] RAG retrieval quality (precision/recall)
 - [ ] Response quality evaluation
 - [ ] Load testing
 
 **Deliverables:**
+
 - ✅ Internal assistant operational (>80% answer accuracy)
 - ✅ Message generation working (multi-language)
 - ✅ Routing classifier (>90% accuracy)
@@ -310,11 +342,13 @@ Build LLM service with internal assistant and message generation
 ### Phase 5: Prefect Orchestration (Week 12-14)
 
 #### Objective
+
 Build workflow orchestration and event-driven automation
 
 #### Tasks
 
 **5.1 Prefect Server Setup**
+
 - [ ] Deploy Prefect 2.x server
 - [ ] Configure work pools
 - [ ] Set up UI access
@@ -323,6 +357,7 @@ Build workflow orchestration and event-driven automation
 **5.2 Core Workflows**
 
 **Workflow 1: Attendance Processing**
+
 ```python
 @flow
 def process_attendance(employee_id: str, timestamp: str):
@@ -332,11 +367,13 @@ def process_attendance(employee_id: str, timestamp: str):
     # 4. Calculate late/early
     # 5. Send notifications if needed
 ```
+
 - [ ] Build flow
 - [ ] Add error handling
 - [ ] Test with CV service events
 
 **Workflow 2: Room Status Update**
+
 ```python
 @flow
 def update_room_status(room_number: str, status: str):
@@ -345,11 +382,13 @@ def update_room_status(room_number: str, status: str):
     # 3. Trigger check-in notification
     # 4. Update PMS system
 ```
+
 - [ ] Build flow
 - [ ] Integrate with CV service
 - [ ] Test end-to-end
 
 **Workflow 3: Daily Report Generation**
+
 ```python
 @flow
 def generate_daily_report(date: str):
@@ -359,11 +398,13 @@ def generate_daily_report(date: str):
     # 4. Generate PDF report
     # 5. Email to management
 ```
+
 - [ ] Build flow
 - [ ] Schedule daily at 11 PM
 - [ ] Test report generation
 
 **Workflow 4: Guest Request Handling**
+
 ```python
 @flow
 def handle_guest_request(request_data: dict):
@@ -373,11 +414,13 @@ def handle_guest_request(request_data: dict):
     # 4. Generate confirmation message
     # 5. Send to guest
 ```
+
 - [ ] Build flow
 - [ ] Integrate with LLM routing
 - [ ] Test various request types
 
 **5.3 Event Consumers**
+
 - [ ] Set up RabbitMQ consumers
   - [ ] Attendance events
   - [ ] Room analysis events
@@ -387,6 +430,7 @@ def handle_guest_request(request_data: dict):
 - [ ] Dead letter queue handling
 
 **5.4 Scheduled Jobs**
+
 - [ ] Daily pricing optimization (3 AM)
 - [ ] Nightly ML retraining (2 AM)
 - [ ] Hourly data sync (every hour)
@@ -395,30 +439,35 @@ def handle_guest_request(request_data: dict):
 **5.5 Data Pipelines (ETL)**
 
 **Pipeline 1: PMS Sync**
+
 - [ ] Extract bookings from PMS API
 - [ ] Transform data format
 - [ ] Load into PostgreSQL
 - [ ] Schedule: Every 15 minutes
 
 **Pipeline 2: Analytics ETL**
+
 - [ ] Extract from operational DB
 - [ ] Aggregate metrics
 - [ ] Load to data warehouse
 - [ ] Schedule: Daily
 
 **5.6 Integration**
+
 - [ ] API endpoints for triggering workflows
 - [ ] Webhook receivers
 - [ ] Status query endpoints
 - [ ] Monitoring & alerting
 
 **5.7 Testing**
+
 - [ ] Workflow unit tests
 - [ ] Integration tests
 - [ ] Failure recovery tests
 - [ ] Load testing
 
 **Deliverables:**
+
 - ✅ Core workflows operational
 - ✅ Event consumers running
 - ✅ Scheduled jobs configured
@@ -432,6 +481,7 @@ def handle_guest_request(request_data: dict):
 ### Phase 6: Integration & Production Hardening (Week 15-20)
 
 #### Objective
+
 End-to-end integration, testing, optimization, and production deployment
 
 #### Tasks
@@ -439,6 +489,7 @@ End-to-end integration, testing, optimization, and production deployment
 **6.1 End-to-End Integration Testing**
 
 **Scenario 1: Complete Attendance Flow**
+
 - [ ] Camera → CV Service → Prefect → DB → Notification
 - [ ] Test normal check-in
 - [ ] Test late check-in
@@ -446,6 +497,7 @@ End-to-end integration, testing, optimization, and production deployment
 - [ ] Test system failures
 
 **Scenario 2: Guest Booking Journey**
+
 - [ ] New booking → Recommendation → Pricing → Confirmation
 - [ ] Test via PMS integration
 - [ ] Test churn prediction
@@ -453,12 +505,14 @@ End-to-end integration, testing, optimization, and production deployment
 - [ ] Verify all data stored correctly
 
 **Scenario 3: Room Cleaning Workflow**
+
 - [ ] Staff photo → CV analysis → Status update → Guest notification
 - [ ] Test all room statuses
 - [ ] Test quality checks
 - [ ] Verify PMS sync
 
 **6.2 Performance Optimization**
+
 - [ ] Database query optimization
   - [ ] Add missing indexes
   - [ ] Optimize slow queries
@@ -477,6 +531,7 @@ End-to-end integration, testing, optimization, and production deployment
   - [ ] Identify bottlenecks
 
 **6.3 Security Hardening**
+
 - [ ] Security audit
   - [ ] OWASP Top 10 checks
   - [ ] SQL injection prevention
@@ -496,6 +551,7 @@ End-to-end integration, testing, optimization, and production deployment
   - [ ] Firewall rules
 
 **6.4 Monitoring & Alerting**
+
 - [ ] Set up alerts
   - [ ] Service downtime
   - [ ] High error rate (>5%)
@@ -513,6 +569,7 @@ End-to-end integration, testing, optimization, and production deployment
   - [ ] Runbooks for common issues
 
 **6.5 Documentation**
+
 - [ ] API documentation (Swagger/OpenAPI)
 - [ ] Architecture diagrams (update if changed)
 - [ ] Deployment guides
@@ -524,6 +581,7 @@ End-to-end integration, testing, optimization, and production deployment
   - [ ] Incident response
 
 **6.6 Backup & Disaster Recovery**
+
 - [ ] Database backups
   - [ ] Automated daily backups
   - [ ] Point-in-time recovery enabled
@@ -538,6 +596,7 @@ End-to-end integration, testing, optimization, and production deployment
   - [ ] Test DR scenario
 
 **6.7 Production Deployment**
+
 - [ ] Blue-Green deployment setup
 - [ ] Gradual rollout strategy
   - [ ] Deploy to staging
@@ -548,12 +607,14 @@ End-to-end integration, testing, optimization, and production deployment
 - [ ] Post-deployment monitoring (48 hours)
 
 **6.8 Training & Handover**
+
 - [ ] Train hotel staff on using the system
 - [ ] Train IT team on operations
 - [ ] Hand over documentation
 - [ ] Knowledge transfer sessions
 
 **Deliverables:**
+
 - ✅ All services integrated and tested
 - ✅ Performance targets met
 - ✅ Security audit passed
@@ -569,6 +630,7 @@ End-to-end integration, testing, optimization, and production deployment
 ## 📋 Pre-Deployment Checklist
 
 ### Infrastructure
+
 - [ ] All servers provisioned and configured
 - [ ] Databases deployed with replication
 - [ ] Monitoring stack operational
@@ -578,6 +640,7 @@ End-to-end integration, testing, optimization, and production deployment
 - [ ] Firewall rules set up
 
 ### Services
+
 - [ ] CV Service deployed and tested
 - [ ] ML Service deployed and tested
 - [ ] LLM Service deployed and tested
@@ -586,6 +649,7 @@ End-to-end integration, testing, optimization, and production deployment
 - [ ] All metrics being collected
 
 ### Data
+
 - [ ] Database schemas created
 - [ ] Initial data imported (employees, rooms, etc.)
 - [ ] Vector databases indexed
@@ -593,12 +657,14 @@ End-to-end integration, testing, optimization, and production deployment
 - [ ] Embeddings generated and stored
 
 ### Integration
+
 - [ ] All service-to-service connections tested
 - [ ] External integrations working (PMS, Email, WhatsApp)
 - [ ] Event flows tested end-to-end
 - [ ] Workflows executing successfully
 
 ### Security
+
 - [ ] All secrets in vault
 - [ ] JWT authentication working
 - [ ] HTTPS enabled everywhere
@@ -606,12 +672,14 @@ End-to-end integration, testing, optimization, and production deployment
 - [ ] Security audit completed
 
 ### Documentation
+
 - [ ] API documentation published
 - [ ] Architecture docs updated
 - [ ] Runbooks written
 - [ ] Training materials prepared
 
 ### Testing
+
 - [ ] Unit tests passing (>80% coverage)
 - [ ] Integration tests passing
 - [ ] Load tests passing
@@ -730,12 +798,14 @@ prefect worker start --pool default-pool
 ### Technical Metrics
 
 **Performance:**
+
 - [ ] API response time p95 < 500ms
 - [ ] Face recognition < 200ms
 - [ ] System uptime > 99.5%
 - [ ] Database query time p95 < 100ms
 
 **Accuracy:**
+
 - [ ] Face recognition accuracy > 95%
 - [ ] Room tagging accuracy > 90%
 - [ ] Churn prediction AUC > 0.75
@@ -743,6 +813,7 @@ prefect worker start --pool default-pool
 - [ ] LLM answer accuracy > 80%
 
 **Scalability:**
+
 - [ ] Support 1000 requests/minute
 - [ ] Support 500 concurrent users
 - [ ] Handle 10k face embeddings
@@ -751,17 +822,20 @@ prefect worker start --pool default-pool
 ### Business Metrics
 
 **Efficiency:**
+
 - [ ] Attendance logging: 100% automated
 - [ ] Room status updates: <2 minutes
 - [ ] Guest request routing: <30 seconds
 - [ ] Report generation: Automated daily
 
 **Quality:**
+
 - [ ] False positive attendance: <1%
 - [ ] Missed recognitions: <3%
 - [ ] Guest satisfaction: >4.5/5
 
 **Cost Savings:**
+
 - [ ] Reduce manual attendance by 90%
 - [ ] Reduce room check time by 50%
 - [ ] Increase occupancy by 5% (via pricing)
@@ -772,18 +846,21 @@ prefect worker start --pool default-pool
 ## 🔧 Maintenance Schedule
 
 ### Daily
+
 - [ ] Check service health dashboards
 - [ ] Review error logs
 - [ ] Monitor disk space
 - [ ] Check backup completion
 
 ### Weekly
+
 - [ ] Review performance metrics
 - [ ] Check ML model performance (drift detection)
 - [ ] Update security patches
 - [ ] Team sync meeting
 
 ### Monthly
+
 - [ ] Retrain ML models with new data
 - [ ] Review and optimize database queries
 - [ ] Capacity planning
@@ -791,6 +868,7 @@ prefect worker start --pool default-pool
 - [ ] Cost optimization review
 
 ### Quarterly
+
 - [ ] Major version upgrades
 - [ ] Disaster recovery drill
 - [ ] Performance benchmarking
@@ -827,12 +905,14 @@ Support Channels:
 ## 🎓 Training Materials
 
 ### For Hotel Staff
+
 - [ ] How to use the internal assistant
 - [ ] Understanding face recognition attendance
 - [ ] Room status workflow
 - [ ] Handling guest requests
 
 ### For IT Team
+
 - [ ] System architecture overview
 - [ ] Deployment procedures
 - [ ] Troubleshooting guide
@@ -841,6 +921,7 @@ Support Channels:
 - [ ] Backup & restore procedures
 
 ### For Developers
+
 - [ ] API documentation
 - [ ] Development environment setup
 - [ ] Code contribution guidelines
