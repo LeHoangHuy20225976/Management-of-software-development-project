@@ -1,0 +1,379 @@
+version: '3.8'
+
+# ==============================================================================
+# HOTEL AI SYSTEM - với PostgreSQL pgvector (Đơn giản hơn)
+# ==============================================================================
+
+services:
+  # ============================================================================
+  # INFRASTRUCTURE - Core Services
+  # ============================================================================
+
+  # ----------------------------------------------------------------------------
+  # PostgreSQL with pgvector - Main DB + Vector Store
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: ankane/pgvector:latest  # PostgreSQL 16 + pgvector extension
+    container_name: hotel-postgres
+    ports:
+      - "5433:5432"  # Map to 5433 to avoid conflict with local PostgreSQL
+    environment:
+      POSTGRES_USER: hotel_user
+      POSTGRES_PASSWORD: hotel_password
+      POSTGRES_DB: hotel_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql:ro
+      - ./infrastructure/postgres/init-pgvector.sql:/docker-entrypoint-initdb.d/02-init-pgvector.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hotel_user -d hotel_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - hotel-network
+
+  # ----------------------------------------------------------------------------
+  # Redis - Cache + Prefect Messaging
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: hotel-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass redis_password
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - hotel-network
+
+  # ----------------------------------------------------------------------------
+  # RabbitMQ - Message Queue (Event-driven communication)
+  # ----------------------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: hotel-rabbitmq
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: hotel_user
+      RABBITMQ_DEFAULT_PASS: rabbitmq_password
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - hotel-network
+
+  # ----------------------------------------------------------------------------
+  # MinIO - Object Storage (Images, PDFs, Models)
+  # ----------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: hotel-minio
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console UI
+    environment:
+      MINIO_ROOT_USER: minio_admin
+      MINIO_ROOT_PASSWORD: minio_password_123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - hotel-network
+
+  # ============================================================================
+  # PREFECT - Workflow Orchestration
+  # ============================================================================
+
+  prefect-server:
+    image: prefecthq/prefect:3-latest
+    container_name: hotel-prefect-server
+    ports:
+      - "4200:4200"
+    environment:
+      PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://hotel_user:hotel_password@postgres:5432/prefect_db
+      PREFECT_SERVER_API_HOST: 0.0.0.0
+      PREFECT_MESSAGING_BROKER: prefect_redis.messaging
+      PREFECT_MESSAGING_CACHE: prefect_redis.messaging
+      PREFECT_REDIS_MESSAGING_HOST: redis
+      PREFECT_REDIS_MESSAGING_PORT: 6379
+      PREFECT_REDIS_MESSAGING_PASSWORD: redis_password
+      PREFECT_REDIS_MESSAGING_DB: 0
+    command: prefect server start --no-services
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - hotel-network
+
+  prefect-services:
+    image: prefecthq/prefect:3-latest
+    container_name: hotel-prefect-services
+    environment:
+      PREFECT_API_DATABASE_CONNECTION_URL: postgresql+asyncpg://hotel_user:hotel_password@postgres:5432/prefect_db
+      PREFECT_MESSAGING_BROKER: prefect_redis.messaging
+      PREFECT_MESSAGING_CACHE: prefect_redis.messaging
+      PREFECT_REDIS_MESSAGING_HOST: redis
+      PREFECT_REDIS_MESSAGING_PORT: 6379
+      PREFECT_REDIS_MESSAGING_PASSWORD: redis_password
+      PREFECT_REDIS_MESSAGING_DB: 0
+    command: prefect server services start
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - hotel-network
+
+  prefect-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: hotel-prefect-worker
+    environment:
+      PREFECT_API_URL: http://prefect-server:4200/api
+    volumes:
+      # Mount .env for environment variables (NOT copied to image)
+      - ./.env:/app/.env:ro
+      # Mount src/ for hot-reload (edit flows without rebuild)
+      - ./src:/app/src:ro
+      # Mount prefect.yaml for config changes
+      - ./prefect.yaml:/app/prefect.yaml:ro
+    command: >
+      sh -c "
+      echo 'Waiting for Prefect server...' &&
+      until curl -s http://prefect-server:4200/api/health > /dev/null 2>&1; do sleep 2; done &&
+      echo 'Deploying all flows...' &&
+      prefect deploy --all &&
+      echo 'Starting worker...' &&
+      prefect worker start --pool local-pool
+      "
+    depends_on:
+      prefect-server:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - hotel-network
+
+  # ============================================================================
+  # ML OPS
+  # ============================================================================
+
+  # ----------------------------------------------------------------------------
+  # MLflow - ML Experiment Tracking
+  # ----------------------------------------------------------------------------
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: hotel-mlflow
+    ports:
+      - "5000:5000"
+    environment:
+      MLFLOW_BACKEND_STORE_URI: postgresql://hotel_user:hotel_password@postgres:5432/mlflow_db
+      MLFLOW_ARTIFACT_ROOT: s3://mlflow-artifacts/
+      AWS_ACCESS_KEY_ID: minio_admin
+      AWS_SECRET_ACCESS_KEY: minio_password_123
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+    command: >
+      sh -c "pip install psycopg2-binary &&
+      mlflow server
+      --backend-store-uri postgresql://hotel_user:hotel_password@postgres:5432/mlflow_db
+      --default-artifact-root s3://mlflow-artifacts/
+      --host 0.0.0.0
+      --port 5000"
+    depends_on:
+      - postgres
+      - minio
+    restart: unless-stopped
+    networks:
+      - hotel-network
+
+  # ============================================================================
+  # MONITORING (Optional - comment out if not needed initially)
+  # ============================================================================
+
+  # ----------------------------------------------------------------------------
+  # Prometheus - Metrics Collection
+  # ----------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: hotel-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infrastructure/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    restart: unless-stopped
+    networks:
+      - hotel-network
+
+  # ----------------------------------------------------------------------------
+  # Grafana - Dashboards
+  # ----------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:latest
+    container_name: hotel-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: grafana_password
+      GF_DATABASE_TYPE: postgres
+      GF_DATABASE_HOST: postgres:5432
+      GF_DATABASE_NAME: grafana_db
+      GF_DATABASE_USER: hotel_user
+      GF_DATABASE_PASSWORD: hotel_password
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - postgres
+    restart: unless-stopped
+    networks:
+      - hotel-network
+
+  # ============================================================================
+  # AI SERVICES (Build khi đã có code)
+  # ============================================================================
+  # Uncomment khi đã implement services
+
+  # cv-service:
+  #   build:
+  #     context: ./services/cv-service
+  #     dockerfile: Dockerfile
+  #   container_name: hotel-cv-service
+  #   ports:
+  #     - "8001:8001"
+  #   environment:
+  #     DATABASE_URL: postgresql+asyncpg://hotel_user:hotel_password@postgres:5432/hotel_db
+  #     VECTOR_DB_TYPE: pgvector
+  #     REDIS_URL: redis://:redis_password@redis:6379/0
+  #     RABBITMQ_URL: amqp://hotel_user:rabbitmq_password@rabbitmq:5672/
+  #     MINIO_ENDPOINT: minio:9000
+  #     MINIO_ACCESS_KEY: minio_admin
+  #     MINIO_SECRET_KEY: minio_password_123
+  #     MINIO_BUCKET: hotel-images
+  #     MINIO_SECURE: "false"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+  #     minio:
+  #       condition: service_healthy
+  #   networks:
+  #     - hotel-network
+
+  # ml-service:
+  #   build:
+  #     context: ./services/ml-service
+  #     dockerfile: Dockerfile
+  #   container_name: hotel-ml-service
+  #   ports:
+  #     - "8002:8002"
+  #   environment:
+  #     DATABASE_URL: postgresql+asyncpg://hotel_user:hotel_password@postgres:5432/hotel_db
+  #     REDIS_URL: redis://:redis_password@redis:6379/1
+  #     RABBITMQ_URL: amqp://hotel_user:rabbitmq_password@rabbitmq:5672/
+  #     MLFLOW_TRACKING_URI: http://mlflow:5000
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #     - mlflow
+  #   networks:
+  #     - hotel-network
+
+  # llm-service:
+  #   build:
+  #     context: ./services/llm-service
+  #     dockerfile: Dockerfile
+  #   container_name: hotel-llm-service
+  #   ports:
+  #     - "8003:8003"
+  #   environment:
+  #     DATABASE_URL: postgresql+asyncpg://hotel_user:hotel_password@postgres:5432/hotel_db
+  #     VECTOR_DB_TYPE: pgvector
+  #     REDIS_URL: redis://:redis_password@redis:6379/2
+  #     RABBITMQ_URL: amqp://hotel_user:rabbitmq_password@rabbitmq:5672/
+  #     OPENAI_API_KEY: ${OPENAI_API_KEY}
+  #     CV_SERVICE_URL: http://cv-service:8001
+  #     ML_SERVICE_URL: http://ml-service:8002
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #   networks:
+  #     - hotel-network
+
+  # prefect-service:
+  #   build:
+  #     context: ./services/prefect-service
+  #     dockerfile: Dockerfile
+  #   container_name: hotel-prefect-service
+  #   ports:
+  #     - "8004:8004"
+  #   environment:
+  #     DATABASE_URL: postgresql+asyncpg://hotel_user:hotel_password@postgres:5432/hotel_db
+  #     REDIS_URL: redis://:redis_password@redis:6379/3
+  #     RABBITMQ_URL: amqp://hotel_user:rabbitmq_password@rabbitmq:5672/
+  #     PREFECT_API_URL: http://prefect-server:4200/api
+  #     CV_SERVICE_URL: http://cv-service:8001
+  #     ML_SERVICE_URL: http://ml-service:8002
+  #     LLM_SERVICE_URL: http://llm-service:8003
+  #   depends_on:
+  #     - postgres
+  #     - prefect-server
+  #   networks:
+  #     - hotel-network
+
+# ==============================================================================
+# VOLUMES
+# ==============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  minio_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+# ==============================================================================
+# NETWORKS
+# ==============================================================================
+networks:
+  hotel-network:
+    driver: bridge

@@ -1,0 +1,54 @@
+# ==============================================================================
+# Prefect Configuration - Hotel AI System
+# ==============================================================================
+
+# Prefect project name
+name: hotel-ai-system
+
+# ==============================================================================
+# Deployments - Auto-discover flows from src/flow directory
+# ==============================================================================
+
+deployments:
+  # Deploy hello flow
+  - name: hello-deployment
+    entrypoint: src/flow/hello_flow.py:hello_flow
+    work_pool:
+      name: local-pool
+      work_queue_name: default
+
+    # Schedule (optional - can be set per flow)
+    # schedule:
+    #   cron: "0 * * * *"  # Run every hour
+
+    # Parameters (optional)
+    parameters: {}
+
+    # Tags for filtering
+    tags:
+      - hotel
+      - production
+
+# ==============================================================================
+# Pull step - How to get the code
+# ==============================================================================
+
+pull:
+  - prefect.deployments.steps.set_working_directory:
+      directory: /app
+
+# ==============================================================================
+# Build step (optional)
+# ==============================================================================
+
+# build:
+#   - prefect.deployments.steps.run_shell_script:
+#       script: echo "Building..."
+
+# ==============================================================================
+# Push step (optional)
+# ==============================================================================
+
+# push:
+#   - prefect.deployments.steps.run_shell_script:
+#       script: echo "Pushing..."
