@@ -145,25 +145,32 @@ AI/
     ├── __init__.py
     │
     ├── application/               # Business logic layer
-    │   └── __init__.py
-    │
-    ├── controllers/               # API endpoints
     │   ├── __init__.py
-    │   ├── cv/                    # CV service controllers
-    │   ├── ml/                    # ML service controllers
-    │   └── llm/                   # LLM service controllers
-    │
-    ├── dtos/                      # Data Transfer Objects
-    │   ├── __init__.py
-    │   ├── cv/                    # Request/Response models for CV
-    │   ├── ml/                    # Request/Response models for ML
-    │   └── llm/                   # Request/Response models for LLM
-    │
-    ├── services/                  # Core services logic
-    │   ├── __init__.py
-    │   ├── cv/                    # Computer Vision logic
-    │   ├── ml/                    # Machine Learning logic
-    │   └── llm/                   # LLM & RAG logic
+    │   ├── main.py                # FastAPI application - tổng hợp tất cả routers
+    │   │
+    │   ├── controllers/           # API endpoints
+    │   │   ├── __init__.py
+    │   │   ├── cv/
+    │   │   │   ├── __init__.py
+    │   │   │   └── router.py      # CV API routes
+    │   │   ├── ml/
+    │   │   │   ├── __init__.py
+    │   │   │   └── router.py      # ML API routes
+    │   │   └── llm/
+    │   │       ├── __init__.py
+    │   │       └── router.py      # LLM API routes
+    │   │
+    │   ├── dtos/                  # Data Transfer Objects
+    │   │   ├── __init__.py
+    │   │   ├── cv/                # Request/Response models for CV
+    │   │   ├── ml/                # Request/Response models for ML
+    │   │   └── llm/               # Request/Response models for LLM
+    │   │
+    │   └── services/              # Core services logic
+    │       ├── __init__.py
+    │       ├── cv/                # Computer Vision logic
+    │       ├── ml/                # Machine Learning logic
+    │       └── llm/               # LLM & RAG logic
     │
     ├── flow/                      # ⭐ Prefect Flows (workflows)
     │   ├── __init__.py
@@ -171,14 +178,11 @@ AI/
     │
     ├── infrastructure/            # Infrastructure code (Python)
     │   ├── __init__.py
-    │   ├── database.py            # Database connections
-    │   ├── redis_client.py        # Redis client
-    │   └── rabbitmq_client.py     # RabbitMQ client
+    │   └── config.py              # Configuration management
     │
     └── utils/                     # Utilities
         ├── __init__.py
-        ├── logger.py
-        └── helpers.py
+        └── logger.py              # Logging utilities
 ```
 
 ### 📝 Quy tắc đặt tên
@@ -186,9 +190,10 @@ AI/
 - **`infrastructure/`** (root): Config files (YAML, SQL, conf)
 - **`src/infrastructure/`**: Python code cho infrastructure (database, clients)
 - **`src/flow/`**: Prefect flows (workflows)
-- **`src/services/`**: Business logic cho từng service
-- **`src/controllers/`**: API endpoints (FastAPI routes)
-- **`src/dtos/`**: Pydantic models cho request/response
+- **`src/application/main.py`**: FastAPI app chính, tổng hợp tất cả routers từ CV, ML, LLM
+- **`src/application/controllers/{service}/router.py`**: API routes cho từng service (cv, ml, llm)
+- **`src/application/services/`**: Business logic cho từng service
+- **`src/application/dtos/`**: Pydantic models cho request/response
 
 ---
 
@@ -338,17 +343,19 @@ python src/flow/hello_flow.py
 prefect flow run src/flow/hello_flow.py:hello_flow
 ```
 
-#### 5. Chạy FastAPI service locally
+#### 5. Chạy FastAPI application locally
 
 ```bash
-# Chạy CV service (example)
-uvicorn src.controllers.cv.main:app --reload --port 8001
+# Chạy toàn bộ application (tất cả services: CV, ML, LLM)
+uvicorn src.application.main:app --reload --port 8000
 
-# Chạy ML service
-uvicorn src.controllers.ml.main:app --reload --port 8002
+# Application sẽ tự động load tất cả routers:
+# - /cv/*    -> CV service routes
+# - /ml/*    -> ML service routes  
+# - /llm/*   -> LLM service routes
 
-# Chạy LLM service
-uvicorn src.controllers.llm.main:app --reload --port 8003
+# Xem API docs
+open http://localhost:8000/docs
 ```
 
 #### 6. Test RAG với LlamaIndex
@@ -356,7 +363,7 @@ uvicorn src.controllers.llm.main:app --reload --port 8003
 ```bash
 # Tạo test script
 cat > test_rag.py << 'EOF'
-from src.services.llm.vector_store import HotelVectorStore
+from src.application.services.llm.vector_store import HotelVectorStore
 
 # Test connection
 store = HotelVectorStore()
@@ -569,7 +576,121 @@ docker exec hotel-prefect-worker python src/flow/example_flow.py
 
 ## 🛠️ Development Workflow
 
-### 1. Sửa code flow
+### 1. Cấu trúc FastAPI Routing
+
+Hệ thống sử dụng pattern **centralized routing** với `main.py` làm entry point:
+
+**`src/application/main.py`** - FastAPI app chính:
+
+```python
+from fastapi import FastAPI
+from src.application.controllers.cv import router as cv_router
+from src.application.controllers.ml import router as ml_router
+from src.application.controllers.llm import router as llm_router
+
+app = FastAPI(
+    title="Hotel AI System",
+    description="AI services for hotel management",
+    version="1.0.0"
+)
+
+# Include all service routers
+app.include_router(cv_router.router, prefix="/cv", tags=["Computer Vision"])
+app.include_router(ml_router.router, prefix="/ml", tags=["Machine Learning"])
+app.include_router(llm_router.router, prefix="/llm", tags=["LLM"])
+
+@app.get("/")
+def root():
+    return {"message": "Hotel AI System", "status": "running"}
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
+```
+
+**`src/application/controllers/cv/router.py`** - CV service routes:
+
+```python
+from fastapi import APIRouter, UploadFile
+from src.application.dtos.cv import FaceRecognitionRequest, FaceRecognitionResponse
+from src.application.services.cv import face_recognition_service
+
+router = APIRouter()
+
+@router.post("/face-recognition", response_model=FaceRecognitionResponse)
+async def recognize_face(file: UploadFile):
+    """Nhận diện khuôn mặt từ ảnh upload"""
+    result = await face_recognition_service.recognize(file)
+    return result
+
+@router.post("/ocr")
+async def extract_text(file: UploadFile):
+    """Trích xuất text từ ảnh (OCR)"""
+    # Implementation
+    pass
+```
+
+**`src/application/controllers/ml/router.py`** - ML service routes:
+
+```python
+from fastapi import APIRouter
+from src.application.dtos.ml import PricingRequest, PricingResponse
+from src.application.services.ml import pricing_service
+
+router = APIRouter()
+
+@router.post("/pricing/predict", response_model=PricingResponse)
+async def predict_price(request: PricingRequest):
+    """Dự đoán giá phòng tối ưu"""
+    result = await pricing_service.predict(request)
+    return result
+
+@router.post("/recommendation")
+async def recommend_rooms(user_id: str):
+    """Gợi ý phòng cho khách hàng"""
+    # Implementation
+    pass
+```
+
+**`src/application/controllers/llm/router.py`** - LLM service routes:
+
+```python
+from fastapi import APIRouter
+from src.application.dtos.llm import ChatRequest, ChatResponse
+from src.application.services.llm import chatbot_service
+
+router = APIRouter()
+
+@router.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    """Chatbot với RAG"""
+    result = await chatbot_service.query(request.message)
+    return result
+
+@router.post("/embeddings")
+async def create_embeddings(texts: list[str]):
+    """Tạo embeddings cho texts"""
+    # Implementation
+    pass
+```
+
+**Routing structure:**
+```
+GET  /                          → Root endpoint
+GET  /health                    → Health check
+GET  /docs                      → Swagger UI (auto-generated)
+
+POST /cv/face-recognition       → CV service
+POST /cv/ocr                    → CV service
+
+POST /ml/pricing/predict        → ML service
+POST /ml/recommendation         → ML service
+
+POST /llm/chat                  → LLM service
+POST /llm/embeddings            → LLM service
+```
+
+### 2. Sửa code flow
 
 File flow được mount vào container qua volumes, nên **không cần rebuild** khi sửa code:
 
@@ -647,7 +768,7 @@ dependencies = [
 **Bước 2:** Tạo vector store service
 
 ```python
-# src/services/llm/vector_store.py
+# src/application/services/llm/vector_store.py
 from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.vector_stores.postgres import PGVectorStore
 from llama_index.core.node_parser import SimpleNodeParser
@@ -694,7 +815,7 @@ class HotelVectorStore:
 ```python
 # src/flow/rag_indexing_flow.py
 from prefect import flow, task
-from src.services.llm.vector_store import HotelVectorStore
+from src.application.services.llm.vector_store import HotelVectorStore
 
 @task(name="load_hotel_documents", retries=2)
 def load_documents():
@@ -735,7 +856,7 @@ if __name__ == "__main__":
 ```python
 # src/flow/rag_query_flow.py
 from prefect import flow, task
-from src.services.llm.vector_store import HotelVectorStore
+from src.application.services.llm.vector_store import HotelVectorStore
 
 @task(name="query_vector_store")
 def query_rag(question: str):
