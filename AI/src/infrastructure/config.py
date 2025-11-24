@@ -93,6 +93,7 @@ class Settings(BaseSettings):
     llm_model: str = Field(default="gpt-4o-mini", alias="LLM_MODEL")
     embedding_model: str = Field(default="text-embedding-3-small", alias="EMBEDDING_MODEL")
     embedding_dimension: int = Field(default=1536, alias="EMBEDDING_DIMENSION")
+    gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
 
     # ========== API Settings ==========
     api_host: str = Field(default="0.0.0.0", alias="API_HOST")
