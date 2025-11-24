@@ -1590,6 +1590,25 @@ wheels = [
 ]
 
 [[package]]
+name = "google-genai"
+version = "1.52.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "google-auth" },
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "requests" },
+    { name = "tenacity" },
+    { name = "typing-extensions" },
+    { name = "websockets" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/09/4e/0ad8585d05312074bb69711b2d81cfed69ce0ae441913d57bf169bed20a7/google_genai-1.52.0.tar.gz", hash = "sha256:a74e8a4b3025f23aa98d6a0f84783119012ca6c336fd68f73c5d2b11465d7fc5", size = 258743, upload-time = "2025-11-21T02:18:55.742Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ec/66/03f663e7bca7abe9ccfebe6cb3fe7da9a118fd723a5abb278d6117e7990e/google_genai-1.52.0-py3-none-any.whl", hash = "sha256:c8352b9f065ae14b9322b949c7debab8562982f03bf71d44130cd2b798c20743", size = 261219, upload-time = "2025-11-21T02:18:54.515Z" },
+]
+
+[[package]]
 name = "google-generativeai"
 version = "0.8.5"
 source = { registry = "https://pypi.org/simple" }
@@ -1878,6 +1897,7 @@ dependencies = [
     { name = "boto3" },
     { name = "catboost" },
     { name = "fastapi" },
+    { name = "google-genai" },
     { name = "google-generativeai" },
     { name = "httpx" },
     { name = "insightface" },
@@ -1941,6 +1961,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.29.7" },
     { name = "catboost", specifier = ">=1.2.2" },
     { name = "fastapi", specifier = ">=0.104.0" },
+    { name = "google-genai", specifier = ">=1.52.0" },
     { name = "google-generativeai", specifier = ">=0.3.0" },
     { name = "httpx", specifier = ">=0.25.2" },
     { name = "insightface", specifier = ">=0.7.3" },
