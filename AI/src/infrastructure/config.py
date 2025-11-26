@@ -90,7 +90,8 @@ class Settings(BaseSettings):
     # ========== OpenAI / LLM ==========
     openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
     anthropic_api_key: str = Field(default="", alias="ANTHROPIC_API_KEY")
-    llm_model: str = Field(default="gpt-4o-mini", alias="LLM_MODEL")
+    nvidia_api_key: str = Field(default="", alias="NVIDIA_API_KEY")
+    llm_model: str = Field(default="openai/gpt-oss-120b", alias="LLM_MODEL")
     embedding_model: str = Field(default="text-embedding-3-small", alias="EMBEDDING_MODEL")
     embedding_dimension: int = Field(default=1536, alias="EMBEDDING_DIMENSION")
 
