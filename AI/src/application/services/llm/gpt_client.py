@@ -35,7 +35,8 @@ class GPTClient:
                 model=self.model_name,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
-                max_tokens=1024
+                max_tokens=1024,
+                reasoning_effort= "low"
             )
             return response.choices[0].message.content
         except Exception as e:
@@ -61,7 +62,8 @@ class GPTClient:
                 model=self.model_name,
                 messages=messages,
                 temperature=0.7,
-                max_tokens=1024
+                max_tokens=1024,
+                reasoning_effort= "low"
             )
             return response.choices[0].message.content
         except Exception as e:
