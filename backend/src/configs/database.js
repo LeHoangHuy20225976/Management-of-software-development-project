@@ -1,19 +1,18 @@
 const { Sequelize } = require("sequelize");
 require("dotenv").config();
+import { database } from "index";
 
-const dbName = process.env.DB_NAME || "postgres";
-const dbUser = process.env.DB_USER || "postgres";
-const dbPassword = process.env.DB_PASSWORD || "";
-const dbHost = process.env.DB_HOST || "localhost";
-const dbPort = process.env.DB_PORT || 5432;
-const dbLogging = process.env.DB_LOGGING === "true";
-
-const sequelize = new Sequelize(dbName, dbUser, dbPassword, {
-  host: dbHost,
-  port: dbPort,
-  dialect: "postgres",
-  logging: dbLogging ? console.log : false,
-});
+const sequelize = new Sequelize(
+  database.dbName,
+  database.dbUser,
+  database.dbPassword,
+  {
+    host: database.dbHost,
+    port: database.dbPort,
+    dialect: "postgres",
+    logging: database.dbLogging ? console.log : false,
+  }
+);
 
 async function testConnection() {
   try {
