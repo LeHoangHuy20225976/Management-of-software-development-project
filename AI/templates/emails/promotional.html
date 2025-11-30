@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Special Offer</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .offer-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .discount {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #FF6B6B;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            background-color: #f4f4f4;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✨ Special Offer Just for You!</h1>
+            <p>Limited time exclusive deal</p>
+        </div>
+        
+        <div class="content">
+            <p>Dear {{ name | default('Valued Guest') }},</p>
+            
+            <p>We have a special offer that we think you'll love!</p>
+            
+            <div class="offer-box">
+                <p>Save up to</p>
+                <div class="discount">{{ discount | default('20%') }}</div>
+                <p>on your next booking</p>
+            </div>
+            
+            <p><strong>Offer details:</strong></p>
+            <ul>
+                <li>{{ offer_description | default('Special discount on all room types') }}</li>
+                <li>Valid until: {{ valid_until | default('December 31, 2025') }}</li>
+                <li>Use code: <strong>{{ promo_code | default('SAVE20') }}</strong></li>
+            </ul>
+            
+            <p><strong>Why book with us?</strong></p>
+            <ul>
+                <li>🏆 Award-winning service</li>
+                <li>🌟 Luxury accommodations</li>
+                <li>📍 Prime location</li>
+                <li>💯 100% satisfaction guarantee</li>
+            </ul>
+            
+            <center>
+                <a href="#" class="button">Book Now</a>
+            </center>
+            
+            <p>Don't miss out on this amazing deal!</p>
+            
+            <p>Best regards,<br>
+            <strong>Hotel AI Management Team</strong></p>
+        </div>
+        
+        <div class="footer">
+            <p>This is a promotional email from Hotel AI System</p>
+            <p>If you wish to unsubscribe, <a href="#">click here</a></p>
+            <p>© 2025 Hotel AI Management System. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
+
