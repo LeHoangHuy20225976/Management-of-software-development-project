@@ -351,7 +351,7 @@ uvicorn src.application.main:app --reload --port 8000
 
 # Application sẽ tự động load tất cả routers:
 # - /cv/*    -> CV service routes
-# - /ml/*    -> ML service routes  
+# - /ml/*    -> ML service routes
 # - /llm/*   -> LLM service routes
 
 # Xem API docs
@@ -427,30 +427,33 @@ uv run pytest tests/
 
 #### 9. So sánh Docker vs uv
 
-| Tiêu chí | Docker (Full Stack) | uv (Local) |
-|----------|---------------------|------------|
-| **Setup time** | Lâu (build images) | Nhanh (chỉ cài packages) |
-| **Resource** | Nhiều RAM/CPU | Ít hơn |
-| **Hot reload** | Cần mount volumes | Tự động |
-| **Database** | Tích hợp sẵn | Cần Docker riêng |
-| **Production-like** | ✅ Giống production | ❌ Khác production |
-| **Best for** | Integration testing | Quick prototyping |
+| Tiêu chí            | Docker (Full Stack) | uv (Local)               |
+| ------------------- | ------------------- | ------------------------ |
+| **Setup time**      | Lâu (build images)  | Nhanh (chỉ cài packages) |
+| **Resource**        | Nhiều RAM/CPU       | Ít hơn                   |
+| **Hot reload**      | Cần mount volumes   | Tự động                  |
+| **Database**        | Tích hợp sẵn        | Cần Docker riêng         |
+| **Production-like** | ✅ Giống production | ❌ Khác production       |
+| **Best for**        | Integration testing | Quick prototyping        |
 
 #### 10. Tips
 
 **Khi nào dùng uv:**
+
 - Đang develop/debug Python code
 - Muốn test nhanh 1 flow
 - Làm việc với Jupyter notebook
 - Code completion trong IDE tốt hơn
 
 **Khi nào dùng Docker:**
+
 - Test toàn bộ hệ thống
 - Deploy lên server
 - Share với team (consistent environment)
 - CI/CD pipeline
 
 **Best practice:**
+
 ```bash
 # Development: Code với uv
 uv sync
@@ -468,16 +471,16 @@ docker compose -f docker-compose.prod.yml up -d
 
 ## 🌐 Services và Ports
 
-| Service | URL | Credentials | Mô tả |
-|---------|-----|-------------|-------|
-| **Prefect UI** | http://localhost:4200 | - | Workflow orchestration dashboard |
-| **Grafana** | http://localhost:3000 | admin/grafana_password | Monitoring dashboards |
-| **MLflow** | http://localhost:5000 | - | ML experiment tracking |
-| **RabbitMQ** | http://localhost:15672 | hotel_user/rabbitmq_password | Message queue management |
-| **MinIO** | http://localhost:9001 | minio_admin/minio_password_123 | Object storage console |
-| **Prometheus** | http://localhost:9090 | - | Metrics collection |
-| **PostgreSQL** | localhost:5433 | hotel_user/hotel_password | Main database |
-| **Redis** | localhost:6379 | redis_password | Cache & messaging |
+| Service        | URL                    | Credentials                    | Mô tả                            |
+| -------------- | ---------------------- | ------------------------------ | -------------------------------- |
+| **Prefect UI** | http://localhost:4200  | -                              | Workflow orchestration dashboard |
+| **Grafana**    | http://localhost:3000  | admin/grafana_password         | Monitoring dashboards            |
+| **MLflow**     | http://localhost:5000  | -                              | ML experiment tracking           |
+| **RabbitMQ**   | http://localhost:15672 | hotel_user/rabbitmq_password   | Message queue management         |
+| **MinIO**      | http://localhost:9001  | minio_admin/minio_password_123 | Object storage console           |
+| **Prometheus** | http://localhost:9090  | -                              | Metrics collection               |
+| **PostgreSQL** | localhost:5433         | hotel_user/hotel_password      | Main database                    |
+| **Redis**      | localhost:6379         | redis_password                 | Cache & messaging                |
 
 ### Databases được tạo tự động
 
@@ -540,9 +543,9 @@ deployments:
     work_pool:
       name: local-pool
     parameters:
-      input_data: {"default": "value"}
+      input_data: { "default": "value" }
     schedule:
-      cron: "0 */2 * * *"  # Chạy mỗi 2 giờ
+      cron: "0 */2 * * *" # Chạy mỗi 2 giờ
     tags:
       - hotel
       - example
@@ -675,6 +678,7 @@ async def create_embeddings(texts: list[str]):
 ```
 
 **Routing structure:**
+
 ```
 GET  /                          → Root endpoint
 GET  /health                    → Health check
@@ -892,7 +896,7 @@ deployments:
     work_pool:
       name: local-pool
     schedule:
-      cron: "0 2 * * *"  # Index mỗi ngày lúc 2 AM
+      cron: "0 2 * * *" # Index mỗi ngày lúc 2 AM
     tags:
       - rag
       - indexing
@@ -953,11 +957,13 @@ def query_with_metrics(question: str):
 ### ❌ Container restart liên tục
 
 **Kiểm tra logs:**
+
 ```bash
 docker logs hotel-prefect-worker --tail 50
 ```
 
 **Nguyên nhân thường gặp:**
+
 - Database chưa sẵn sàng → Đợi thêm vài giây
 - Port conflict → Đổi port trong `docker-compose.yml`
 - Thiếu dependencies → Rebuild image
@@ -978,6 +984,7 @@ sudo systemctl stop postgresql  # Linux
 ### ❌ Flow không tự động deploy
 
 **Kiểm tra:**
+
 ```bash
 # Xem logs deploy
 docker logs hotel-prefect-worker | grep -A 10 "Deploying"
@@ -987,6 +994,7 @@ docker exec hotel-prefect-worker prefect deploy --all
 ```
 
 **Lỗi thường gặp:**
+
 - Sai format `entrypoint` trong `prefect.yaml`
 - Flow import bị lỗi (syntax error)
 - Work pool chưa tồn tại (tự tạo nếu chưa có)
@@ -994,6 +1002,7 @@ docker exec hotel-prefect-worker prefect deploy --all
 ### ❌ Cannot connect to Prefect server
 
 **Kiểm tra:**
+
 ```bash
 # Test từ host
 curl http://localhost:4200/api/health
@@ -1003,6 +1012,7 @@ docker exec hotel-prefect-worker curl http://prefect-server:4200/api/health
 ```
 
 **Fix:**
+
 ```bash
 # Restart Prefect server
 docker compose restart prefect-server prefect-services

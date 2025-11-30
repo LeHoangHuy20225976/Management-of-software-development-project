@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir uv && \
 # Copy pyproject.toml and other config files
 COPY pyproject.toml .
 COPY .python-version .
+COPY README.md .
 
 # Sync dependencies with uv
 RUN uv sync
