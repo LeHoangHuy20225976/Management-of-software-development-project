@@ -245,11 +245,11 @@ async def app_info() -> dict[str, Any]:
 
 # TODO: Uncomment when implementing services
 # from src.application.controllers.cv.router import router as cv_router
-# from src.application.controllers.ml.router import router as ml_router
+from src.application.controllers.ml.router import router as ml_router
 from src.application.controllers.llm.router import router as llm_router
 
 # app.include_router(cv_router, prefix="/api/cv", tags=["Computer Vision"])
-# app.include_router(ml_router, prefix="/api/ml", tags=["Machine Learning"])
+app.include_router(ml_router, prefix="/api/ml", tags=["Machine Learning"])
 app.include_router(llm_router, prefix="/api/llm", tags=["LLM & RAG"])
 
 
