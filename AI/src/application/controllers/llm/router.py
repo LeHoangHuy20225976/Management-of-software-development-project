@@ -4,7 +4,8 @@ LLM Service API Router
 
 from fastapi import APIRouter, HTTPException
 from src.application.dtos.llm.chat_dto import ChatRequest, ChatResponse
-from src.application.services.llm.gpt_client import get_gpt_client
+from src.application.services.llm.graph import chat_graph
+from langchain_core.messages import HumanMessage
 import uuid
 
 router = APIRouter()
@@ -29,31 +30,31 @@ async def chat(request: ChatRequest):
     
     - **message**: Tin nhắn từ user
     - **conversation_id**: ID của conversation (tự tạo nếu không có)
-    - **history**: Lịch sử chat trước đó (optional)
+    - **history**: load from database
     
     Returns response từ AI
     """
 
     try:
-        client = get_gpt_client()
+        conversation_id = request.conversation_id or str(uuid.uuid4())
 
-        history_dict = None
-        if request.history:
-            history_dict = [
-                {"role": msg.role, "content": msg.content}
-                for msg in request.history
-            ]
-        
-        reponse = client.chat(
-            message = request.message,
-            history=history_dict
+        result = await chat_graph.ainvoke(
+            {
+                "messages": [HumanMessage(content=request.message)],
+                "conversation_id": conversation_id
+            },
+            config= {
+                "configurable": {
+                    "thread_id": conversation_id
+                }
+            }
         )
-
-        conversation_id =  request.conversation_id or str(uuid.uuid4())
+        
+        ai_message = result["messages"][-1]
 
         return ChatResponse(
-            response=reponse,
-            conversation_id= conversation_id
+            response=ai_message.content,
+            conversation_id=conversation_id
         )
     
     except Exception as e:
