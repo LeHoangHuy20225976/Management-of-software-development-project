@@ -1,0 +1,87 @@
+# ============================================================================
+# CV Service Dockerfile - Face Recognition & Computer Vision
+# ============================================================================
+# Multi-stage build for optimized image size
+
+FROM python:3.11-slim as builder
+
+# Install system dependencies for building
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    curl \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create working directory
+WORKDIR /app
+
+# Install uv for faster package installation
+RUN pip install --no-cache-dir uv
+
+# Copy dependency files
+COPY pyproject.toml uv.lock README.md ./
+
+# Install Python dependencies
+RUN uv pip install --system --no-cache -e .
+
+# ============================================================================
+# Final stage
+# ============================================================================
+
+FROM python:3.11-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # OpenCV dependencies
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libgl1 \
+    # Networking tools for healthcheck
+    curl \
+    # Clean up
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app user for security
+RUN useradd -m -u 1000 appuser
+
+# Set working directory
+WORKDIR /app
+
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code
+COPY src/ /app/src/
+COPY .env.example /app/.env
+
+# Create directory for InsightFace models
+RUN mkdir -p /home/appuser/.insightface/models && \
+    chown -R appuser:appuser /home/appuser/.insightface
+
+# Change ownership
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose port
+EXPOSE 8001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8001/health || exit 1
+
+# Run the application
+CMD ["python", "-m", "uvicorn", "src.application.main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8001", \
+     "--log-level", "info"]

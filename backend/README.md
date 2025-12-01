@@ -54,3 +54,7 @@ Server listens on `http://localhost:3000` by default.
 - Add your own modules by following this pattern
   (controller + services). You can wire routes in `src/routes/index.js`.
 
+## How to use sequelize 
+1. Install all packages in package.json
+2. Create .env file based on .env.example (can use docker for sync the config)
+3. Run this script to create table based on configs and migration:  `npx sequelize-cli db:migrate`

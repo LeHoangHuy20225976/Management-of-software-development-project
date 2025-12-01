@@ -25,6 +25,9 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./infrastructure/postgres/init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql:ro
       - ./infrastructure/postgres/init-pgvector.sql:/docker-entrypoint-initdb.d/02-init-pgvector.sql:ro
+      - ./infrastructure/postgres/MOS_creation_script.sql:/docker-entrypoint-initdb.d/03-MOS_creation_script.sql:ro
+      - ./infrastructure/postgres/MOS_data_script.sql:/docker-entrypoint-initdb.d/04-MOS_data_script.sql:ro
+      - ./infrastructure/postgres/05-face_recognition_schema.sql:/docker-entrypoint-initdb.d/05-face_recognition_schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U hotel_user -d hotel_db"]
       interval: 10s

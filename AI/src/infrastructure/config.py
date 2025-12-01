@@ -46,9 +46,9 @@ class Settings(BaseSettings):
 
     @computed_field
     @property
-    def vector_db_url(self) -> str:
-        """Vector database connection URL"""
-        return f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/vector_db"
+    def asyncpg_url(self) -> str:
+        """PostgreSQL connection URL for asyncpg (without +asyncpg)"""
+        return f"postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
 
     # ========== Redis ==========
     redis_host: str = Field(default="redis", alias="REDIS_HOST")
@@ -116,6 +116,30 @@ class Settings(BaseSettings):
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(
         default=30, alias="ACCESS_TOKEN_EXPIRE_MINUTES"
+    )
+
+    # ========== Face Recognition ==========
+    # Model settings
+    face_model_name: str = Field(default="buffalo_l", alias="FACE_MODEL_NAME")
+    face_detection_size: tuple[int, int] = Field(default=(640, 640), alias="FACE_DETECTION_SIZE")
+    face_embedding_dim: int = Field(default=512, alias="FACE_EMBEDDING_DIM")
+
+    # Recognition thresholds
+    face_similarity_threshold: float = Field(default=0.7, alias="FACE_SIMILARITY_THRESHOLD")
+    face_liveness_threshold: float = Field(default=0.8, alias="FACE_LIVENESS_THRESHOLD")
+
+    # Quality thresholds
+    face_min_quality: float = Field(default=0.5, alias="FACE_MIN_QUALITY")
+    face_min_sharpness: float = Field(default=0.4, alias="FACE_MIN_SHARPNESS")
+    face_min_brightness: float = Field(default=0.3, alias="FACE_MIN_BRIGHTNESS")
+
+    # Database
+    face_max_db_connections: int = Field(default=10, alias="FACE_MAX_DB_CONNECTIONS")
+
+    # RabbitMQ event settings
+    face_rabbitmq_exchange: str = Field(default="hotel_events", alias="FACE_RABBITMQ_EXCHANGE")
+    face_rabbitmq_routing_key: str = Field(
+        default="attendance.recognition", alias="FACE_RABBITMQ_ROUTING_KEY"
     )
 
 
