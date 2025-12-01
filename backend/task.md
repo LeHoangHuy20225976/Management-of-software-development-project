@@ -44,7 +44,7 @@ This document summarizes the role and responsibilities of each backend module in
   - Returns quoted totals for given stay parameters; supports discounts/promo codes.
   - Works closely with Inventory to ensure price reflects availability constraints.
 
-- Booking Engine **(Owner: D)**
+- Booking Engine **(Owner: Duc)**
   - Core reservation logic: create, modify, cancel bookings; generate itinerary and confirmation.
   - Performs availability checks (Inventory), price quotes (Pricing), and orchestrates holds/commits.
   - Emits events to Notification for confirmations and to Payment Gateway for payment flows.
