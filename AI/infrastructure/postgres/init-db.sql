@@ -17,8 +17,12 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'mlflow_db')\gexec
 SELECT 'CREATE DATABASE vector_db'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'vector_db')\gexec
 
+SELECT 'CREATE DATABASE chat_db'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'chat_db')\gexec
+
 -- Grant all privileges to hotel_user on all databases
 GRANT ALL PRIVILEGES ON DATABASE prefect_db TO hotel_user;
 GRANT ALL PRIVILEGES ON DATABASE grafana_db TO hotel_user;
 GRANT ALL PRIVILEGES ON DATABASE mlflow_db TO hotel_user;
 GRANT ALL PRIVILEGES ON DATABASE vector_db TO hotel_user;
+GRANT ALL PRIVILEGES ON DATABASE chat_db TO hotel_user;

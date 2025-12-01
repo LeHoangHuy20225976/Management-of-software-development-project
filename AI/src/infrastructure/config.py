@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     postgres_host: str = Field(default="postgres", alias="POSTGRES_HOST")
     postgres_port: int = Field(default=5432, alias="POSTGRES_PORT")
     postgres_db: str = Field(default="hotel_db", alias="POSTGRES_DB")
+    postgres_chat_url: str = Field(
+        default="postgresql://hotel_user:hotel_password@localhost:5433/chat_db",
+        description="Postgresql for chat checkpoint"
+    )
 
     @computed_field
     @property
