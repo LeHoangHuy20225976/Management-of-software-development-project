@@ -25,6 +25,9 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./infrastructure/postgres/init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql:ro
       - ./infrastructure/postgres/init-pgvector.sql:/docker-entrypoint-initdb.d/02-init-pgvector.sql:ro
+      - ./infrastructure/postgres/MOS_creation_script.sql:/docker-entrypoint-initdb.d/03-MOS_creation_script.sql:ro
+      - ./infrastructure/postgres/MOS_data_script.sql:/docker-entrypoint-initdb.d/04-MOS_data_script.sql:ro
+      - ./infrastructure/postgres/05-face_recognition_schema.sql:/docker-entrypoint-initdb.d/05-face_recognition_schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U hotel_user -d hotel_db"]
       interval: 10s
@@ -260,38 +263,66 @@ services:
       - hotel-network
 
   # ============================================================================
-  # AI SERVICES (Build khi đã có code)
+  # AI SERVICES
   # ============================================================================
-  # Uncomment khi đã implement services
 
-  # cv-service:
-  #   build:
-  #     context: ./services/cv-service
-  #     dockerfile: Dockerfile
-  #   container_name: hotel-cv-service
-  #   ports:
-  #     - "8001:8001"
-  #   environment:
-  #     DATABASE_URL: postgresql+asyncpg://hotel_user:hotel_password@postgres:5432/hotel_db
-  #     VECTOR_DB_TYPE: pgvector
-  #     REDIS_URL: redis://:redis_password@redis:6379/0
-  #     RABBITMQ_URL: amqp://hotel_user:rabbitmq_password@rabbitmq:5672/
-  #     MINIO_ENDPOINT: minio:9000
-  #     MINIO_ACCESS_KEY: minio_admin
-  #     MINIO_SECRET_KEY: minio_password_123
-  #     MINIO_BUCKET: hotel-images
-  #     MINIO_SECURE: "false"
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #     rabbitmq:
-  #       condition: service_healthy
-  #     minio:
-  #       condition: service_healthy
-  #   networks:
-  #     - hotel-network
+  cv-service:
+    build:
+      context: .
+      dockerfile: deployments/Dockerfile.cv-service
+    container_name: hotel-cv-service
+    ports:
+      - "8001:8001"
+    environment:
+      # Database
+      POSTGRES_USER: hotel_user
+      POSTGRES_PASSWORD: hotel_password
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: hotel_db
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: redis_password
+      REDIS_DB: 0
+      # RabbitMQ
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: hotel_user
+      RABBITMQ_PASSWORD: rabbitmq_password
+      # MinIO
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minio_admin
+      MINIO_SECRET_KEY: minio_password_123
+      MINIO_BUCKET: hotel-images
+      MINIO_SECURE: "false"
+      # API
+      API_HOST: 0.0.0.0
+      API_PORT: 8001
+      # Logging
+      LOG_LEVEL: INFO
+      ENVIRONMENT: development
+    volumes:
+      # Mount source code for hot-reload in development
+      - ./src:/app/src:ro
+      - ./.env:/app/.env:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - hotel-network
 
   # ml-service:
   #   build:

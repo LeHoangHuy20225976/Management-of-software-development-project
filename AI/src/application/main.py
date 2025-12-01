@@ -48,6 +48,13 @@ async def lifespan(app: FastAPI):
     # await init_redis()
     # await init_rabbitmq()
 
+    # Initialize Face Recognition Service
+    try:
+        from src.application.controllers.cv import initialize_face_service
+        await initialize_face_service()
+    except Exception as e:
+        app_logger.error(f"Failed to initialize face service: {e}", exc_info=True)
+
     app_logger.info("Application started successfully")
 
     yield  # Application is running
@@ -58,6 +65,13 @@ async def lifespan(app: FastAPI):
     # await close_database()
     # await close_redis()
     # await close_rabbitmq()
+
+    # Shutdown Face Recognition Service
+    try:
+        from src.application.controllers.cv import shutdown_face_service
+        await shutdown_face_service()
+    except Exception as e:
+        app_logger.error(f"Failed to shutdown face service: {e}", exc_info=True)
 
     app_logger.info("Application shut down successfully")
 
@@ -243,16 +257,15 @@ async def app_info() -> dict[str, Any]:
 
 # ========== Include Routers ==========
 
-# TODO: Uncomment when implementing services
-# from src.application.controllers.cv.router import router as cv_router
-from src.application.controllers.ml.router import router as ml_router
-from src.application.controllers.llm.router import router as llm_router
-from src.application.controllers.llm.email_router import router as email_router
+from src.application.controllers.cv import face_router
+# from src.application.controllers.ml.router import router as ml_router
+# from src.application.controllers.llm.router import router as llm_router
+# from src.application.controllers.llm.email_router import router as email_router
 
-# app.include_router(cv_router, prefix="/api/cv", tags=["Computer Vision"])
-app.include_router(ml_router, prefix="/api/ml", tags=["Machine Learning"])
-app.include_router(llm_router, prefix="/api/llm", tags=["LLM & RAG"])
-app.include_router(email_router, prefix="/api/email", tags=["Email Service"])
+app.include_router(face_router, prefix="/api", tags=["Computer Vision - Face Recognition"])
+# app.include_router(ml_router, prefix="/api/ml", tags=["Machine Learning"])
+# app.include_router(llm_router, prefix="/api/llm", tags=["LLM & RAG"])
+# app.include_router(email_router, prefix="/api/email", tags=["Email Service"])
 
 
 # ========== Run Application ==========
