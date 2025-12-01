@@ -14,7 +14,11 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   RoomLog.init({
-    log_id: DataTypes.INTEGER,
+    log_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
     room_id: DataTypes.INTEGER,
     event_type: DataTypes.STRING,
     extra_context: DataTypes.TEXT,

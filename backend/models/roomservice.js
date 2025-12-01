@@ -20,7 +20,11 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   RoomService.init({
-    service_id: DataTypes.INTEGER,
+    service_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
     name: DataTypes.STRING
   }, {
     sequelize,

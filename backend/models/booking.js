@@ -18,7 +18,11 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Booking.init({
-    booking_id: DataTypes.INTEGER,
+    booking_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
     user_id: DataTypes.INTEGER,
     room_id: DataTypes.INTEGER,
     status: DataTypes.STRING,

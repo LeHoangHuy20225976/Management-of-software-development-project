@@ -9,7 +9,7 @@ const app = {
 };
 
 const jwt = {
-  secret: process.env.JWT_SECRET || "change-me-in-.env",
+  secret: process.env.JWT_SECRET,
   ttl: process.env.JWT_TTL || "1h",
 };
 

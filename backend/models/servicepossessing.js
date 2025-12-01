@@ -16,8 +16,14 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   ServicePossessing.init({
-    service_id: DataTypes.INTEGER,
-    type_id: DataTypes.INTEGER,
+    service_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true
+    },
+    type_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true
+    },
     description: DataTypes.TEXT
   }, {
     sequelize,

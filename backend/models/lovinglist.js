@@ -16,10 +16,18 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   LovingList.init({
-    id: DataTypes.INTEGER,
-    user_id: DataTypes.INTEGER,
-    destination_id: DataTypes.INTEGER,
-    hotel_id: DataTypes.INTEGER
+    user_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true
+    },
+    destination_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true
+    },
+    hotel_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true
+    }
   }, {
     sequelize,
     modelName: 'LovingList',

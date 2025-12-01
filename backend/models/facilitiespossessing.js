@@ -14,8 +14,14 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   FacilitiesPossessing.init({
-    facility_id: DataTypes.INTEGER,
-    hotel_id: DataTypes.INTEGER,
+    facility_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true
+    },
+    hotel_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true
+    },
     description: DataTypes.TEXT
   }, {
     sequelize,

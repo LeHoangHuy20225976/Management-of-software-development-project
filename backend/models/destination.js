@@ -16,7 +16,11 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Destination.init({
-    destination_id: DataTypes.INTEGER,
+    destination_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
     name: DataTypes.STRING,
     rating: DataTypes.INTEGER,
     location: DataTypes.STRING,

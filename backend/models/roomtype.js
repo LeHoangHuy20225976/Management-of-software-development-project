@@ -23,7 +23,11 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   RoomType.init({
-    type_id: DataTypes.INTEGER,
+    type_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
     hotel_id: DataTypes.INTEGER,
     type: DataTypes.STRING,
     availability: DataTypes.BOOLEAN,

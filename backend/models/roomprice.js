@@ -16,7 +16,11 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   RoomPrice.init({
-    price_id: DataTypes.INTEGER,
+    price_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
     type_id: DataTypes.INTEGER,
     start_date: DataTypes.DATE,
     end_date: DataTypes.DATE,

@@ -19,7 +19,11 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Image.init({
-    image_id: DataTypes.INTEGER,
+    image_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
     destination_id: DataTypes.INTEGER,
     hotel_id: DataTypes.INTEGER,
     room_id: DataTypes.INTEGER,

@@ -1,22 +1,15 @@
-const { Router } = require('express');
-
-
-
-const router = Router();
+require("express-router-group");
+const express = require("express");
+const router = express.Router({ mergeParams: true });
+const authController = require("../modules/auth/controller/authController");
 
 router.get('/health', (req, res) => {
   res.status(200).send({ status: 'ok' });
 });
 
-// Demo simple route
-// router.get('/health', healthController.getHealth);
-
-// Demo grouped routes for users
-// router.group('/users', (userRouter) => {
-//     userRouter.post('/', usersController.createUser);
-//     userRouter.get('/:id', usersController.getUserById);
-//     userRouter.put('/:id', usersController.updateUser);
-//     userRouter.delete('/:id', usersController.deleteUser);
-// });
+router.group('/auth', (router) => {
+  router.post('/login', authController.login);
+  router.post('/register', authController.register);
+});
 
 module.exports = router;

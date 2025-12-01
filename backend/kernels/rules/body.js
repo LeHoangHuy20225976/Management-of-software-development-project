@@ -1,5 +1,5 @@
 const { body } = require("express-validator");
-const WithLocale = require("kernels/rules/base");
+const WithLocale = require("./base");
 
 class BodyWithLocale extends WithLocale 
 {

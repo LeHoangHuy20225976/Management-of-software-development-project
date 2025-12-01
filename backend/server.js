@@ -9,7 +9,7 @@ const port = config.PORT || 3000;
 
 const server = http.createServer(app);
 
-connectDB();
+// connectDB();
 
 server.listen(port, () => {
   // eslint-disable-next-line no-console

@@ -26,7 +26,11 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Hotel.init({
-    hotel_id: DataTypes.INTEGER,
+    hotel_id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
     hotel_owner: DataTypes.INTEGER,
     name: DataTypes.STRING,
     address: DataTypes.STRING,
