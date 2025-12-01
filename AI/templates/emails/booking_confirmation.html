@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Confirmation</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .booking-details {
+            background-color: #f9f9f9;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .booking-details h2 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .label {
+            font-weight: bold;
+            color: #666;
+        }
+        .value {
+            color: #333;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            background-color: #f4f4f4;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏨 Booking Confirmed!</h1>
+            <p>Thank you for choosing our hotel</p>
+        </div>
+        
+        <div class="content">
+            <p>Dear {{ guest_name }},</p>
+            
+            <p>We are delighted to confirm your reservation. Your booking details are as follows:</p>
+            
+            <div class="booking-details">
+                <h2>Booking Details</h2>
+                
+                <div class="detail-row">
+                    <span class="label">Booking ID:</span>
+                    <span class="value">{{ booking_id }}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span class="label">Check-in:</span>
+                    <span class="value">{{ check_in }}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span class="label">Check-out:</span>
+                    <span class="value">{{ check_out }}</span>
+                </div>
+                
+                {% if room_number %}
+                <div class="detail-row">
+                    <span class="label">Room Number:</span>
+                    <span class="value">{{ room_number }}</span>
+                </div>
+                {% endif %}
+                
+                {% if room_type %}
+                <div class="detail-row">
+                    <span class="label">Room Type:</span>
+                    <span class="value">{{ room_type }}</span>
+                </div>
+                {% endif %}
+                
+                {% if total_amount %}
+                <div class="detail-row">
+                    <span class="label">Total Amount:</span>
+                    <span class="value">${{ total_amount }}</span>
+                </div>
+                {% endif %}
+            </div>
+            
+            <p><strong>Check-in time:</strong> 3:00 PM<br>
+            <strong>Check-out time:</strong> 11:00 AM</p>
+            
+            <p>We look forward to welcoming you!</p>
+            
+            <center>
+                <a href="#" class="button">View Booking</a>
+            </center>
+            
+            <p>If you have any questions, please don't hesitate to contact us.</p>
+            
+            <p>Best regards,<br>
+            <strong>Hotel AI Management Team</strong></p>
+        </div>
+        
+        <div class="footer">
+            <p>This is an automated message from Hotel AI System</p>
+            <p>© 2025 Hotel AI Management System. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
+

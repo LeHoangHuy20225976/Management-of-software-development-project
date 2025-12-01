@@ -29,6 +29,43 @@ deployments:
       - hotel
       - production
 
+  # Email Flows
+  - name: send-simple-email
+    entrypoint: src/flow/email_flow.py:send_simple_email_flow
+    work_pool:
+      name: local-pool
+    tags:
+      - hotel
+      - email
+      - notification
+
+  - name: send-templated-email
+    entrypoint: src/flow/email_flow.py:send_templated_email_flow
+    work_pool:
+      name: local-pool
+    tags:
+      - hotel
+      - email
+      - template
+
+  - name: send-bulk-email-campaign
+    entrypoint: src/flow/email_flow.py:send_bulk_email_campaign_flow
+    work_pool:
+      name: local-pool
+    tags:
+      - hotel
+      - email
+      - bulk
+
+  - name: send-notification-email
+    entrypoint: src/flow/email_flow.py:send_notification_email_flow
+    work_pool:
+      name: local-pool
+    tags:
+      - hotel
+      - email
+      - notification
+
 # ==============================================================================
 # Pull step - How to get the code
 # ==============================================================================

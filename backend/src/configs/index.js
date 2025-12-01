@@ -21,6 +21,12 @@ const database = {
   // Placeholder values; update when wiring DB
   url: process.env.DATABASE_URL || "",
   dialect: process.env.DB_DIALECT || "postgres",
+  dbName: process.env.DB_NAME || "postgres",
+  dbUser: process.env.DB_USER || "postgres",
+  dbPassword: process.env.DB_PASSWORD || "",
+  dbHost: process.env.DB_HOST || "localhost",
+  dbPort: toInt(process.env.DB_PORT, 5432),
+  dbLogging: process.env.DB_LOGGING === "true",
 };
 
 const config = { app, database, jwt, hashing };
