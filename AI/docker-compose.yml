@@ -263,49 +263,64 @@ services:
       - hotel-network
 
   # ============================================================================
-  # AI SERVICES
+  # AI SERVICES - Unified Service (CV, ML, LLM)
   # ============================================================================
 
-  cv-service:
+  ai-service:
     build:
       context: .
-      dockerfile: deployments/Dockerfile.cv-service
-    container_name: hotel-cv-service
+      dockerfile: Dockerfile
+    container_name: hotel-ai-service
     ports:
-      - "8001:8001"
+      - "8000:8000"
     environment:
-      # Database
-      POSTGRES_USER: hotel_user
-      POSTGRES_PASSWORD: hotel_password
+      # Application
+      ENVIRONMENT: production
+      DEBUG: "false"
+      LOG_LEVEL: INFO
+      
+      # PostgreSQL (inside Docker network)
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
+      POSTGRES_USER: hotel_user
+      POSTGRES_PASSWORD: hotel_password
       POSTGRES_DB: hotel_db
+      POSTGRES_CHAT_URI: postgresql://hotel_user:hotel_password@postgres:5432/hotel_db
+      
       # Redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: redis_password
-      REDIS_DB: 0
+      REDIS_DB: 2
+      
       # RabbitMQ
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
       RABBITMQ_USER: hotel_user
       RABBITMQ_PASSWORD: rabbitmq_password
+      
       # MinIO
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: minio_admin
       MINIO_SECRET_KEY: minio_password_123
-      MINIO_BUCKET: hotel-images
       MINIO_SECURE: "false"
-      # API
-      API_HOST: 0.0.0.0
-      API_PORT: 8001
-      # Logging
-      LOG_LEVEL: INFO
-      ENVIRONMENT: development
-    volumes:
-      # Mount source code for hot-reload in development
-      - ./src:/app/src:ro
-      - ./.env:/app/.env:ro
+      MINIO_BUCKET: hotel-data
+      
+      # LLM APIs (inject from host .env)
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      
+      # Model settings
+      LLM_MODEL: openai/gpt-oss-120b
+      EMBEDDING_MODEL: text-embedding-3-small
+      EMBEDDING_DIMENSION: 1536
+      
+      # Prefect
+      PREFECT_API_URL: http://prefect-server:4200/api
+      
+      # MLflow
+      MLFLOW_TRACKING_URI: http://mlflow:5000
     depends_on:
       postgres:
         condition: service_healthy
@@ -315,75 +330,9 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     restart: unless-stopped
     networks:
       - hotel-network
-
-  # ml-service:
-  #   build:
-  #     context: ./services/ml-service
-  #     dockerfile: Dockerfile
-  #   container_name: hotel-ml-service
-  #   ports:
-  #     - "8002:8002"
-  #   environment:
-  #     DATABASE_URL: postgresql+asyncpg://hotel_user:hotel_password@postgres:5432/hotel_db
-  #     REDIS_URL: redis://:redis_password@redis:6379/1
-  #     RABBITMQ_URL: amqp://hotel_user:rabbitmq_password@rabbitmq:5672/
-  #     MLFLOW_TRACKING_URI: http://mlflow:5000
-  #   depends_on:
-  #     - postgres
-  #     - redis
-  #     - mlflow
-  #   networks:
-  #     - hotel-network
-
-  # llm-service:
-  #   build:
-  #     context: ./services/llm-service
-  #     dockerfile: Dockerfile
-  #   container_name: hotel-llm-service
-  #   ports:
-  #     - "8003:8003"
-  #   environment:
-  #     DATABASE_URL: postgresql+asyncpg://hotel_user:hotel_password@postgres:5432/hotel_db
-  #     VECTOR_DB_TYPE: pgvector
-  #     REDIS_URL: redis://:redis_password@redis:6379/2
-  #     RABBITMQ_URL: amqp://hotel_user:rabbitmq_password@rabbitmq:5672/
-  #     OPENAI_API_KEY: ${OPENAI_API_KEY}
-  #     CV_SERVICE_URL: http://cv-service:8001
-  #     ML_SERVICE_URL: http://ml-service:8002
-  #   depends_on:
-  #     - postgres
-  #     - redis
-  #   networks:
-  #     - hotel-network
-
-  # prefect-service:
-  #   build:
-  #     context: ./services/prefect-service
-  #     dockerfile: Dockerfile
-  #   container_name: hotel-prefect-service
-  #   ports:
-  #     - "8004:8004"
-  #   environment:
-  #     DATABASE_URL: postgresql+asyncpg://hotel_user:hotel_password@postgres:5432/hotel_db
-  #     REDIS_URL: redis://:redis_password@redis:6379/3
-  #     RABBITMQ_URL: amqp://hotel_user:rabbitmq_password@rabbitmq:5672/
-  #     PREFECT_API_URL: http://prefect-server:4200/api
-  #     CV_SERVICE_URL: http://cv-service:8001
-  #     ML_SERVICE_URL: http://ml-service:8002
-  #     LLM_SERVICE_URL: http://llm-service:8003
-  #   depends_on:
-  #     - postgres
-  #     - prefect-server
-  #   networks:
-  #     - hotel-network
 
 # ==============================================================================
 # VOLUMES

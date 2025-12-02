@@ -258,14 +258,14 @@ async def app_info() -> dict[str, Any]:
 # ========== Include Routers ==========
 
 from src.application.controllers.cv import face_router
-# from src.application.controllers.ml.router import router as ml_router
-# from src.application.controllers.llm.router import router as llm_router
-# from src.application.controllers.llm.email_router import router as email_router
+from src.application.controllers.ml.router import router as ml_router
+from src.application.controllers.llm.router import router as llm_router
+from src.application.controllers.llm.email_router import router as email_router
 
 app.include_router(face_router, prefix="/api", tags=["Computer Vision - Face Recognition"])
-# app.include_router(ml_router, prefix="/api/ml", tags=["Machine Learning"])
-# app.include_router(llm_router, prefix="/api/llm", tags=["LLM & RAG"])
-# app.include_router(email_router, prefix="/api/email", tags=["Email Service"])
+app.include_router(ml_router, prefix="/api/ml", tags=["Machine Learning"])
+app.include_router(llm_router, prefix="/api/llm", tags=["LLM & RAG"])
+app.include_router(email_router, prefix="/api/email", tags=["Email Service"])
 
 
 # ========== Run Application ==========
