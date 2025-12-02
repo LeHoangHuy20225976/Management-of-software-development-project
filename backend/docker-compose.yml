@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hotel_postgres
+    environment:
+      POSTGRES_DB: hotel_dev_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 03082004
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hotel_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hotel_backend
+    environment:
+      PORT: 3000
+      DATABASE_ENV: development
+      DATABASE_NAME: hotel_dev_db
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: 03082004
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      JWT_SECRET: lehoanghuynoob
+      DB_LOGGING: false
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - hotel_network
+    command: >
+      sh -c "npx sequelize-cli db:migrate && npm run dev"
+
+volumes:
+  postgres_data:
+
+networks:
+  hotel_network:
+    driver: bridge
