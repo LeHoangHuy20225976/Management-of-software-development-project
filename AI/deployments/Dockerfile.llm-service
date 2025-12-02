@@ -1,0 +1,43 @@
+# ==============================================================================
+# LLM Service - Chat, RAG, Email Generation
+# ==============================================================================
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    gcc \
+    g++ \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv package manager
+RUN pip install --no-cache-dir uv
+
+# Copy dependency files
+COPY pyproject.toml .
+COPY README.md .
+COPY .python-version* ./
+
+# Sync dependencies with uv (only LLM dependencies)
+RUN uv sync --no-dev --extra llm
+
+# Copy application source code
+COPY src/ /app/src/
+
+# Set Python path
+ENV PYTHONPATH=/app:${PYTHONPATH}
+
+# Expose port
+EXPOSE 8003
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:8003/health || exit 1
+
+# Start LLM service
+CMD ["uv", "run", "uvicorn", "src.application.controllers.llm.main:app", "--host", "0.0.0.0", "--port", "8003"]

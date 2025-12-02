@@ -1,0 +1,53 @@
+# ==============================================================================
+# CV Service - Face Recognition
+# ==============================================================================
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies for OpenCV & Face Recognition
+RUN apt-get update && apt-get install -y \
+    curl \
+    gcc \
+    g++ \
+    build-essential \
+    libpq-dev \
+    # OpenCV dependencies
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    libgl1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv package manager
+RUN pip install --no-cache-dir uv
+
+# Copy dependency files
+COPY pyproject.toml .
+COPY README.md .
+COPY .python-version* ./
+
+# Sync dependencies with uv (only CV dependencies)
+RUN uv sync --no-dev --extra cv
+
+# Copy application source code
+COPY src/ /app/src/
+
+# Create directory for InsightFace models
+RUN mkdir -p /root/.insightface/models
+
+# Set Python path
+ENV PYTHONPATH=/app:${PYTHONPATH}
+
+# Expose port
+EXPOSE 8001
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:8001/health || exit 1
+
+# Start CV service
+CMD ["uv", "run", "uvicorn", "src.application.controllers.cv.main:app", "--host", "0.0.0.0", "--port", "8001"]
