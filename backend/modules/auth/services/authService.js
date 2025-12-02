@@ -25,8 +25,8 @@ const authService = {
         if (!isMatch) {
             throw new Error(INVALID_CREDENTIALS);
         }
-        const accessToken = sign({ user_id: user.user_id, role: user.role });
-        const refreshToken = signRefreshToken({ user_id: user.user_id, role: user.role });
+        const accessToken = sign(user.user_id, user.role);
+        const refreshToken = signRefreshToken(user.user_id, user.role);
         return {
             user: {
                 user_id: user.user_id,
