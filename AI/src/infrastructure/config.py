@@ -33,10 +33,12 @@ class Settings(BaseSettings):
     postgres_host: str = Field(default="postgres", alias="POSTGRES_HOST")
     postgres_port: int = Field(default=5432, alias="POSTGRES_PORT")
     postgres_db: str = Field(default="hotel_db", alias="POSTGRES_DB")
-    postgres_chat_url: str = Field(
-        default="postgresql://hotel_user:hotel_password@localhost:5433/chat_db",
-        description="Postgresql for chat checkpoint"
-    )
+
+    @computed_field
+    @property
+    def postgres_chat_url(self) -> str:
+        """PostgreSQL connection URL for LangGraph checkpointer"""
+        return f"postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
 
     @computed_field
     @property

@@ -263,14 +263,14 @@ services:
       - hotel-network
 
   # ============================================================================
-  # AI SERVICES
+  # AI SERVICES - Unified Service (CV, ML, LLM)
   # ============================================================================
 
-  llm-service:
+  ai-service:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: hotel-llm-service
+    container_name: hotel-ai-service
     ports:
       - "8000:8000"
     environment:
