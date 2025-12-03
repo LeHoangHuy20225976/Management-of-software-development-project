@@ -80,14 +80,8 @@ describe('AuthService', () => {
         }
       });
       expect(bcrypt.compare).toHaveBeenCalledWith(mockUserData.password, mockUser.password);
-      expect(sign).toHaveBeenCalledWith({ 
-        user_id: mockUser.user_id, 
-        role: mockUser.role 
-      });
-      expect(signRefreshToken).toHaveBeenCalledWith({ 
-        user_id: mockUser.user_id, 
-        role: mockUser.role 
-      });
+      expect(sign).toHaveBeenCalledWith(mockUser.user_id, mockUser.role);
+      expect(signRefreshToken).toHaveBeenCalledWith(mockUser.user_id, mockUser.role);
 
       expect(result).toEqual({
         user: {

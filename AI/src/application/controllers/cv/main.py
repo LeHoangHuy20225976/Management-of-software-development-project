@@ -1,6 +1,6 @@
 """
-Main FastAPI application
-Entry point for all API services (CV, ML, LLM)
+CV Service - Face Recognition
+Entry point for Computer Vision service
 """
 from contextlib import asynccontextmanager
 from typing import Any
@@ -17,6 +17,7 @@ from src.utils.logger import (
     error_logger,
     configure_third_party_loggers,
 )
+from .face_controller import router as face_router, initialize_face_service, shutdown_face_service
 
 settings = get_settings()
 
@@ -30,61 +31,48 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     app_logger.info(
-        "Starting Hotel AI System",
+        "Starting CV Service - Face Recognition",
         extra={
             "environment": settings.environment,
             "debug": settings.debug,
-            "app_name": settings.app_name,
         },
     )
 
     # Configure third-party loggers
     configure_third_party_loggers()
 
-    # Initialize connections (database, redis, rabbitmq, etc.)
-    app_logger.info("Initializing connections...")
-    # TODO: Add connection initialization here
-    # await init_database()
-    # await init_redis()
-    # await init_rabbitmq()
-
     # Initialize Face Recognition Service
     try:
-        from src.application.controllers.cv import initialize_face_service
         await initialize_face_service()
+        app_logger.info("Face Recognition service initialized successfully")
     except Exception as e:
         app_logger.error(f"Failed to initialize face service: {e}", exc_info=True)
 
-    app_logger.info("Application started successfully")
+    app_logger.info("CV Service started successfully")
 
     yield  # Application is running
 
     # Shutdown
-    app_logger.info("Shutting down Hotel AI System")
-    # TODO: Close connections here
-    # await close_database()
-    # await close_redis()
-    # await close_rabbitmq()
+    app_logger.info("Shutting down CV Service")
 
     # Shutdown Face Recognition Service
     try:
-        from src.application.controllers.cv import shutdown_face_service
         await shutdown_face_service()
     except Exception as e:
         app_logger.error(f"Failed to shutdown face service: {e}", exc_info=True)
 
-    app_logger.info("Application shut down successfully")
+    app_logger.info("CV Service shut down successfully")
 
 
 # ========== Create FastAPI App ==========
 
 app = FastAPI(
-    title=settings.app_name,
-    description="Hotel AI Management System with CV, ML, LLM services",
+    title="Hotel AI - CV Service",
+    description="Computer Vision Service for Face Recognition & Attendance Tracking",
     version="0.1.0",
     debug=settings.debug,
     lifespan=lifespan,
-    docs_url="/docs" if settings.debug else None,  # Disable in production
+    docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
 )
 
@@ -200,11 +188,9 @@ async def root() -> dict[str, Any]:
     """
     Root endpoint - basic info
     """
-    app_logger.debug("Root endpoint accessed")
     return {
-        "app": settings.app_name,
+        "service": "CV Service - Face Recognition",
         "version": "0.1.0",
-        "environment": settings.environment,
         "status": "running",
     }
 
@@ -214,58 +200,16 @@ async def health_check() -> dict[str, Any]:
     """
     Health check endpoint for monitoring
     """
-    # TODO: Add actual health checks here
-    # - Database connection
-    # - Redis connection
-    # - RabbitMQ connection
-    # - Disk space
-    # - Memory usage
-
     return {
         "status": "healthy",
-        "app": settings.app_name,
-        "environment": settings.environment,
-        "checks": {
-            "database": "ok",  # TODO: Add real check
-            "redis": "ok",  # TODO: Add real check
-            "rabbitmq": "ok",  # TODO: Add real check
-        },
-    }
-
-
-@app.get("/info", tags=["Health"])
-async def app_info() -> dict[str, Any]:
-    """
-    Application information
-    """
-    return {
-        "app_name": settings.app_name,
+        "service": "cv-service",
         "version": "0.1.0",
-        "environment": settings.environment,
-        "debug": settings.debug,
-        "log_level": settings.log_level,
-        "services": {
-            "database": settings.database_url.split("@")[1] if "@" in settings.database_url else "configured",
-            "redis": f"{settings.redis_host}:{settings.redis_port}",
-            "rabbitmq": f"{settings.rabbitmq_host}:{settings.rabbitmq_port}",
-            "minio": settings.minio_endpoint,
-            "mlflow": settings.mlflow_tracking_uri,
-            "prefect": settings.prefect_api_url,
-        },
     }
 
 
 # ========== Include Routers ==========
 
-from src.application.controllers.cv import face_router
-from src.application.controllers.ml.router import router as ml_router
-from src.application.controllers.llm.router import router as llm_router
-from src.application.controllers.llm.email_router import router as email_router
-
-app.include_router(face_router, prefix="/api", tags=["Computer Vision - Face Recognition"])
-app.include_router(ml_router, prefix="/api/ml", tags=["Machine Learning"])
-app.include_router(llm_router, prefix="/api/llm", tags=["LLM & RAG"])
-app.include_router(email_router, prefix="/api/email", tags=["Email Service"])
+app.include_router(face_router, prefix="/api/cv", tags=["Face Recognition"])
 
 
 # ========== Run Application ==========
@@ -274,19 +218,17 @@ if __name__ == "__main__":
     import uvicorn
 
     app_logger.info(
-        "Starting server",
+        "Starting CV Service",
         extra={
             "host": settings.api_host,
-            "port": settings.api_port,
-            "reload": settings.api_reload,
+            "port": 8001,
         },
     )
 
     uvicorn.run(
-        "src.application.main:app",
+        "src.application.controllers.cv.main:app",
         host=settings.api_host,
-        port=settings.api_port,
+        port=8001,
         reload=settings.api_reload,
-        workers=settings.api_workers if not settings.api_reload else 1,
         log_level=settings.log_level.lower(),
     )

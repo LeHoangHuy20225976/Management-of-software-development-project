@@ -58,3 +58,10 @@ Server listens on `http://localhost:3000` by default.
 1. Install all packages in package.json
 2. Create .env file based on .env.example (can use docker for sync the config)
 3. Run this script to create table based on configs and migration:  `npx sequelize-cli db:migrate`
+
+## About environment and database
+All environment and libs necessary are packaged on docker, you can run locally or run environment on docker by using script
+- Building the content of images and run at the first time or when having something changed on docker-compose `docker-compose up -d --build`
+- After this, when need to run or create service on container then only need to run  `docker-compose up`
+- To stop the container without deleting value be stored on DBMS   `docker-compose down` or deleted all value in database `docker-compose down -v`
+- To log the backend logs:  `docker-compose logs backend`
