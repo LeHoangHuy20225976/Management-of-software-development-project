@@ -39,6 +39,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: hotel_backend
+    env_file:
+      - .env
     environment:
       PORT: 3000
       DATABASE_ENV: development
@@ -53,6 +55,9 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_URL: redis://redis:6379
+      APP_PASS: ${APP_PASS}
+      GMAIL_USER: ${GMAIL_USER}
+      RESET_PASSWORD_URL: ${RESET_PASSWORD_URL}
     ports:
       - "3000:3000"
     depends_on:

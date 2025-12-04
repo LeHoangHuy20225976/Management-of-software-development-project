@@ -62,14 +62,36 @@ const authController = {
             return responseUtils.error(res, error.message);
         }
     },
-    forgotPassword: async (req, res) => {
+    verifyResetForgetPassword: async (req, res) => {
         try {
             const { email } = req.body;
-            const data = await authService.forgotPassword(email);
-            return responseUtils.ok(res, data);
-        } catch (error) {
-            return responseUtils.error(res, error.message);
+            if (!email) {
+                return responseUtils.error(res, { message: "Email is required" });
+            }
+            // console.log("It is called");
+            const data = await authService.verifyForgetPassword(email);
+            return responseUtils.ok(res, {  message: data.message });
+            } catch (error) {
+            console.error("Verify Reset Password error:", error);
+            return responseUtils.unauthorized(res, error.message);
         }
-    }
+    },
+    async resetForgetPassword(req, res) {
+        try {
+            const {email, newPassword, newPasswordConfirm, token} = req.body;
+            if(!email || !newPassword || !newPasswordConfirm || !token) {
+                return responseUtils.error(res, { message: "Email, new password, confirm new password and token are required" });
+            }
+            if(newPassword !== newPasswordConfirm) {
+                return responseUtils.error(res, { message: "New password and confirm new password do not match" });
+            }
+            await authService.resetForgetPassword(email, newPassword, token);
+            return responseUtils.ok(res, { message: "Password reset successfully" });
+        } catch (error) {
+            console.error("Reset Password error:", error);
+            return responseUtils.unauthorized(res, error.message);
+        }
+    },
+
 };
 module.exports = authController;
