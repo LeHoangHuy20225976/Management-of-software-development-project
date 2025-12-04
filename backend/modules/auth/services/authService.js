@@ -3,7 +3,8 @@ const bcrypt = require("bcryptjs");
 const db = require("../../../models/index");
 const { Op } = require("sequelize");
 const express = require("express");
-const redis = require("utils/redisClient");
+const redis = require("../../../utils/redisClient");
+const nodemailer = require("nodemailer");
 
 require("dotenv").config();
 const config = require("../../../configs/index");
@@ -81,6 +82,45 @@ const authService = {
         await user.save();
         return { message: "Password reset successfully" };
     },
+    async resetForgetPassword(email, newPassword, token) {
+        const user = await db.User.findOne({ where: { email } });
+        if (!user) {
+            throw new Error("User not found.");
+        }
+        const storedToken = await redis.get(email);
+        if (!storedToken) {
+            throw new Error("Invalid or expired token.");
+        }
+        if (storedToken !== token) {
+            throw new Error("Token mismatch.");
+        }
+        const hashed_password = await bcrypt.hash(newPassword, 10);
+        user.hashed_password = hashed_password;
+        await redis.del(email);
+        await user.save();
+        return { message: "Password reset successfully." };
+    },
+    async genOTP() {
+        const otp = Math.floor(100000 + Math.random() * 900000);
+        return otp;
+    },
+    async sendOTP(email, otp) {
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.GMAIL_USER || "duckcode145@gmail.com",
+                pass: process.env.APP_PASS,
+            },
+        });
+        const mailOptions = {
+            from: process.env.GMAIL_USER || "duckcode145@gmail.com",
+            to: email,
+            subject: "OTP for email vertification",
+            text: `Your OTP is: ${otp}, valid for 5 minutes.`,
+        };
+        return transporter.sendMail(mailOptions);
+    },
+
     async verifyForgetPassword(email) {
         const user = await db.User.findOne({ where: { email } });
         if (!user || user.status !== config.config.statusenum.AUTHENTICATED) {
