@@ -42,6 +42,34 @@ const authController = {
             }
             return responseUtils.error(res, error.message);
         }
+    },
+    logout: async (req, res) => {
+        try {
+            res.clearCookie("accessToken");
+            res.clearCookie("refreshToken");
+            return responseUtils.ok(res, { message: "Logged out successfully" });
+        } catch (error) {
+            return responseUtils.error(res, error.message);
+        }
+    },
+    resetPassword: async (req, res) => {
+        try {
+            userId = req.user.user_id;
+            const {currentPassword, newPassword, confirmNewPassword} = req.body;
+            const data = await authService.resetPassword(userId, currentPassword, newPassword, confirmNewPassword);
+            return responseUtils.ok(res, data);
+        } catch (error) {
+            return responseUtils.error(res, error.message);
+        }
+    },
+    forgotPassword: async (req, res) => {
+        try {
+            const { email } = req.body;
+            const data = await authService.forgotPassword(email);
+            return responseUtils.ok(res, data);
+        } catch (error) {
+            return responseUtils.error(res, error.message);
+        }
     }
 };
 module.exports = authController;
