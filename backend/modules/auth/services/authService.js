@@ -3,6 +3,8 @@ const bcrypt = require("bcryptjs");
 const db = require("../../../models/index");
 const { Op } = require("sequelize");
 const express = require("express");
+const redis = require("utils/redisClient");
+
 require("dotenv").config();
 const config = require("../../../configs/index");
 
@@ -61,6 +63,37 @@ const authService = {
         return {
             email: newUser.email,
         }
-    }
+    },
+    async resetPassword(userId, currentPassword, newPassword, confirmNewPassword) {
+        const user = await db.User.findByPk(userId);
+        if (!user) {
+            throw new Error("User not found");
+        }
+        let isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            throw new Error("Current password is incorrect");
+        }
+        if (newPassword !== confirmNewPassword) {
+            throw new Error("New password and confirm new password do not match");
+        }
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+        await user.save();
+        return { message: "Password reset successfully" };
+    },
+    async verifyForgetPassword(email) {
+        const user = await db.User.findOne({ where: { email } });
+        if (!user || user.status !== config.config.statusenum.AUTHENTICATED) {
+            throw new Error("User not found or not authenticated.");
+        }
+        await redis.del(email);
+        const base_url = process.env.RESET_PASSWORD_URL || 'http://localhost:4200/auth/reset-password?token=';
+        const otp = await this.genOTP();
+        await redis.set(email, otp, { EX: 300 }); // 300s = 5 minutes
+        const resetLink = `${base_url}${otp}`;
+        await this.sendOTP(email, resetLink);
+        console.log("Password reset link sent successfully");
+        return { message: "Password reset link sent to email, please use this link to access the reset page." };
+    },
 }
 module.exports = authService;
