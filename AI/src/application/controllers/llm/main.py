@@ -71,8 +71,10 @@ app = FastAPI(
     version="0.1.0",
     debug=settings.debug,
     lifespan=lifespan,
-    docs_url="/docs" if settings.debug else None,
-    redoc_url="/redoc" if settings.debug else None,
+    #docs_url="/docs" if settings.debug else None,     # turn on this later
+    docs_url="/docs",           # for testing
+    redoc_url="/redoc",
+    #redoc_url="/redoc" if settings.debug else None,
 )
 
 

@@ -371,9 +371,15 @@ services:
     ports:
       - "8003:8003"
     environment:
-      # Application
-      ENVIRONMENT: production
-      DEBUG: "false"
+      # Application\
+
+      # ENVIRONMENT: production
+      # DEBUG: "false"
+      # LOG_LEVEL: INFO
+
+
+      ENVIRONMENT: development
+      DEBUG: "true"
       LOG_LEVEL: INFO
 
       # PostgreSQL
