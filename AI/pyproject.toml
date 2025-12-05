@@ -83,6 +83,11 @@ llm = [
 worker = [
     "prefect>=3.0.0",
     "prefect-redis>=0.2.0",
+    # Dependencies for email flow
+    "aiosmtplib>=3.0.1",
+    "jinja2>=3.1.3",
+    # Minimal HTTP client for API calls
+    "httpx>=0.25.2",
 ]
 
 # ===== Development =====
