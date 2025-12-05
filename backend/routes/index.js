@@ -17,6 +17,9 @@ router.group('/auth', (router) => {
   router.post('/register', authController.register);
   router.post('/refresh-tokens', manageTokenController.refreshTokens);
   router.post('/logout', authController.logout);
+  router.post('/verify-forget-password', authController.verifyResetForgetPassword);
+  router.post('/reset-password', authController.resetPassword);
+  router.post('/reset-forget-password', authController.resetForgetPassword);
 });
 
 // Booking Engine routes
