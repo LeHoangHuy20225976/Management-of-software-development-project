@@ -156,7 +156,7 @@ services:
   prefect-worker:
     build:
       context: .
-      dockerfile: Dockerfile.worker
+      dockerfile: deployments/Dockerfile.worker
     container_name: hotel-prefect-worker
     environment:
       PREFECT_API_URL: http://prefect-server:4200/api

@@ -1,9 +1,6 @@
 # ==============================================================================
-# Prefect Worker - DEPRECATED
-# Please use deployments/Dockerfile.worker instead for optimized builds
-# ==============================================================================
-# This file is kept for backward compatibility
-# For production, use: docker build -f deployments/Dockerfile.worker .
+# Prefect Worker - Workflow Orchestration
+# Lightweight worker with only essential dependencies for running flows
 # ==============================================================================
 
 FROM python:3.11-slim
@@ -26,6 +23,7 @@ COPY README.md .
 COPY .python-version* ./
 
 # Sync dependencies with uv (only worker dependencies)
+# This installs: prefect, prefect-redis, and core dependencies
 RUN uv sync --no-dev --extra worker
 
 # Copy flows and required application code
@@ -38,7 +36,7 @@ COPY src/application/services/llm/ /app/src/application/services/llm/
 # Copy prefect configuration
 COPY prefect.yaml /app/prefect.yaml
 
-# Copy email templates
+# Copy email templates (if flows need them)
 COPY templates/ /app/templates/
 
 # Set Python path
