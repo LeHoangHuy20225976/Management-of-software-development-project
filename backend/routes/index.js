@@ -9,6 +9,7 @@ const authController = require("../modules/auth/controller/authController");
 const manageTokenController = require("../modules/auth/controller/manageTokenController");
 const hotelProfileController = require("../modules/hotel-profile/controller/hotelProfileController");
 const bookingRoutes = require("../modules/booking-engine/routes/bookingRoutes");
+const adminRoutes = require("../modules/super-admin/routes/adminRoutes");
 
 // Health check endpoint
 router.get('/health', (req, res) => {
@@ -31,9 +32,15 @@ router.group('/hotel-profile', (router) => {
   router.post('/add-hotel', middlewares([authMiddleware]), hotelProfileController.addNewHotel);
   router.post('/add-room-type', middlewares([authMiddleware, rbacMiddleware(['room:create'])]), hotelProfileController.addTypeForHotel);
   router.post('/add-room', middlewares([authMiddleware, rbacMiddleware(['room:create'])]), hotelProfileController.addRoom);
+  router.get('/view-hotel/:hotel_id',  hotelProfileController.viewHotelProfile);
+  router.put('/update-hotel/:hotel_id', middlewares([authMiddleware, rbacMiddleware(['hotel:update'])]), hotelProfileController.updateHotelProfile);
+  router.delete('/delete-hotel/:hotel_id', middlewares([authMiddleware, rbacMiddleware(['hotel:update'])]), hotelProfileController.disableHotel);
 });
 
 // Booking Engine routes
 router.use('/bookings', bookingRoutes);
+
+// Super Admin routes
+router.use('/admin', adminRoutes);
 
 module.exports = router;

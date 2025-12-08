@@ -349,6 +349,9 @@ prefect flow run src/flow/hello_flow.py:hello_flow
 # Chạy toàn bộ application (tất cả services: CV, ML, LLM)
 uvicorn src.application.main:app --reload --port 8000
 
+# Chạy từng service riêng lẻ (ví dụ ML service)
+uvicorn src.application.controllers.ml.main:app --reload --port 8002
+
 # Application sẽ tự động load tất cả routers:
 # - /cv/*    -> CV service routes
 # - /ml/*    -> ML service routes
