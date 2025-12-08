@@ -29,6 +29,9 @@ RUN uv sync --no-dev --extra llm
 # Copy application source code
 COPY src/ /app/src/
 
+# Copy PDF folder for RAG
+COPY folder_pdf/ /app/folder_pdf/
+
 # Set Python path
 ENV PYTHONPATH=/app:${PYTHONPATH}
 
