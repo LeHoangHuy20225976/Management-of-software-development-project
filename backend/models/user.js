@@ -28,7 +28,11 @@ module.exports = (sequelize, DataTypes) => {
     phone_number: DataTypes.STRING,
     gender: DataTypes.STRING,
     date_of_birth: DataTypes.DATE,
-    role: DataTypes.STRING,
+    role: {
+      type: DataTypes.ENUM('customer', 'hotel_manager', 'admin'),
+      allowNull: false,
+      defaultValue: 'customer',
+    },
     password: DataTypes.STRING,
     profile_image: DataTypes.STRING
   }, {

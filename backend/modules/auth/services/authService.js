@@ -123,9 +123,9 @@ const authService = {
 
     async verifyForgetPassword(email) {
         const user = await db.User.findOne({ where: { email } });
-        if (!user || user.status !== config.config.statusenum.AUTHENTICATED) {
-            throw new Error("User not found or not authenticated.");
-        }
+        // if (!user || user.status !== config.config.statusenum.AUTHENTICATED) {
+        //     throw new Error("User not found or not authenticated.");
+        // }
         await redis.del(email);
         const base_url = process.env.RESET_PASSWORD_URL || 'http://localhost:4200/auth/reset-password?token=';
         const otp = await this.genOTP();
