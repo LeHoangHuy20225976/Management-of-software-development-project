@@ -9,6 +9,7 @@ const authController = require("../modules/auth/controller/authController");
 const manageTokenController = require("../modules/auth/controller/manageTokenController");
 const hotelProfileController = require("../modules/hotel-profile/controller/hotelProfileController");
 const bookingRoutes = require("../modules/booking-engine/routes/bookingRoutes");
+const adminRoutes = require("../modules/super-admin/routes/adminRoutes");
 
 // Health check endpoint
 router.get('/health', (req, res) => {
@@ -35,5 +36,8 @@ router.group('/hotel-profile', (router) => {
 
 // Booking Engine routes
 router.use('/bookings', bookingRoutes);
+
+// Super Admin routes
+router.use('/admin', adminRoutes);
 
 module.exports = router;
