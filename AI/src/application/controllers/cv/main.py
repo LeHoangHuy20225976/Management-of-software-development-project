@@ -1,5 +1,5 @@
 """
-CV Service - Face Recognition
+CV Service - Face Recognition & Image Search
 Entry point for Computer Vision service
 """
 from contextlib import asynccontextmanager
@@ -18,6 +18,11 @@ from src.utils.logger import (
     configure_third_party_loggers,
 )
 from .face_controller import router as face_router, initialize_face_service, shutdown_face_service
+from .image_search_controller import (
+    router as image_search_router,
+    initialize_image_search_service,
+    shutdown_image_search_service,
+)
 
 settings = get_settings()
 
@@ -31,7 +36,7 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     app_logger.info(
-        "Starting CV Service - Face Recognition",
+        "Starting CV Service - Face Recognition & Image Search",
         extra={
             "environment": settings.environment,
             "debug": settings.debug,
@@ -48,6 +53,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         app_logger.error(f"Failed to initialize face service: {e}", exc_info=True)
 
+    # Initialize Image Search Service
+    try:
+        await initialize_image_search_service()
+        app_logger.info("Image Search service initialized successfully")
+    except Exception as e:
+        app_logger.error(f"Failed to initialize image search service: {e}", exc_info=True)
+
     app_logger.info("CV Service started successfully")
 
     yield  # Application is running
@@ -61,6 +73,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         app_logger.error(f"Failed to shutdown face service: {e}", exc_info=True)
 
+    # Shutdown Image Search Service
+    try:
+        await shutdown_image_search_service()
+    except Exception as e:
+        app_logger.error(f"Failed to shutdown image search service: {e}", exc_info=True)
+
     app_logger.info("CV Service shut down successfully")
 
 
@@ -68,7 +86,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Hotel AI - CV Service",
-    description="Computer Vision Service for Face Recognition & Attendance Tracking",
+    description="Computer Vision Service for Face Recognition, Attendance Tracking & Image Search/Retrieval",
     version="0.1.0",
     debug=settings.debug,
     lifespan=lifespan,
@@ -189,7 +207,7 @@ async def root() -> dict[str, Any]:
     Root endpoint - basic info
     """
     return {
-        "service": "CV Service - Face Recognition",
+        "service": "CV Service - Face Recognition & Image Search",
         "version": "0.1.0",
         "status": "running",
     }
@@ -210,6 +228,7 @@ async def health_check() -> dict[str, Any]:
 # ========== Include Routers ==========
 
 app.include_router(face_router, prefix="/api/cv", tags=["Face Recognition"])
+app.include_router(image_search_router, prefix="/api", tags=["Image Search"])
 
 
 # ========== Run Application ==========

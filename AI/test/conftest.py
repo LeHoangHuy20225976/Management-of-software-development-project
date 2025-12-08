@@ -5,17 +5,45 @@ Shared fixtures for all tests
 import pytest
 from fastapi.testclient import TestClient
 
-from src.application.main import app
+
+# Service-specific app imports (imported on-demand)
+def get_cv_app():
+    """Get CV service app"""
+    from src.application.controllers.cv.main import app
+    return app
+
+
+def get_llm_app():
+    """Get LLM service app (if exists)"""
+    try:
+        from src.application.controllers.llm.main import app
+        return app
+    except ImportError:
+        return None
 
 
 @pytest.fixture
-def client():
+def cv_client():
     """
-    FastAPI test client fixture
-    Usage: def test_example(client): response = client.get("/")
+    CV service test client fixture
+    Usage: def test_example(cv_client): response = cv_client.get("/")
     """
+    app = get_cv_app()
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def llm_client():
+    """
+    LLM service test client fixture
+    """
+    app = get_llm_app()
+    if app:
+        with TestClient(app) as test_client:
+            yield test_client
+    else:
+        yield None
 
 
 @pytest.fixture
