@@ -14,7 +14,6 @@ class ChatRequest(BaseModel):
     """Request for the chat endpoint"""
     message: str = Field(..., description="Tin nhắn từ user", min_length=1)
     conversation_id: Optional[str] = Field(None, description="ID của conversation (optional)")
-    history: Optional[List[ChatMessage]] = Field(None, description="Lịch sử chat (optional)")
 
     class Config:
         json_schema_extra = {

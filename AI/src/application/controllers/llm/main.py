@@ -19,6 +19,7 @@ from src.utils.logger import (
 )
 from .router import router as llm_router
 from .email_router import router as email_router
+from .rag_router import router as rag_router
 
 settings = get_settings()
 
@@ -210,7 +211,8 @@ async def health_check() -> dict[str, Any]:
 
 # ========== Include Routers ==========
 
-app.include_router(llm_router, prefix="/api/llm", tags=["LLM & RAG"])
+app.include_router(llm_router, prefix="/api/llm", tags=["LLM Chat"])
+app.include_router(rag_router, prefix="/api/llm", tags=["RAG (PDF Q&A)"])
 app.include_router(email_router, prefix="/api/email", tags=["Email Service"])
 
 
