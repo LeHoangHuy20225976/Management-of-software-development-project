@@ -172,9 +172,9 @@ services:
       echo 'Waiting for Prefect server...' &&
       until curl -s http://prefect-server:4200/api/health > /dev/null 2>&1; do sleep 2; done &&
       echo 'Deploying all flows...' &&
-      prefect deploy --all &&
+      uv run prefect deploy --all &&
       echo 'Starting worker...' &&
-      prefect worker start --pool local-pool
+      uv run prefect worker start --pool local-pool
       "
     depends_on:
       prefect-server:
