@@ -104,14 +104,15 @@ const hotelProfileService = {
         if(ownerid !== userid) {
             throw new Error("You are not the owner of this hotel");
         }
-        hotel.name = hotelData.hotelName ? hotelData.hotelName : hotel.name;
-        hotel.address = hotelData.address ? hotelData.address : hotel.address;
-        hotel.status = hotelData.status ? hotelData.status : hotel.status;
-        hotel.longitude = hotelData.longitude ? hotelData.longitude : hotel.longitude;
-        hotel.latitute = hotelData.latitute ? hotelData.latitute : hotel.latitute;
-        hotel.description = hotelData.description ? hotelData.description : hotel.description;
-        hotel.contact_phone = hotelData.contact_phone ? hotelData.contact_phone : hotel.contact_phone;
-        hotel.thumbnail = hotelData.thumbnail ? hotelData.thumbnail : hotel.thumbnail;
+        // Use nullish coalescing to allow falsy values like 0 or empty strings to be saved intentionally
+        hotel.name = hotelData.hotelName ?? hotel.name;
+        hotel.address = hotelData.address ?? hotel.address;
+        hotel.status = hotelData.status ?? hotel.status;
+        hotel.longitude = hotelData.longitude ?? hotel.longitude;
+        hotel.latitute = hotelData.latitute ?? hotel.latitute;
+        hotel.description = hotelData.description ?? hotel.description;
+        hotel.contact_phone = hotelData.contact_phone ?? hotel.contact_phone;
+        hotel.thumbnail = hotelData.thumbnail ?? hotel.thumbnail;
         await hotel.save();
     },
     async disableHotel(hotelid, userid) {
