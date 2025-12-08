@@ -31,6 +31,39 @@ const hotelProfileController = {
         } catch (error) {
             return responseUtils.error(res, error.message);
         }
+    },
+    viewHotelProfile: async(req, res) => {
+        try {
+            const hotelid = req.params.hotel_id;
+            const hotelProfile = await hotelProfileService.viewHotelProfile(hotelid);
+            return responseUtils.ok(res, hotelProfile.hotelData);
+        } catch(error) {
+            return responseUtils.error(res, error.message);
+        }
+
+    },
+    updateHotelProfile: async(req, res) => {
+        try {
+            const hotelid = req.params.hotel_id;
+            const userid = req.user.user_id;
+            const { hotelData} = req.body;
+            await hotelProfileService.updateHotelProfile(hotelid, userid, hotelData);
+            return responseUtils.ok(res, {message: "Update hotel profile successfully"});
+        } catch(error) {
+            return responseUtils.error(res, error.message);
+        }
+
+    },
+    disableHotel: async(req, res) => {
+        try {
+            const hotelid = req.params.hotel_id;
+            const userid = req.user.user_id;
+            await hotelProfileService.disableHotel(hotelid, userid);
+            return responseUtils.ok(res, {message: "Disable hotel successfully"});
+        } catch(error) {
+            return responseUtils.error(res, error.message);
+        }
+
     }
 };
 module.exports = hotelProfileController;
