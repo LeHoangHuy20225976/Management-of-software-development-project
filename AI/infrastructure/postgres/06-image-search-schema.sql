@@ -69,8 +69,8 @@ SELECT
     h.thumbnail as hotel_thumbnail,
     -- Room info
     r.room_id,
-    r.room_name,
-    r.room_status,
+    r.name as room_name,
+    r.status as room_status,
     -- Destination info
     d.destination_id,
     d.name as destination_name,

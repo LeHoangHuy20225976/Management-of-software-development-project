@@ -172,6 +172,8 @@ services:
       sh -c "
       echo 'Waiting for Prefect server...' &&
       until curl -s http://prefect-server:4200/api/health > /dev/null 2>&1; do sleep 2; done &&
+      echo 'Creating work pool...' &&
+      uv run prefect work-pool create local-pool --type process 2>/dev/null || true &&
       echo 'Deploying all flows...' &&
       uv run prefect deploy --all &&
       echo 'Starting worker...' &&
@@ -180,6 +182,12 @@ services:
     depends_on:
       prefect-server:
         condition: service_started
+    healthcheck:
+      test: ["CMD", "sh", "-c", "pgrep -f 'prefect worker' > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     restart: unless-stopped
     networks:
       - hotel-network

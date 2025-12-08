@@ -244,7 +244,7 @@ class ImageSearchService:
                         is_primary, image_width, image_height,
                         image_format, image_embedding, embedding_model,
                         embedding_created_at
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::vector, $12, $13)
                     RETURNING image_id
                     """,
                     hotel_id,

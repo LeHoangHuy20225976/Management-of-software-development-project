@@ -113,12 +113,18 @@ response = query_engine.query("What is the hotel check-in policy?")
 ```
 AI/
 ├── README.md                      # File này
+├── Makefile                       # Development commands
 ├── docker-compose.yml             # Orchestration tất cả services
-├── Dockerfile.worker              # Prefect worker image
 ├── prefect.yaml                   # Prefect deployment config
 ├── pyproject.toml                 # Python dependencies (uv)
 ├── .python-version                # Python version
 ├── .env                           # Environment variables (không commit)
+│
+├── deployments/                   # Docker deployment configs
+│   ├── Dockerfile.worker          # Prefect worker
+│   ├── Dockerfile.cv-service      # CV service
+│   ├── Dockerfile.ml-service      # ML service
+│   └── Dockerfile.llm-service     # LLM service
 │
 ├── docs/                          # Documentation
 │   ├── HOTEL_SYSTEM_ARCHITECTURE.md
@@ -131,8 +137,12 @@ AI/
 │
 ├── infrastructure/                # Config files cho services
 │   ├── postgres/
-│   │   ├── init-db.sql           # Tạo databases
-│   │   └── init-pgvector.sql     # Enable pgvector extension
+│   │   ├── 01-init-db.sql             # Tạo databases
+│   │   ├── 02-init-pgvector.sql       # Enable pgvector extension
+│   │   ├── 03-MOS_creation_script.sql # Hotel schema
+│   │   ├── 04-MOS_data_script.sql     # Sample data
+│   │   ├── 05-face_recognition_schema.sql  # Face recognition tables
+│   │   └── 06-image-search-schema.sql      # Image search with CLIP embeddings
 │   ├── monitoring/
 │   │   ├── prometheus.yml        # Prometheus config
 │   │   └── grafana/
@@ -141,40 +151,84 @@ AI/
 │   ├── nginx/                     # Nginx config (future)
 │   └── rabbitmq/                  # RabbitMQ config (future)
 │
+├── templates/                     # Templates (email, etc.)
+│   └── emails/
+│       ├── booking_confirmation.html
+│       ├── checkin_notification.html
+│       └── checkout_notification.html
+│
+├── test/                          # Test suite
+│   ├── conftest.py                # Pytest fixtures
+│   ├── cv/                        # CV Service tests
+│   │   ├── README.md              # Testing guide
+│   │   ├── unit/                  # Unit tests
+│   │   │   ├── test_face_service.py
+│   │   │   ├── test_face_quality.py
+│   │   │   └── test_image_search_service.py
+│   │   ├── integration/           # Integration tests
+│   │   │   ├── test_face_api.py
+│   │   │   └── test_image_search_api.py
+│   │   ├── manual/                # Manual testing tools
+│   │   │   ├── test_image_search_manual.py
+│   │   │   └── search_images_cli.py
+│   │   └── performance/           # Performance benchmarks
+│   │       └── benchmark_image_search.py
+│   ├── ml/                        # ML Service tests
+│   └── llm/                       # LLM Service tests
+│
 └── src/                           # Source code
     ├── __init__.py
     │
     ├── application/               # Business logic layer
     │   ├── __init__.py
-    │   ├── main.py                # FastAPI application - tổng hợp tất cả routers
     │   │
-    │   ├── controllers/           # API endpoints
+    │   ├── controllers/           # API endpoints (separate apps per service)
     │   │   ├── __init__.py
-    │   │   ├── cv/
-    │   │   │   ├── __init__.py
-    │   │   │   └── router.py      # CV API routes
-    │   │   ├── ml/
-    │   │   │   ├── __init__.py
-    │   │   │   └── router.py      # ML API routes
-    │   │   └── llm/
-    │   │       ├── __init__.py
-    │   │       └── router.py      # LLM API routes
+    │   │   ├── cv/                # Computer Vision API
+    │   │   │   ├── main.py            # FastAPI app for CV service
+    │   │   │   ├── face_controller.py # Face recognition endpoints
+    │   │   │   └── image_search_controller.py  # Image search endpoints
+    │   │   ├── ml/                # Machine Learning API
+    │   │   │   ├── main.py            # FastAPI app for ML service
+    │   │   │   └── ml_controller.py
+    │   │   └── llm/               # LLM API
+    │   │       ├── main.py            # FastAPI app for LLM service
+    │   │       └── llm_controller.py
     │   │
     │   ├── dtos/                  # Data Transfer Objects
     │   │   ├── __init__.py
-    │   │   ├── cv/                # Request/Response models for CV
-    │   │   ├── ml/                # Request/Response models for ML
-    │   │   └── llm/               # Request/Response models for LLM
+    │   │   ├── cv/                # CV request/response models
+    │   │   │   ├── face_dto.py
+    │   │   │   └── image_search_dto.py
+    │   │   ├── ml/                # ML request/response models
+    │   │   └── llm/               # LLM request/response models
     │   │
-    │   └── services/              # Core services logic
-    │       ├── __init__.py
-    │       ├── cv/                # Computer Vision logic
-    │       ├── ml/                # Machine Learning logic
-    │       └── llm/               # LLM & RAG logic
+    │   ├── services/              # Core business logic
+    │   │   ├── __init__.py
+    │   │   ├── cv/                # Computer Vision services
+    │   │   │   ├── face_recognition.py  # Face recognition with InsightFace
+    │   │   │   ├── face_quality.py      # Face quality checks
+    │   │   │   ├── image_search.py      # CLIP-based image search
+    │   │   │   └── image_search_optimized.py  # Optimized version with caching
+    │   │   ├── ml/                # Machine Learning services
+    │   │   │   ├── churn_prediction.py
+    │   │   │   ├── recommendation.py
+    │   │   │   └── demand_forecasting.py
+    │   │   └── llm/               # LLM & RAG services
+    │   │       ├── chat_service.py
+    │   │       ├── rag_service.py
+    │   │       └── email_service.py
+    │   │
+    │   ├── ml_models/             # Trained models
+    │   │   └── .gitkeep
+    │   │
+    │   └── entrypoints/           # Application entrypoints
+    │       └── .gitkeep
     │
     ├── flow/                      # ⭐ Prefect Flows (workflows)
     │   ├── __init__.py
-    │   └── hello_flow.py          # Example flow
+    │   ├── hello_flow.py          # Example flow
+    │   └── email_flow.py          # Email notification flows
     │
     ├── infrastructure/            # Infrastructure code (Python)
     │   ├── __init__.py
@@ -190,10 +244,12 @@ AI/
 - **`infrastructure/`** (root): Config files (YAML, SQL, conf)
 - **`src/infrastructure/`**: Python code cho infrastructure (database, clients)
 - **`src/flow/`**: Prefect flows (workflows)
-- **`src/application/main.py`**: FastAPI app chính, tổng hợp tất cả routers từ CV, ML, LLM
-- **`src/application/controllers/{service}/router.py`**: API routes cho từng service (cv, ml, llm)
-- **`src/application/services/`**: Business logic cho từng service
+- **`src/application/controllers/{service}/main.py`**: Separate FastAPI app cho từng service (cv, ml, llm)
+- **`src/application/controllers/{service}/*_controller.py`**: API endpoints cho từng service
+- **`src/application/services/`**: Core business logic (face recognition, image search, ML, LLM)
 - **`src/application/dtos/`**: Pydantic models cho request/response
+- **`test/{service}/`**: Test suite với 4 loại tests: unit, integration, manual, performance
+- **`Makefile`**: Development commands (test, lint, docker, etc.)
 
 ---
 
