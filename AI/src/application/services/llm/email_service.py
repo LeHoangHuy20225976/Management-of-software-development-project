@@ -258,16 +258,21 @@ class EmailService:
 email_service = None
 
 def get_email_service() -> EmailService:
-    """Get email service instance"""
+    """Get email service instance from environment variables"""
+    import os
+    from dotenv import load_dotenv
+    
+    # Load .env file
+    load_dotenv()
+    
     global email_service
     if email_service is None:
-        # TODO: Load from environment variables
         email_service = EmailService(
-            smtp_host="smtp.gmail.com",
-            smtp_port=587,
-            smtp_user="hotel@example.com",
-            smtp_password="your-password",
-            from_email="noreply@hotel.com"
+            smtp_host=os.getenv("SMTP_HOST", "smtp.gmail.com"),
+            smtp_port=int(os.getenv("SMTP_PORT", "587")),
+            smtp_user=os.getenv("SMTP_USER", ""),
+            smtp_password=os.getenv("SMTP_PASSWORD", ""),
+            from_email=os.getenv("SMTP_FROM_EMAIL", os.getenv("SMTP_USER", ""))
         )
     return email_service
 

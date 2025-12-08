@@ -2,7 +2,7 @@ const express = require("express");
 const db = require("../../../models/index");
 const { Op, fn, col, where } = require('sequelize');
 
-const hotelProfieService = {
+const hotelProfileService = {
     async addNewHotel(hotelData, userid) {
         // check for existed hotel based on address and name
         console.log("Hotel data: ", hotelData);
@@ -85,6 +85,74 @@ const hotelProfieService = {
         // update quantity of room type
         roomType.quantity += 1;
         await roomType.save();
+    },
+    async viewHotelProfile(hotelid) {
+        const hotel = await db.Hotel.findByPk(hotelid);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+        return {
+            hotelData: hotel
+        }
+    },
+    async updateHotelProfile(hotelid, userid, hotelData) {
+        const hotel = await db.Hotel.findByPk(hotelid);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+        const ownerid = hotel.hotel_owner;
+        if(ownerid !== userid) {
+            throw new Error("You are not the owner of this hotel");
+        }
+        hotel.name = hotelData.hotelName ? hotelData.hotelName : hotel.name;
+        hotel.address = hotelData.address ? hotelData.address : hotel.address;
+        hotel.status = hotelData.status ? hotelData.status : hotel.status;
+        hotel.longitude = hotelData.longitude ? hotelData.longitude : hotel.longitude;
+        hotel.latitute = hotelData.latitute ? hotelData.latitute : hotel.latitute;
+        hotel.description = hotelData.description ? hotelData.description : hotel.description;
+        hotel.contact_phone = hotelData.contact_phone ? hotelData.contact_phone : hotel.contact_phone;
+        hotel.thumbnail = hotelData.thumbnail ? hotelData.thumbnail : hotel.thumbnail;
+        await hotel.save();
+    },
+    async disableHotel(hotelid, userid) {
+        const hotel = await db.Hotel.findByPk(hotelid);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+        if(hotel.hotel_owner !== userid) {
+            throw new Error("You are not the owner of this hotel");
+        }
+        const transaction = await db.sequelize.transaction();
+        try {
+            hotel.status = 0;
+            await hotel.save({ transaction });
+            const roomTypes = await db.RoomType.findAll({
+                where: { hotel_id: hotelid },
+                attributes: ['type_id'],
+                transaction
+            });
+            const typeIds = roomTypes.map((roomType) => roomType.type_id);
+            if(typeIds.length > 0) {
+                await db.RoomType.update(
+                    { availability: false },
+                    {
+                        where: { type_id: typeIds },
+                        transaction
+                    }
+                );
+                await db.Room.update( 
+                    {status: 0}, 
+                    {
+                        where: {type_id: typeIds},
+                        transaction
+                    }
+                )
+            }
+            await transaction.commit();
+        } catch (error) {
+            await transaction.rollback(); 
+            throw error;
+        }
     }
 };
-module.exports = hotelProfieService;
+module.exports = hotelProfileService;
