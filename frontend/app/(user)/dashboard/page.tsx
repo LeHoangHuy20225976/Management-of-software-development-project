@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
@@ -15,11 +16,19 @@ import { ROUTES } from '@/lib/routes';
 import type { Booking, User } from '@/types';
 
 export default function UserDashboardPage() {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check authentication
+    const authToken = localStorage.getItem('auth_token');
+    if (!authToken) {
+      router.push('/login');
+      return;
+    }
+
     const loadData = async () => {
       try {
         const [profile, bookingData] = await Promise.all([
@@ -36,7 +45,7 @@ export default function UserDashboardPage() {
     };
 
     loadData();
-  }, []);
+  }, [router]);
 
   const upcomingBookings = bookings.filter(b => b.status === 'confirmed');
 
