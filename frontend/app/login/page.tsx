@@ -14,15 +14,58 @@ export default function LoginPage() {
     password: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
 
-    setTimeout(() => {
+    try {
+      // Check if user exists in localStorage
+      const storedUser = localStorage.getItem('currentUser');
+
+      if (!storedUser) {
+        // Create default user for demo
+        const defaultUser = {
+          id: 'user-001',
+          email: 'nguyen.van.a@gmail.com',
+          password: '123456', // Demo password
+          name: 'Nguyễn Văn A',
+          phone: '0901234567',
+          avatar: 'https://i.pravatar.cc/150?u=user001',
+          memberSince: '2023-01-15',
+          totalBookings: 12,
+          points: 450,
+        };
+        localStorage.setItem('currentUser', JSON.stringify(defaultUser));
+      }
+
+      // Validate login (simple demo validation)
+      const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
+
+      // For demo: accept default credentials or any email + password >= 6 chars
+      if (
+        (formData.email === user.email && formData.password === '123456') ||
+        (formData.email && formData.password.length >= 6)
+      ) {
+        // Generate auth token
+        const token = `token_${Date.now()}`;
+        localStorage.setItem('auth_token', token);
+
+        // Redirect to user dashboard
+        setTimeout(() => {
+          router.push('/user/dashboard');
+          window.location.reload(); // Reload to update header
+        }, 500);
+      } else {
+        setError('Email hoặc mật khẩu không đúng!');
+        setIsLoading(false);
+      }
+    } catch (err) {
+      setError('Có lỗi xảy ra. Vui lòng thử lại!');
       setIsLoading(false);
-      router.push('/user/dashboard');
-    }, 1000);
+    }
   };
 
   return (
@@ -37,6 +80,12 @@ export default function LoginPage() {
             </div>
 
             <Card className="p-8">
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-600 text-sm font-medium">{error}</p>
+                </div>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-900 mb-2">
@@ -114,6 +163,16 @@ export default function LoginPage() {
                   <Link href="/register" className="font-semibold text-[#0071c2] hover:text-[#005999] transition-colors">
                     Đăng ký ngay
                   </Link>
+                </p>
+              </div>
+
+              {/* Demo Info */}
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm font-semibold text-gray-900 mb-2">🔐 Demo Login:</p>
+                <p className="text-sm text-gray-700">Email: <strong>nguyen.van.a@gmail.com</strong></p>
+                <p className="text-sm text-gray-700">Password: <strong>123456</strong></p>
+                <p className="text-xs text-gray-600 mt-2">
+                  Hoặc nhập bất kỳ email + password (tối thiểu 6 ký tự)
                 </p>
               </div>
             </Card>

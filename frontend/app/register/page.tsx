@@ -17,26 +17,53 @@ export default function RegisterPage() {
     agreeTerms: false,
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
 
     if (formData.password !== formData.confirmPassword) {
-      alert('Mật khẩu không khớp!');
+      setError('Mật khẩu không khớp!');
       return;
     }
 
     if (!formData.agreeTerms) {
-      alert('Vui lòng đồng ý với điều khoản sử dụng');
+      setError('Vui lòng đồng ý với điều khoản sử dụng');
       return;
     }
 
     setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      // Create new user
+      const newUser = {
+        id: `user-${Date.now()}`,
+        email: formData.email,
+        name: formData.name,
+        phone: '',
+        avatar: `https://i.pravatar.cc/150?u=${formData.email}`,
+        memberSince: new Date().toISOString().split('T')[0],
+        totalBookings: 0,
+        points: 0,
+      };
+
+      // Save user to localStorage
+      localStorage.setItem('currentUser', JSON.stringify(newUser));
+
+      // Generate auth token
+      const token = `token_${Date.now()}`;
+      localStorage.setItem('auth_token', token);
+
+      // Redirect to user dashboard
+      setTimeout(() => {
+        router.push('/user/dashboard');
+        window.location.reload(); // Reload to update header
+      }, 500);
+    } catch (err) {
+      setError('Có lỗi xảy ra. Vui lòng thử lại!');
       setIsLoading(false);
-      router.push('/user/dashboard');
-    }, 1000);
+    }
   };
 
   return (
@@ -51,6 +78,12 @@ export default function RegisterPage() {
             </div>
 
             <Card className="p-8">
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-600 text-sm font-medium">{error}</p>
+                </div>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
                   <label className="block text-sm font-semibold text-gray-900 mb-2">
