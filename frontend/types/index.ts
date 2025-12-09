@@ -131,3 +131,12 @@ export interface PaginatedResponse<T> {
   pageSize: number;
   totalPages: number;
 }
+
+export interface Coupon {
+  id: string;
+  hotelId: string;
+  hotelName: string;
+  discount: number;
+  expiryDate: string;
+  code: string;
+}

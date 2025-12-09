@@ -3,7 +3,7 @@
  * Simulates a full backend with diverse data for testing
  */
 
-import type { User, Booking, Review, Hotel, RoomType, TourismSpot } from '@/types';
+import type { User, Booking, Review, Hotel, RoomType, TourismSpot, Coupon } from '@/types';
 import { mockTourismSpots, mockRoomTypes } from '../mock/data';
 
 // Increment this to force refresh seeded mock data in localStorage
@@ -512,6 +512,43 @@ export const initializeMockData = () => {
       },
     ];
     localStorage.setItem('userReviews', JSON.stringify(mockReviews));
+
+    // Coupons
+    const mockCoupons: Coupon[] = [
+      {
+        id: 'coupon1',
+        code: 'WELCOME15',
+        hotelId: 'h1',
+        hotelName: 'Grand Hotel Saigon',
+        discount: 15,
+        expiryDate: '2026-12-31',
+      },
+      {
+        id: 'coupon2',
+        code: 'DANANG20',
+        hotelId: 'h3',
+        hotelName: 'Da Nang Beach Resort',
+        discount: 20,
+        expiryDate: '2026-06-30',
+      },
+      {
+        id: 'coupon3',
+        code: 'HANOI10',
+        hotelId: 'h2',
+        hotelName: 'Hanoi Pearl Hotel',
+        discount: 10,
+        expiryDate: '2025-12-31',
+      },
+      {
+        id: 'coupon4',
+        code: 'LASTMINUTE',
+        hotelId: 'h5',
+        hotelName: 'Dalat Palace Heritage Hotel',
+        discount: 25,
+        expiryDate: '2025-12-20',
+      },
+    ];
+    localStorage.setItem('userCoupons', JSON.stringify(mockCoupons));
   }
 
   if (!localStorage.getItem('tourismSpots')) {
@@ -585,6 +622,11 @@ export const getMockHotels = (): Hotel[] => {
   return data ? JSON.parse(data) : [];
 };
 
+export const getMockCoupons = (): Coupon[] => {
+  const data = localStorage.getItem('userCoupons');
+  return data ? JSON.parse(data) : [];
+};
+
 export const getMockTourismSpots = (): TourismSpot[] => {
   const data = localStorage.getItem('tourismSpots');
   return data ? JSON.parse(data) : mockTourismSpots;
@@ -615,6 +657,7 @@ export const clearMockData = () => {
   localStorage.removeItem('currentUser');
   localStorage.removeItem('userBookings');
   localStorage.removeItem('userReviews');
+  localStorage.removeItem('userCoupons');
   localStorage.removeItem('hotels');
   localStorage.removeItem('tourismSpots');
   localStorage.removeItem('roomTypes');

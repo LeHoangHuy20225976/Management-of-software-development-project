@@ -32,6 +32,7 @@ export const ROUTES = {
     BOOKING_DETAILS: (id: string) => `/user/dashboard/bookings/${id}`,
     PROFILE: '/user/dashboard/profile',
     REVIEWS: '/user/reviews',
+    MY_VOUCHERS: '/user/my-vouchers',
     REVIEW_CREATE: (hotelId: string) => `/user/reviews/create?hotelId=${hotelId}`,
     REVIEW_EDIT: (id: string) => `/user/reviews/${id}/edit`,
   },
