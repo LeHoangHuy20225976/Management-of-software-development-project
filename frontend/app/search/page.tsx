@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Header } from '@/components/layout/Header';
@@ -16,9 +17,16 @@ import { amenitiesList } from '@/lib/mock/data';
 import { formatCurrency, formatStars } from '@/lib/utils/format';
 import type { Hotel, SearchFilters } from '@/types';
 
+const MapView = dynamic(() => import('@/components/search/MapView'), {
+  ssr: false,
+});
+
+type ViewMode = 'list' | 'map';
+
 export default function SearchPage() {
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [filters, setFilters] = useState<SearchFilters>({
     location: '',
     stars: [],
@@ -213,6 +221,20 @@ export default function SearchPage() {
               <h2 className="text-2xl font-bold text-gray-900">
                 {loading ? 'Đang tìm kiếm...' : `${hotels.length} khách sạn`}
               </h2>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant={viewMode === 'list' ? 'primary' : 'outline'}
+                  onClick={() => setViewMode('list')}
+                >
+                  List
+                </Button>
+                <Button
+                  variant={viewMode === 'map' ? 'primary' : 'outline'}
+                  onClick={() => setViewMode('map')}
+                >
+                  Map
+                </Button>
+              </div>
             </div>
 
             {loading ? (
@@ -225,6 +247,10 @@ export default function SearchPage() {
                   </Card>
                 ))}
               </div>
+            ) : viewMode === 'map' ? (
+              <Card className="h-[600px]">
+                <MapView hotels={hotels} />
+              </Card>
             ) : hotels.length === 0 ? (
               <Card className="text-center py-12">
                 <div className="text-6xl mb-4">🔍</div>
