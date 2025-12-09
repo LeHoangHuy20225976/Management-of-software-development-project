@@ -1,8 +1,3 @@
-/**
- * Hotel Manager Dashboard
- * FE4: Hotel Manager Portal
- */
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -66,7 +61,6 @@ export default function HotelManagerDashboardPage() {
     })
     .reduce((sum, b) => sum + b.totalPrice, 0);
 
-  // Mock occupancy rate - in real app calculate from available rooms
   const occupancyRate = Math.round(
     (confirmedBookings.length / (confirmedBookings.length + 5)) * 100
   );

@@ -1,8 +1,3 @@
-/**
- * Hotel Manager Register Page
- * FE4: Hotel Manager Portal
- */
-
 'use client';
 
 import { useState } from 'react';

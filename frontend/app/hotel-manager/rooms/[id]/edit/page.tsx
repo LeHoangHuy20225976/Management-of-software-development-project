@@ -1,8 +1,3 @@
-/**
- * Edit Room Type
- * FE4: Hotel Manager Portal
- */
-
 'use client';
 
 import { use, useState, useEffect } from 'react';
@@ -37,7 +32,7 @@ export default function EditRoomPage({
   useEffect(() => {
     const loadRoom = async () => {
       try {
-        const hotelId = 'h1'; // In real app, get from auth context
+        const hotelId = 'h1';
         const rooms = await hotelManagerApi.getRooms(hotelId);
         const room = rooms.find((r) => r.id === resolvedParams.id);
 

@@ -1,8 +1,3 @@
-/**
- * Hotel Manager Layout
- * FE4: Hotel Manager Portal
- */
-
 'use client';
 
 import Link from 'next/link';

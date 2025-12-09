@@ -1,8 +1,3 @@
-/**
- * Hotel Bookings Management
- * FE4: Hotel Manager Portal
- */
-
 'use client';
 
 import { useEffect, useState } from 'react';

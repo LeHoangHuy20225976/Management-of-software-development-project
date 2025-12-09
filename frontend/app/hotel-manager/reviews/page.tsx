@@ -1,8 +1,3 @@
-/**
- * Hotel Reviews Management
- * FE4: Hotel Manager Portal
- */
-
 'use client';
 
 import { useState } from 'react';
@@ -10,7 +5,6 @@ import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { hotelManagerApi } from '@/lib/api/services';
 
-// Mock reviews data - in real app would fetch from API
 const mockReviews = [
   {
     id: 'rv1',

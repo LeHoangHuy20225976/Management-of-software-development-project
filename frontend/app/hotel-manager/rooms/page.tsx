@@ -1,8 +1,3 @@
-/**
- * Hotel Rooms Management
- * FE4: Hotel Manager Portal
- */
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -13,7 +8,6 @@ import { formatCurrency } from '@/lib/utils/format';
 import { hotelManagerApi } from '@/lib/api/services';
 import type { RoomType } from '@/types';
 
-// Helper to convert RoomType to display format
 const convertRoomType = (
   roomType: RoomType,
   availableCount: number,
@@ -45,10 +39,9 @@ export default function HotelRoomsPage() {
 
   const loadRooms = async () => {
     try {
-      const hotelId = 'h1'; // In real app, get from auth context
+      const hotelId = 'h1';
       const roomTypes = await hotelManagerApi.getRooms(hotelId);
 
-      // Convert to display format with mock availability
       const displayRooms = roomTypes.map((rt, index) =>
         convertRoomType(rt, 5 + index, 10)
       );

@@ -1,8 +1,3 @@
-/**
- * Hotel Pricing Management
- * FE4: Hotel Manager Portal
- */
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -29,7 +24,7 @@ export default function HotelPricingPage() {
 
   const loadPricing = async () => {
     try {
-      const hotelId = 'h1'; // In real app, get from auth context
+      const hotelId = 'h1';
       const data = await hotelManagerApi.getPricing(hotelId);
       setPricing(data);
     } catch (error) {
@@ -43,7 +38,7 @@ export default function HotelPricingPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const hotelId = 'h1'; // In real app, get from auth context
+      const hotelId = 'h1';
       await hotelManagerApi.updatePricing(hotelId, pricing);
       alert('✅ Cập nhật giá thành công!');
       setIsEditing(false);

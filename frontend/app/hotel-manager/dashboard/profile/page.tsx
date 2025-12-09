@@ -1,8 +1,3 @@
-/**
- * Hotel Profile & Settings
- * FE4: Hotel Manager Portal
- */
-
 'use client';
 
 import { useState } from 'react';
@@ -49,7 +44,6 @@ export default function HotelProfilePage() {
   ];
 
   const handleSave = () => {
-    // In real app, would call API to save changes
     console.log('Saving hotel info:', hotelInfo, policies);
     setIsEditing(false);
   };

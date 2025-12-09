@@ -1,8 +1,3 @@
-/**
- * Hotel Profile & Settings
- * FE4: Hotel Manager Portal
- */
-
 'use client';
 
 import { useState } from 'react';
@@ -76,7 +71,7 @@ export default function HotelProfilePage() {
 
   const handleSave = async () => {
     try {
-      const hotelId = 'h1'; // In real app, get from auth context
+      const hotelId = 'h1';
       await hotelManagerApi.updateHotelInfo(hotelId, {
         name: hotelInfo.name,
         description: hotelInfo.description,
@@ -117,7 +112,6 @@ export default function HotelProfilePage() {
         )}
       </div>
 
-      {/* Basic Info */}
       <Card>
         <h2 className="text-2xl font-bold text-gray-900 mb-6">
           Thông tin cơ bản
@@ -283,7 +277,6 @@ export default function HotelProfilePage() {
         </div>
       </Card>
 
-      {/* Amenities */}
       <Card>
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Tiện ích</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -312,7 +305,6 @@ export default function HotelProfilePage() {
         </div>
       </Card>
 
-      {/* Policies */}
       <Card>
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Chính sách</h2>
         <div className="space-y-4">
@@ -379,7 +371,6 @@ export default function HotelProfilePage() {
         </div>
       </Card>
 
-      {/* Images Management */}
       <Card>
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Hình ảnh</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">

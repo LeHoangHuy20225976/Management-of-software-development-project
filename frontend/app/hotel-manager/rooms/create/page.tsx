@@ -1,8 +1,3 @@
-/**
- * Create New Room Type
- * FE4: Hotel Manager Portal
- */
-
 'use client';
 
 import { useState } from 'react';
@@ -61,10 +56,10 @@ export default function CreateRoomPage() {
         amenities: formData.amenities,
         images: [
           'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800',
-        ], // Default image
+        ],
       };
 
-      const hotelId = 'h1'; // In real app, get from auth context
+      const hotelId = 'h1';
       await hotelManagerApi.createRoom(hotelId, roomData);
 
       alert('✅ Tạo loại phòng thành công!');
