@@ -474,6 +474,28 @@ export default function HotelRegisterPage() {
                 )}
               </form>
 
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-white text-gray-500">
+                    Hoặc đăng ký với
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <span className="text-xl">📘</span>
+                  <span className="font-medium text-gray-700">Facebook</span>
+                </button>
+                <button className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                  <span className="text-xl">🔍</span>
+                  <span className="font-medium text-gray-700">Google</span>
+                </button>
+              </div>
+
               <div className="mt-6 text-center">
                 <p className="text-gray-600">
                   Đã có tài khoản?{' '}
@@ -483,6 +505,32 @@ export default function HotelRegisterPage() {
                   >
                     Đăng nhập
                   </Link>
+                </p>
+              </div>
+            </Card>
+
+            {/* Demo Info */}
+            <Card className="mt-6 bg-blue-50 border border-blue-200">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <span className="text-xl">💡</span>
+                Demo cho Test
+              </h3>
+              <div className="space-y-2 text-sm text-gray-700">
+                <p>
+                  Để test nhanh, bạn có thể điền bất kỳ thông tin nào và hệ
+                  thống sẽ tự động tạo tài khoản demo.
+                </p>
+                <p className="font-semibold mt-3">
+                  Hoặc sử dụng thông tin có sẵn:
+                </p>
+                <ul className="space-y-1 ml-4">
+                  <li>• Tên khách sạn: Grand Hotel Saigon</li>
+                  <li>• Email: manager@grandhotel.com</li>
+                  <li>• Password: hotel123456</li>
+                </ul>
+                <p className="text-xs text-gray-600 mt-3">
+                  Sau khi đăng ký, bạn có thể truy cập dashboard để quản lý
+                  khách sạn
                 </p>
               </div>
             </Card>
@@ -515,6 +563,15 @@ export default function HotelRegisterPage() {
             </Card>
 
             <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600 mb-2">
+                Bạn là khách hàng?{' '}
+                <Link
+                  href="/register"
+                  className="font-semibold text-[#0071c2] hover:text-[#005999] transition-colors"
+                >
+                  Đăng ký tài khoản người dùng
+                </Link>
+              </p>
               <p className="text-sm text-gray-600">
                 Cần hỗ trợ?{' '}
                 <a
