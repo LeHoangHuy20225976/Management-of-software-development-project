@@ -207,6 +207,19 @@ export default function HotelDetailPage({
               <p className="text-lg text-white/90 flex items-center">
                 📍 {hotel.address}
               </p>
+              <div className="mt-4">
+                <Button
+                  onClick={() => {
+                    if (hotel) {
+                      const url = `https://www.google.com/maps?q=${hotel.latitude},${hotel.longitude}`;
+                      window.open(url, '_blank');
+                    }
+                  }}
+                  className="bg-white/30 text-white backdrop-blur-sm hover:bg-white/40"
+                >
+                  Xem vị trí
+                </Button>
+              </div>
             </div>
           </div>
         </section>
