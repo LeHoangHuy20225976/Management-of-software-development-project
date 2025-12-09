@@ -129,12 +129,20 @@ export const Header = () => {
                       Đơn đặt phòng
                     </Link>
                     <Link
-                      href="/user/dashboard/reviews"
+                      href="/user/reviews"
                       className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
                       onClick={() => setShowUserMenu(false)}
                     >
                       <span className="mr-3">⭐</span>
                       Đánh giá của tôi
+                    </Link>
+                    <Link
+                      href="/user/my-vouchers"
+                      className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      <span className="mr-3">🎟️</span>
+                      Mã giảm giá của tôi
                     </Link>
                     <Link
                       href="/user/dashboard/profile"
@@ -243,6 +251,16 @@ export const Header = () => {
                   <Link href="/user/dashboard/bookings" onClick={() => setIsMenuOpen(false)}>
                     <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
                       📋 Đơn đặt phòng
+                    </button>
+                  </Link>
+                  <Link href="/user/reviews" onClick={() => setIsMenuOpen(false)}>
+                    <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
+                      ⭐ Đánh giá của tôi
+                    </button>
+                  </Link>
+                  <Link href="/user/my-vouchers" onClick={() => setIsMenuOpen(false)}>
+                    <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
+                      🎟️ Mã giảm giá của tôi
                     </button>
                   </Link>
                   <Link href="/user/dashboard/profile" onClick={() => setIsMenuOpen(false)}>
