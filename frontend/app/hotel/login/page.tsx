@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
+import { HotelLogo } from '@/components/hotel/HotelLogo';
 import { ROUTES } from '@/lib/routes';
 
 export default function HotelLoginPage() {
@@ -30,13 +31,14 @@ export default function HotelLoginPage() {
     try {
       // Demo validation for hotel manager
       if (
-        (formData.email === 'hotel@vietstay.com' && formData.password === 'hotel123') ||
+        (formData.email === 'hotel@vietstay.com' &&
+          formData.password === 'hotel123') ||
         (formData.email && formData.password.length >= 6)
       ) {
         // Generate auth token
         const token = `hotel_token_${Date.now()}`;
         localStorage.setItem('hotel_auth_token', token);
-        
+
         // Store demo hotel manager info
         const hotelManager = {
           id: 'hotel-001',
@@ -68,13 +70,15 @@ export default function HotelLoginPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-md mx-auto">
             <div className="text-center mb-8">
-              <div className="inline-block p-4 bg-[#0071c2] rounded-2xl mb-4">
-                <span className="text-4xl">🏨</span>
+              <div className="flex justify-center mb-4">
+                <HotelLogo size="lg" />
               </div>
               <h1 className="text-4xl font-bold text-gray-900 mb-3">
                 Đăng nhập
               </h1>
-              <p className="text-gray-600">Quản lý khách sạn của bạn với VietStay</p>
+              <p className="text-gray-600">
+                Quản lý khách sạn của bạn với VietStay
+              </p>
             </div>
 
             <Card className="p-8">

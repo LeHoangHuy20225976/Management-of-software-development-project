@@ -6,8 +6,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Card } from '@/components/common/Card';
+import { HotelLogo } from '@/components/hotel/HotelLogo';
 import { ROUTES } from '@/lib/routes';
 import { cn } from '@/lib/utils/cn';
 
@@ -21,8 +22,21 @@ const menuItems = [
   { name: 'Thống kê', href: ROUTES.HOTEL.ANALYTICS, icon: '📈' },
 ];
 
-export default function HotelLayout({ children }: { children: React.ReactNode }) {
+export default function HotelLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    if (confirm('Bạn có chắc muốn đăng xuất?')) {
+      localStorage.removeItem('hotel_auth_token');
+      localStorage.removeItem('hotelManager');
+      router.push(ROUTES.HOTEL.LOGIN);
+    }
+  };
 
   // Skip layout for login/register pages and hotel detail pages ([slug])
   if (
@@ -39,16 +53,22 @@ export default function HotelLayout({ children }: { children: React.ReactNode })
       <div className="bg-white border-b shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
-            <Link href={ROUTES.HOTEL.DASHBOARD} className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-[#0071c2] rounded-lg flex items-center justify-center">
-                <span className="text-white text-xl">🏨</span>
-              </div>
+            <Link
+              href={ROUTES.HOTEL.DASHBOARD}
+              className="flex items-center space-x-3"
+            >
+              <HotelLogo size="md" />
               <div>
-                <h1 className="text-lg font-bold">Hotel Manager</h1>
+                <h1 className="text-lg font-bold text-gray-900">
+                  Hotel Manager
+                </h1>
                 <p className="text-xs text-gray-500">VietStay Partner</p>
               </div>
             </Link>
-            <button className="text-red-600 hover:text-red-700 font-medium">
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 font-medium rounded-lg transition-colors"
+            >
               Đăng xuất
             </button>
           </div>
@@ -81,9 +101,7 @@ export default function HotelLayout({ children }: { children: React.ReactNode })
           </div>
 
           {/* Content */}
-          <div className="lg:col-span-3">
-            {children}
-          </div>
+          <div className="lg:col-span-3">{children}</div>
         </div>
       </div>
     </div>
