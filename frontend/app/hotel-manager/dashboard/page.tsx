@@ -1,6 +1,6 @@
 /**
  * Hotel Manager Dashboard
- * FE4: Hotel Manager Portal  
+ * FE4: Hotel Manager Portal
  */
 
 'use client';
@@ -111,7 +111,9 @@ export default function HotelManagerDashboardPage() {
             <div className="text-3xl font-bold text-[#0071c2]">
               {formatCurrency(monthRevenue).replace(' ₫', '')}
             </div>
-            <div className="text-gray-900 font-medium mt-1">Doanh thu tháng</div>
+            <div className="text-gray-900 font-medium mt-1">
+              Doanh thu tháng
+            </div>
           </div>
         </Card>
       </div>
@@ -147,7 +149,9 @@ export default function HotelManagerDashboardPage() {
       {/* Recent Bookings */}
       <Card>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Đặt phòng gần đây</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Đặt phòng gần đây
+          </h2>
           <Link href="/hotel-manager/bookings">
             <Button variant="outline" size="sm">
               Xem tất cả
@@ -173,12 +177,16 @@ export default function HotelManagerDashboardPage() {
                     style={{ backgroundImage: `url('${booking.hotelImage}')` }}
                   />
                   <div>
-                    <p className="font-semibold text-gray-900">{booking.hotelName}</p>
+                    <p className="font-semibold text-gray-900">
+                      {booking.hotelName}
+                    </p>
                     <p className="text-sm text-gray-800 font-medium">
-                      {booking.roomType} • {booking.nights} đêm • {booking.guests} khách
+                      {booking.roomType} • {booking.nights} đêm •{' '}
+                      {booking.guests} khách
                     </p>
                     <p className="text-xs text-gray-600 mt-1">
-                      {formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}
+                      {formatDate(booking.checkIn)} -{' '}
+                      {formatDate(booking.checkOut)}
                     </p>
                   </div>
                 </div>
@@ -211,7 +219,9 @@ export default function HotelManagerDashboardPage() {
       {/* Performance Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
-          <h3 className="text-xl font-bold text-gray-900 mb-4">Thống kê tháng này</h3>
+          <h3 className="text-xl font-bold text-gray-900 mb-4">
+            Thống kê tháng này
+          </h3>
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-gray-800 font-medium">Tổng đơn đặt</span>
@@ -219,11 +229,15 @@ export default function HotelManagerDashboardPage() {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-800 font-medium">Đơn đã xác nhận</span>
-              <span className="font-bold text-green-600">{confirmedBookings.length}</span>
+              <span className="font-bold text-green-600">
+                {confirmedBookings.length}
+              </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-800 font-medium">Đơn hoàn thành</span>
-              <span className="font-bold text-blue-600">{completedBookings.length}</span>
+              <span className="font-bold text-blue-600">
+                {completedBookings.length}
+              </span>
             </div>
             <div className="flex justify-between items-center pt-3 border-t">
               <span className="text-gray-900 font-bold">Tổng doanh thu</span>
@@ -242,7 +256,9 @@ export default function HotelManagerDashboardPage() {
                 <span className="text-xl">⚠️</span>
                 <div>
                   <p className="font-semibold text-gray-900">Đánh giá mới</p>
-                  <p className="text-sm text-gray-800">3 đánh giá mới chưa phản hồi</p>
+                  <p className="text-sm text-gray-800">
+                    3 đánh giá mới chưa phản hồi
+                  </p>
                 </div>
               </div>
             </div>
@@ -250,7 +266,9 @@ export default function HotelManagerDashboardPage() {
               <div className="flex items-start space-x-2">
                 <span className="text-xl">📋</span>
                 <div>
-                  <p className="font-semibold text-gray-900">Check-in hôm nay</p>
+                  <p className="font-semibold text-gray-900">
+                    Check-in hôm nay
+                  </p>
                   <p className="text-sm text-gray-800">5 khách sẽ nhận phòng</p>
                 </div>
               </div>
