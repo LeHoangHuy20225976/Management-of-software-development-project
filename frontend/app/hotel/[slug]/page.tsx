@@ -1,22 +1,55 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
-import { mockHotels, amenitiesList } from '@/lib/mock/data';
+import { amenitiesList } from '@/lib/mock/data';
 import { formatCurrency, formatStars } from '@/lib/utils/format';
+import { hotelsApi } from '@/lib/api/services';
+import type { Hotel } from '@/types';
 
 export default function HotelDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = use(params);
-  const hotel = mockHotels.find(h => h.slug === resolvedParams.slug);
+  const [hotel, setHotel] = useState<Hotel | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadHotel = async () => {
+      try {
+        const data = await hotelsApi.getBySlug(resolvedParams.slug);
+        setHotel(data);
+      } catch (error) {
+        console.error('Error loading hotel:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadHotel();
+  }, [resolvedParams.slug]);
 
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [guests, setGuests] = useState(2);
+
+  if (loading) {
+    return (
+      <>
+        <Header />
+        <div className="min-h-screen bg-gray-50 py-12">
+          <div className="container mx-auto px-4">
+            <Card className="text-center py-12">
+              <p className="text-gray-900 font-medium">Đang tải...</p>
+            </Card>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
   if (!hotel) {
     return (

@@ -31,7 +31,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     },
     ref
   ) => {
-    const baseStyles = 'px-5 py-3.5 rounded-xl font-medium transition-all';
+    const baseStyles = 'px-5 py-3.5 rounded-xl font-medium transition-all text-gray-900 placeholder:text-gray-400';
 
     const variants = {
       default: `border-2 ${
@@ -51,7 +51,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       } bg-transparent`,
     };
 
-    const disabledStyles = 'opacity-60 cursor-not-allowed bg-gray-100';
+    const disabledStyles = 'opacity-60 cursor-not-allowed bg-gray-100 text-gray-600';
     const focusStyles = 'focus:ring-2 focus:outline-none';
 
     const inputClasses = `

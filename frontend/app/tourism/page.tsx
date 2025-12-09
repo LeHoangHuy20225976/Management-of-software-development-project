@@ -6,13 +6,30 @@ import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { mockTourismSpots } from '@/lib/mock/data';
+import { tourismApi } from '@/lib/api/services';
+import type { TourismSpot } from '@/types';
 
 export default function TourismPage() {
+  const [tourismSpots, setTourismSpots] = useState<TourismSpot[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'north' | 'central' | 'south'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredSpots = mockTourismSpots.filter(spot => {
+  useEffect(() => {
+    const loadTourism = async () => {
+      try {
+        const data = await tourismApi.getAll();
+        setTourismSpots(data);
+      } catch (error) {
+        console.error('Error loading tourism:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadTourism();
+  }, []);
+
+  const filteredSpots = tourismSpots.filter(spot => {
     const matchesSearch = spot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          spot.location.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -92,12 +109,22 @@ export default function TourismPage() {
           <div className="container mx-auto px-4">
             <div className="mb-8">
               <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                {filteredSpots.length} điểm đến
+                {loading ? 'Đang tải...' : `${filteredSpots.length} điểm đến`}
               </h2>
               <p className="text-gray-600">Những địa điểm du lịch tuyệt vời đang chờ bạn khám phá</p>
             </div>
 
-            {filteredSpots.length === 0 ? (
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="animate-pulse">
+                    <div className="h-64 bg-gray-200 rounded-lg mb-4" />
+                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-2" />
+                    <div className="h-4 bg-gray-200 rounded w-1/2" />
+                  </Card>
+                ))}
+              </div>
+            ) : filteredSpots.length === 0 ? (
               <Card className="text-center py-12">
                 <div className="text-6xl mb-4">🔍</div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Không tìm thấy điểm đến</h3>

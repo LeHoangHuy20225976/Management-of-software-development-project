@@ -1,11 +1,13 @@
 /**
  * API Services
  * Automatically switches between mock and real API based on API_CONFIG.USE_MOCK_DATA
+ * Mock data is stored in localStorage for persistence
  */
 
 import { API_CONFIG } from './config';
 import { apiClient } from './client';
-import { mockHotels, mockTourismSpots, mockReviews, mockBookings, mockUser, mockRoomTypes } from '../mock/data';
+import { mockHotels, mockTourismSpots, mockReviews as defaultMockReviews, mockBookings as defaultMockBookings, mockUser as defaultMockUser, mockRoomTypes } from '../mock/data';
+import { getMockUser, getMockBookings, getMockReviews, getMockHotels, updateMockUser, addMockBooking, addMockReview, updateMockBooking } from '../utils/mockData';
 import type { Hotel, TourismSpot, Review, Booking, User, SearchFilters, RoomType } from '@/types';
 
 // Helper to simulate API delay for mock data
@@ -16,7 +18,8 @@ export const hotelsApi = {
   async getAll(filters?: SearchFilters): Promise<Hotel[]> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
-      let hotels = [...mockHotels];
+      // Get hotels from localStorage
+      let hotels = getMockHotels();
 
       // Apply filters
       if (filters?.location) {
@@ -55,7 +58,8 @@ export const hotelsApi = {
   async getById(id: string): Promise<Hotel | null> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
-      return mockHotels.find(h => h.id === id) || null;
+      const hotels = getMockHotels();
+      return hotels.find(h => h.id === id) || null;
     }
 
     return apiClient.get<Hotel>(API_CONFIG.ENDPOINTS.HOTEL_DETAILS, { id });
@@ -64,7 +68,8 @@ export const hotelsApi = {
   async getBySlug(slug: string): Promise<Hotel | null> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
-      return mockHotels.find(h => h.slug === slug) || null;
+      const hotels = getMockHotels();
+      return hotels.find(h => h.slug === slug) || null;
     }
 
     // Real API call - adjust endpoint as needed
@@ -83,7 +88,8 @@ export const hotelsApi = {
   async getReviews(hotelId: string): Promise<Review[]> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
-      return mockReviews.filter(r => r.hotelId === hotelId);
+      const reviews = getMockReviews();
+      return reviews.filter(r => r.hotelId === hotelId);
     }
 
     return apiClient.get<Review[]>(API_CONFIG.ENDPOINTS.HOTEL_REVIEWS, { id: hotelId });
@@ -125,7 +131,8 @@ export const bookingsApi = {
   async getAll(): Promise<Booking[]> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
-      return mockBookings;
+      // Get bookings from localStorage
+      return getMockBookings();
     }
 
     return apiClient.get<Booking[]>(API_CONFIG.ENDPOINTS.USER_BOOKINGS);
@@ -134,7 +141,8 @@ export const bookingsApi = {
   async getById(id: string): Promise<Booking | null> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
-      return mockBookings.find(b => b.id === id) || null;
+      const bookings = getMockBookings();
+      return bookings.find(b => b.id === id) || null;
     }
 
     return apiClient.get<Booking>(API_CONFIG.ENDPOINTS.BOOKING_DETAILS, { id });
@@ -144,12 +152,14 @@ export const bookingsApi = {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
       const newBooking: Booking = {
-        id: `bk${Date.now()}`,
+        id: `BK${Date.now()}`,
         ...bookingData as Booking,
         bookingDate: new Date().toISOString(),
         status: 'pending',
         paymentStatus: 'pending',
       };
+      // Save to localStorage
+      addMockBooking(newBooking);
       return newBooking;
     }
 
@@ -159,6 +169,8 @@ export const bookingsApi = {
   async cancel(id: string): Promise<boolean> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
+      // Update booking status in localStorage
+      updateMockBooking(id, { status: 'cancelled', paymentStatus: 'refunded' });
       return true;
     }
 
@@ -171,7 +183,9 @@ export const userApi = {
   async getProfile(): Promise<User> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
-      return mockUser;
+      // Get user from localStorage
+      const user = getMockUser();
+      return user || defaultMockUser;
     }
 
     return apiClient.get<User>(API_CONFIG.ENDPOINTS.USER_PROFILE);
@@ -180,7 +194,10 @@ export const userApi = {
   async updateProfile(data: Partial<User>): Promise<User> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
-      return { ...mockUser, ...data };
+      // Update user in localStorage
+      updateMockUser(data);
+      const user = getMockUser();
+      return user || defaultMockUser;
     }
 
     return apiClient.put<User>(API_CONFIG.ENDPOINTS.USER_PROFILE, data);
@@ -199,6 +216,8 @@ export const reviewsApi = {
         helpful: 0,
         verified: true,
       };
+      // Save to localStorage
+      addMockReview(newReview);
       return newReview;
     }
 
@@ -208,8 +227,13 @@ export const reviewsApi = {
   async update(id: string, reviewData: Partial<Review>): Promise<Review> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
-      const review = mockReviews.find(r => r.id === id);
-      return { ...review!, ...reviewData };
+      const reviews = getMockReviews();
+      const review = reviews.find(r => r.id === id);
+      const updatedReview = { ...review!, ...reviewData };
+      // Update in localStorage
+      const allReviews = reviews.map(r => r.id === id ? updatedReview : r);
+      localStorage.setItem('userReviews', JSON.stringify(allReviews));
+      return updatedReview;
     }
 
     return apiClient.put<Review>(`${API_CONFIG.ENDPOINTS.USER_REVIEWS}/${id}`, reviewData);
@@ -218,6 +242,10 @@ export const reviewsApi = {
   async delete(id: string): Promise<boolean> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
+      // Delete from localStorage
+      const reviews = getMockReviews();
+      const filtered = reviews.filter(r => r.id !== id);
+      localStorage.setItem('userReviews', JSON.stringify(filtered));
       return true;
     }
 
@@ -230,7 +258,8 @@ export const searchApi = {
   async hotels(query: string, filters?: SearchFilters): Promise<Hotel[]> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
-      let hotels = mockHotels.filter(h =>
+      const allHotels = getMockHotels();
+      let hotels = allHotels.filter(h =>
         h.name.toLowerCase().includes(query.toLowerCase()) ||
         h.city.toLowerCase().includes(query.toLowerCase()) ||
         h.description.toLowerCase().includes(query.toLowerCase())
@@ -246,7 +275,8 @@ export const searchApi = {
   async suggestions(query: string): Promise<string[]> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay(200);
-      const suggestions = mockHotels
+      const hotels = getMockHotels();
+      const suggestions = hotels
         .filter(h => h.name.toLowerCase().includes(query.toLowerCase()))
         .map(h => h.name)
         .slice(0, 5);

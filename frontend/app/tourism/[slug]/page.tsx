@@ -1,16 +1,53 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
-import { mockTourismSpots } from '@/lib/mock/data';
+import { tourismApi } from '@/lib/api/services';
+import type { TourismSpot } from '@/types';
 
 export default function TourismDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = use(params);
-  const destination = mockTourismSpots.find(d => d.slug === resolvedParams.slug);
+  const [destination, setDestination] = useState<TourismSpot | null>(null);
+  const [relatedSpots, setRelatedSpots] = useState<TourismSpot[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [spot, allSpots] = await Promise.all([
+          tourismApi.getBySlug(resolvedParams.slug),
+          tourismApi.getAll()
+        ]);
+        setDestination(spot);
+        setRelatedSpots(allSpots.filter(s => s.id !== spot?.id).slice(0, 3));
+      } catch (error) {
+        console.error('Error loading tourism spot:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [resolvedParams.slug]);
+
+  if (loading) {
+    return (
+      <>
+        <Header />
+        <div className="min-h-screen bg-gray-50 py-12">
+          <div className="container mx-auto px-4">
+            <Card className="text-center py-12">
+              <p className="text-gray-900 font-medium">Đang tải...</p>
+            </Card>
+          </div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
   if (!destination) {
     return (
@@ -209,8 +246,7 @@ export default function TourismDetailPage({ params }: { params: Promise<{ slug: 
           <section className="mt-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-6">Điểm đến liên quan</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {mockTourismSpots.slice(0, 3).map((spot) => (
-                spot.id !== destination.id && (
+              {relatedSpots.map((spot) => (
                   <Link key={spot.id} href={`/tourism/${spot.slug}`}>
                     <div className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden hover:border-[#0071c2] hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
                       <div className="relative h-48 overflow-hidden">
@@ -225,7 +261,6 @@ export default function TourismDetailPage({ params }: { params: Promise<{ slug: 
                       </div>
                     </div>
                   </Link>
-                )
               ))}
             </div>
           </section>

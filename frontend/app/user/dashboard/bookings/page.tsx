@@ -8,7 +8,6 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
-import { bookingsApi } from '@/lib/api/services';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import type { Booking } from '@/types';
 
@@ -21,13 +20,16 @@ export default function BookingsPage() {
     loadBookings();
   }, []);
 
-  const loadBookings = async () => {
+  const loadBookings = () => {
     try {
-      const data = await bookingsApi.getAll();
-      setBookings(data);
+      // Import mockData functions dynamically to avoid SSR issues
+      import('@/lib/utils/mockData').then(({ getMockBookings }) => {
+        const data = getMockBookings();
+        setBookings(data);
+        setLoading(false);
+      });
     } catch (error) {
       console.error('Error loading bookings:', error);
-    } finally {
       setLoading(false);
     }
   };
@@ -59,7 +61,7 @@ export default function BookingsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Đơn đặt phòng</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Đơn đặt phòng</h1>
       </div>
 
       {/* Filter */}
@@ -98,11 +100,11 @@ export default function BookingsPage() {
 
       {/* Bookings List */}
       {loading ? (
-        <Card>Đang tải...</Card>
+        <Card><p className="text-gray-900 font-medium">Đang tải...</p></Card>
       ) : filteredBookings.length === 0 ? (
         <Card className="text-center py-12">
           <div className="text-6xl mb-4">📋</div>
-          <p className="text-gray-600">Không có đơn đặt phòng nào</p>
+          <p className="text-gray-700 font-medium">Không có đơn đặt phòng nào</p>
         </Card>
       ) : (
         <div className="space-y-4">
@@ -116,34 +118,34 @@ export default function BookingsPage() {
                 <div className="flex-grow">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h3 className="text-xl font-bold mb-1">{booking.hotelName}</h3>
-                      <p className="text-gray-600">{booking.roomType}</p>
+                      <h3 className="text-xl font-bold text-gray-900 mb-1">{booking.hotelName}</h3>
+                      <p className="text-gray-700 font-medium">{booking.roomType}</p>
                     </div>
                     {getStatusBadge(booking.status)}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
-                      <p className="text-sm text-gray-600">Nhận phòng</p>
-                      <p className="font-semibold">{formatDate(booking.checkIn, 'long')}</p>
+                      <p className="text-sm text-gray-600 font-medium">Nhận phòng</p>
+                      <p className="font-semibold text-gray-900">{formatDate(booking.checkIn, 'long')}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Trả phòng</p>
-                      <p className="font-semibold">{formatDate(booking.checkOut, 'long')}</p>
+                      <p className="text-sm text-gray-600 font-medium">Trả phòng</p>
+                      <p className="font-semibold text-gray-900">{formatDate(booking.checkOut, 'long')}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Số đêm</p>
-                      <p className="font-semibold">{booking.nights} đêm</p>
+                      <p className="text-sm text-gray-600 font-medium">Số đêm</p>
+                      <p className="font-semibold text-gray-900">{booking.nights} đêm</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Số khách</p>
-                      <p className="font-semibold">{booking.guests} người</p>
+                      <p className="text-sm text-gray-600 font-medium">Số khách</p>
+                      <p className="font-semibold text-gray-900">{booking.guests} người</p>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Mã đơn: {booking.id}</p>
+                      <p className="text-sm text-gray-600 font-medium">Mã đơn: {booking.id}</p>
                       <p className="text-2xl font-bold text-[#0071c2]">
                         {formatCurrency(booking.totalPrice)}
                       </p>

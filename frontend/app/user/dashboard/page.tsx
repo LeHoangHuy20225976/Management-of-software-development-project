@@ -3,21 +3,33 @@
  * FE3: User Dashboard
  */
 
+'use client';
+
 import Link from 'next/link';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
-import { bookingsApi, userApi } from '@/lib/api/services';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import { ROUTES } from '@/lib/routes';
+import { useEffect, useState } from 'react';
+import { getMockUser, getMockBookings } from '@/lib/utils/mockData';
+import type { User, Booking } from '@/types';
 
-export default async function UserDashboardPage() {
-  const user = await userApi.getProfile();
-  const bookings = await bookingsApi.getAll();
-  const upcomingBookings = bookings.filter(b => b.status === 'confirmed');
+export default function UserDashboardPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
+
+  useEffect(() => {
+    const userData = getMockUser();
+    const bookings = getMockBookings();
+    setUser(userData);
+    setUpcomingBookings(bookings.filter(b => b.status === 'confirmed'));
+  }, []);
+
+  if (!user) return <div className="text-gray-900 font-medium">Đang tải...</div>;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Xin chào, {user.name}!</h1>
+      <h1 className="text-3xl font-bold text-gray-900">Xin chào, {user.name}!</h1>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -25,21 +37,21 @@ export default async function UserDashboardPage() {
           <div className="text-center">
             <div className="text-4xl mb-2">📋</div>
             <div className="text-3xl font-bold text-[#0071c2]">{user.totalBookings}</div>
-            <div className="text-gray-600">Tổng đơn đặt</div>
+            <div className="text-sm font-medium text-gray-700">Tổng đơn đặt</div>
           </div>
         </Card>
         <Card>
           <div className="text-center">
             <div className="text-4xl mb-2">⭐</div>
             <div className="text-3xl font-bold text-[#0071c2]">{user.points}</div>
-            <div className="text-gray-600">Điểm tích lũy</div>
+            <div className="text-sm font-medium text-gray-700">Điểm tích lũy</div>
           </div>
         </Card>
         <Card>
           <div className="text-center">
             <div className="text-4xl mb-2">🎁</div>
             <div className="text-3xl font-bold text-[#0071c2]">Silver</div>
-            <div className="text-gray-600">Hạng thành viên</div>
+            <div className="text-sm font-medium text-gray-700">Hạng thành viên</div>
           </div>
         </Card>
       </div>
@@ -47,7 +59,7 @@ export default async function UserDashboardPage() {
       {/* Upcoming Bookings */}
       <Card>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">Đặt phòng sắp tới</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Đặt phòng sắp tới</h2>
           <Link href={ROUTES.USER.BOOKINGS}>
             <Button variant="outline" size="sm">Xem tất cả</Button>
           </Link>
@@ -56,7 +68,7 @@ export default async function UserDashboardPage() {
         {upcomingBookings.length === 0 ? (
           <div className="text-center py-8">
             <div className="text-6xl mb-4">🏨</div>
-            <p className="text-gray-600 mb-4">Bạn chưa có đặt phòng nào sắp tới</p>
+            <p className="text-gray-700 mb-4 font-medium">Bạn chưa có đặt phòng nào sắp tới</p>
             <Link href={ROUTES.SEARCH}>
               <Button>Tìm khách sạn</Button>
             </Link>
@@ -71,9 +83,9 @@ export default async function UserDashboardPage() {
                     style={{ backgroundImage: `url('${booking.hotelImage}')` }}
                   />
                   <div>
-                    <h3 className="font-bold text-lg">{booking.hotelName}</h3>
-                    <p className="text-gray-600">{booking.roomType}</p>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <h3 className="font-bold text-lg text-gray-900">{booking.hotelName}</h3>
+                    <p className="text-gray-700 font-medium">{booking.roomType}</p>
+                    <p className="text-sm text-gray-600 mt-1">
                       {formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}
                     </p>
                   </div>
@@ -94,30 +106,30 @@ export default async function UserDashboardPage() {
 
       {/* Quick Actions */}
       <Card>
-        <h2 className="text-2xl font-bold mb-4">Thao tác nhanh</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Thao tác nhanh</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Link href={ROUTES.SEARCH}>
             <div className="text-center p-4 border-2 border-gray-200 rounded-lg hover:border-[#0071c2] transition-colors cursor-pointer">
               <div className="text-4xl mb-2">🔍</div>
-              <div className="font-semibold">Tìm khách sạn</div>
+              <div className="font-semibold text-gray-900">Tìm khách sạn</div>
             </div>
           </Link>
           <Link href={ROUTES.USER.BOOKINGS}>
             <div className="text-center p-4 border-2 border-gray-200 rounded-lg hover:border-[#0071c2] transition-colors cursor-pointer">
               <div className="text-4xl mb-2">📋</div>
-              <div className="font-semibold">Đơn của tôi</div>
+              <div className="font-semibold text-gray-900">Đơn của tôi</div>
             </div>
           </Link>
           <Link href={ROUTES.USER.REVIEWS}>
             <div className="text-center p-4 border-2 border-gray-200 rounded-lg hover:border-[#0071c2] transition-colors cursor-pointer">
               <div className="text-4xl mb-2">⭐</div>
-              <div className="font-semibold">Viết đánh giá</div>
+              <div className="font-semibold text-gray-900">Viết đánh giá</div>
             </div>
           </Link>
           <Link href={ROUTES.HELP}>
             <div className="text-center p-4 border-2 border-gray-200 rounded-lg hover:border-[#0071c2] transition-colors cursor-pointer">
               <div className="text-4xl mb-2">❓</div>
-              <div className="font-semibold">Trợ giúp</div>
+              <div className="font-semibold text-gray-900">Trợ giúp</div>
             </div>
           </Link>
         </div>

@@ -12,6 +12,9 @@ import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
 import { ROUTES } from '@/lib/routes';
 import { cn } from '@/lib/utils/cn';
+import { useEffect, useState } from 'react';
+import { getMockUser } from '@/lib/utils/mockData';
+import type { User } from '@/types';
 
 const menuItems = [
   { name: 'Tổng quan', href: ROUTES.USER.DASHBOARD, icon: '📊' },
@@ -22,6 +25,11 @@ const menuItems = [
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    setUser(getMockUser());
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -34,12 +42,12 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
               <Card padding="none">
                 <div className="p-6 border-b">
                   <div className="flex items-center space-x-3">
-                    <div className="w-16 h-16 rounded-full bg-[#0071c2] flex items-center justify-center text-white text-2xl font-bold">
-                      A
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#0071c2] to-[#005999] flex items-center justify-center text-white text-2xl font-bold shadow-md">
+                      {user?.name.charAt(0) || 'U'}
                     </div>
                     <div>
-                      <h3 className="font-bold">Nguyễn Văn A</h3>
-                      <p className="text-sm text-gray-600">user@example.com</p>
+                      <h3 className="font-bold text-gray-900">{user?.name || 'User'}</h3>
+                      <p className="text-sm text-gray-600 font-medium">{user?.email || 'email@example.com'}</p>
                     </div>
                   </div>
                 </div>

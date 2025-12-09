@@ -3,18 +3,41 @@
  * FE1: Core Site & Discovery
  */
 
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Chatbot } from '@/components/ai/Chatbot';
-import { mockHotels, mockTourismSpots } from '@/lib/mock/data';
+import { hotelsApi, tourismApi } from '@/lib/api/services';
 import { formatCurrency, formatStars } from '@/lib/utils/format';
+import type { Hotel, TourismSpot } from '@/types';
 
 export default function HomePage() {
-  const featuredHotels = mockHotels.slice(0, 3);
-  const popularDestinations = mockTourismSpots.slice(0, 3);
+  const [featuredHotels, setFeaturedHotels] = useState<Hotel[]>([]);
+  const [popularDestinations, setPopularDestinations] = useState<TourismSpot[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [hotels, tourism] = await Promise.all([
+          hotelsApi.getAll(),
+          tourismApi.getAll()
+        ]);
+        setFeaturedHotels(hotels.slice(0, 3));
+        setPopularDestinations(tourism.slice(0, 3));
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   return (
     <>

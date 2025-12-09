@@ -5,10 +5,11 @@
 
 export const API_CONFIG = {
   // Set to false when backend is ready
-  USE_MOCK_DATA: true,
+  // Can be controlled via NEXT_PUBLIC_USE_MOCK_DATA in .env.local
+  USE_MOCK_DATA: process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true' ? true : process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'false' ? false : true,
 
   // Backend API URL
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
   API_VERSION: process.env.NEXT_PUBLIC_API_VERSION || 'v1',
 
   // API Endpoints
