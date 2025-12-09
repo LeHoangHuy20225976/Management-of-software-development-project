@@ -24,6 +24,7 @@ export default function HotelDetailPage({
   const [nights, setNights] = useState<number>(0);
   const [totalPrice, setTotalPrice] = useState<number>(0);
   const [isBooking, setIsBooking] = useState(false);
+  const [discountCode, setDiscountCode] = useState('');
 
   useEffect(() => {
     const loadHotel = async () => {
@@ -411,6 +412,19 @@ export default function HotelDetailPage({
                           </option>
                         ))}
                       </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2">
+                        Mã giảm giá
+                      </label>
+                      <input
+                        type="text"
+                        value={discountCode}
+                        onChange={(e) => setDiscountCode(e.target.value)}
+                        placeholder="Nhập mã giảm giá"
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900"
+                      />
                     </div>
 
                     <div className="pt-4 border-t border-gray-200">
