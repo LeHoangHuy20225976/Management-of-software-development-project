@@ -6,17 +6,38 @@
 
 import { API_CONFIG } from './config';
 import { apiClient } from './client';
-import { mockHotels, mockTourismSpots, mockReviews as defaultMockReviews, mockBookings as defaultMockBookings, mockUser as defaultMockUser, mockRoomTypes } from '../mock/data';
-import { getMockUser, getMockBookings, getMockReviews, getMockHotels, updateMockUser, addMockBooking, addMockReview, updateMockBooking } from '../utils/mockData';
+import { mockTourismSpots, mockReviews as defaultMockReviews, mockBookings as defaultMockBookings, mockUser as defaultMockUser } from '../mock/data';
+import {
+  getMockUser,
+  getMockBookings,
+  getMockReviews,
+  getMockHotels,
+  getMockTourismSpots,
+  getMockRoomTypesByHotel,
+  updateMockUser,
+  addMockBooking,
+  addMockReview,
+  updateMockBooking,
+  setMockReviews,
+  initializeMockData,
+} from '../utils/mockData';
 import type { Hotel, TourismSpot, Review, Booking, User, SearchFilters, RoomType } from '@/types';
 
 // Helper to simulate API delay for mock data
 const mockDelay = (ms: number = 500) => new Promise(resolve => setTimeout(resolve, ms));
 
+const ensureMockLayerReady = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  initializeMockData();
+};
+
 // ============= HOTELS API =============
 export const hotelsApi = {
   async getAll(filters?: SearchFilters): Promise<Hotel[]> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
       // Get hotels from localStorage
       let hotels = getMockHotels();
@@ -57,6 +78,7 @@ export const hotelsApi = {
 
   async getById(id: string): Promise<Hotel | null> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
       const hotels = getMockHotels();
       return hotels.find(h => h.id === id) || null;
@@ -67,6 +89,7 @@ export const hotelsApi = {
 
   async getBySlug(slug: string): Promise<Hotel | null> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
       const hotels = getMockHotels();
       return hotels.find(h => h.slug === slug) || null;
@@ -78,8 +101,9 @@ export const hotelsApi = {
 
   async getRooms(hotelId: string): Promise<RoomType[]> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
-      return mockRoomTypes[hotelId] || [];
+      return getMockRoomTypesByHotel(hotelId);
     }
 
     return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.HOTEL_ROOMS, { id: hotelId });
@@ -87,6 +111,7 @@ export const hotelsApi = {
 
   async getReviews(hotelId: string): Promise<Review[]> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
       const reviews = getMockReviews();
       return reviews.filter(r => r.hotelId === hotelId);
@@ -100,8 +125,9 @@ export const hotelsApi = {
 export const tourismApi = {
   async getAll(): Promise<TourismSpot[]> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
-      return mockTourismSpots;
+      return getMockTourismSpots();
     }
 
     return apiClient.get<TourismSpot[]>(API_CONFIG.ENDPOINTS.TOURISM_SPOTS);
@@ -109,8 +135,10 @@ export const tourismApi = {
 
   async getById(id: string): Promise<TourismSpot | null> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
-      return mockTourismSpots.find(t => t.id === id) || null;
+      const spots = getMockTourismSpots();
+      return spots.find(t => t.id === id) || null;
     }
 
     return apiClient.get<TourismSpot>(API_CONFIG.ENDPOINTS.TOURISM_DETAILS, { id });
@@ -118,8 +146,10 @@ export const tourismApi = {
 
   async getBySlug(slug: string): Promise<TourismSpot | null> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
-      return mockTourismSpots.find(t => t.slug === slug) || null;
+      const spots = getMockTourismSpots();
+      return spots.find(t => t.slug === slug) || null;
     }
 
     return apiClient.get<TourismSpot>(`/tourism/slug/${slug}`);
@@ -130,6 +160,7 @@ export const tourismApi = {
 export const bookingsApi = {
   async getAll(): Promise<Booking[]> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
       // Get bookings from localStorage
       return getMockBookings();
@@ -140,6 +171,7 @@ export const bookingsApi = {
 
   async getById(id: string): Promise<Booking | null> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
       const bookings = getMockBookings();
       return bookings.find(b => b.id === id) || null;
@@ -150,6 +182,7 @@ export const bookingsApi = {
 
   async create(bookingData: Partial<Booking>): Promise<Booking> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
       const newBooking: Booking = {
         id: `BK${Date.now()}`,
@@ -168,6 +201,7 @@ export const bookingsApi = {
 
   async cancel(id: string): Promise<boolean> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
       // Update booking status in localStorage
       updateMockBooking(id, { status: 'cancelled', paymentStatus: 'refunded' });
@@ -182,6 +216,7 @@ export const bookingsApi = {
 export const userApi = {
   async getProfile(): Promise<User> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
       // Get user from localStorage
       const user = getMockUser();
@@ -193,6 +228,7 @@ export const userApi = {
 
   async updateProfile(data: Partial<User>): Promise<User> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
       // Update user in localStorage
       updateMockUser(data);
@@ -208,6 +244,7 @@ export const userApi = {
 export const reviewsApi = {
   async create(reviewData: Partial<Review>): Promise<Review> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
       const newReview: Review = {
         id: `rv${Date.now()}`,
@@ -226,13 +263,14 @@ export const reviewsApi = {
 
   async update(id: string, reviewData: Partial<Review>): Promise<Review> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
       const reviews = getMockReviews();
       const review = reviews.find(r => r.id === id);
       const updatedReview = { ...review!, ...reviewData };
       // Update in localStorage
       const allReviews = reviews.map(r => r.id === id ? updatedReview : r);
-      localStorage.setItem('userReviews', JSON.stringify(allReviews));
+      setMockReviews(allReviews);
       return updatedReview;
     }
 
@@ -241,11 +279,12 @@ export const reviewsApi = {
 
   async delete(id: string): Promise<boolean> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
       // Delete from localStorage
       const reviews = getMockReviews();
       const filtered = reviews.filter(r => r.id !== id);
-      localStorage.setItem('userReviews', JSON.stringify(filtered));
+      setMockReviews(filtered);
       return true;
     }
 
@@ -257,6 +296,7 @@ export const reviewsApi = {
 export const searchApi = {
   async hotels(query: string, filters?: SearchFilters): Promise<Hotel[]> {
     if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
       await mockDelay();
       const allHotels = getMockHotels();
       let hotels = allHotels.filter(h =>

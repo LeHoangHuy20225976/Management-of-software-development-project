@@ -1,19 +1,52 @@
+'use client';
+
 /**
  * User Dashboard - Tổng quan tài khoản
  * FE3: User Dashboard
  */
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { bookingsApi, userApi } from '@/lib/api/services';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import { ROUTES } from '@/lib/routes';
+import type { Booking, User } from '@/types';
 
-export default async function UserDashboardPage() {
-  const user = await userApi.getProfile();
-  const bookings = await bookingsApi.getAll();
+export default function UserDashboardPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [profile, bookingData] = await Promise.all([
+          userApi.getProfile(),
+          bookingsApi.getAll(),
+        ]);
+        setUser(profile);
+        setBookings(bookingData);
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
   const upcomingBookings = bookings.filter(b => b.status === 'confirmed');
+
+  if (loading || !user) {
+    return (
+      <div className="space-y-6">
+        <Card>Đang tải...</Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
