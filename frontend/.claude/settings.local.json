@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"C:\\Users\\ADMIN\\Desktop\\Hust\\MN_OF_SW\\Management-of-software-development-project\\frontend\\components\")",
+      "Bash(dir \"C:\\Users\\ADMIN\\Desktop\\Hust\\MN_OF_SW\\Management-of-software-development-project\\frontend\\app\")",
+      "Bash(ls:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
