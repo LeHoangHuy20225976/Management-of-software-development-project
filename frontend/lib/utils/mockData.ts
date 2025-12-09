@@ -7,7 +7,7 @@ import type { User, Booking, Review, Hotel, RoomType, TourismSpot } from '@/type
 import { mockTourismSpots, mockRoomTypes } from '../mock/data';
 
 // Increment this to force refresh seeded mock data in localStorage
-const MOCK_DATA_VERSION = '2';
+const MOCK_DATA_VERSION = '3';
 
 // Force reinitialize (useful when updating mock data structure)
 export const forceReinitializeMockData = () => {

@@ -54,9 +54,8 @@ export default function BookingConfirmationPage() {
   }
 
   const totalPrice = bookingData.roomPrice * bookingData.nights;
-  const serviceFee = totalPrice * 0.05;
   const tax = totalPrice * 0.1;
-  const grandTotal = totalPrice + serviceFee + tax;
+  const grandTotal = totalPrice + tax;
 
   return (
     <>
@@ -73,12 +72,14 @@ export default function BookingConfirmationPage() {
                 Đặt phòng thành công!
               </h1>
               <p className="text-gray-600 mb-4">
-                Cảm ơn bạn đã đặt phòng tại VietStay. Chúng tôi đã gửi email xác nhận đến{' '}
-                <strong>{bookingData.guestInfo?.email}</strong>
+                Cảm ơn bạn đã đặt phòng tại VietStay. Chúng tôi đã gửi email xác
+                nhận đến <strong>{bookingData.guestInfo?.email}</strong>
               </p>
               <div className="inline-block bg-white px-6 py-3 rounded-lg border-2 border-green-200">
                 <p className="text-sm text-gray-600 mb-1">Mã đặt phòng</p>
-                <p className="text-2xl font-bold text-[#0071c2]">{bookingData.bookingId}</p>
+                <p className="text-2xl font-bold text-[#0071c2]">
+                  {bookingData.bookingId}
+                </p>
               </div>
             </div>
           </div>
@@ -94,26 +95,45 @@ export default function BookingConfirmationPage() {
                       <span className="text-white text-xl">🏨</span>
                     </div>
                     <div>
-                      <h2 className="text-xl font-bold text-gray-900">VietStay</h2>
-                      <p className="text-xs text-gray-600">Hotel Booking Platform</p>
+                      <h2 className="text-xl font-bold text-gray-900">
+                        VietStay
+                      </h2>
+                      <p className="text-xs text-gray-600">
+                        Hotel Booking Platform
+                      </p>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600">123 Lê Lợi, Quận 1, TP.HCM</p>
-                  <p className="text-sm text-gray-600">Email: support@vietstay.com</p>
+                  <p className="text-sm text-gray-600">
+                    123 Lê Lợi, Quận 1, TP.HCM
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Email: support@vietstay.com
+                  </p>
                   <p className="text-sm text-gray-600">Hotline: 1900 xxxx</p>
                 </div>
                 <div className="text-right">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">HÓA ĐƠN</h3>
-                  <p className="text-sm text-gray-600">Mã: {bookingData.bookingId}</p>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    HÓA ĐƠN
+                  </h3>
                   <p className="text-sm text-gray-600">
-                    Ngày: {new Date(bookingData.bookingDate).toLocaleDateString('vi-VN')}
+                    Mã: {bookingData.bookingId}
                   </p>
-                  <span className={`inline-block mt-2 px-3 py-1 rounded-full text-sm ${
-                    bookingData.paymentStatus === 'paid'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {bookingData.paymentStatus === 'paid' ? '✓ Đã thanh toán' : '⏳ Chờ thanh toán'}
+                  <p className="text-sm text-gray-600">
+                    Ngày:{' '}
+                    {new Date(bookingData.bookingDate).toLocaleDateString(
+                      'vi-VN'
+                    )}
+                  </p>
+                  <span
+                    className={`inline-block mt-2 px-3 py-1 rounded-full text-sm ${
+                      bookingData.paymentStatus === 'paid'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}
+                  >
+                    {bookingData.paymentStatus === 'paid'
+                      ? '✓ Đã thanh toán'
+                      : '⏳ Chờ thanh toán'}
                   </span>
                 </div>
               </div>
@@ -121,7 +141,9 @@ export default function BookingConfirmationPage() {
               {/* Customer Info */}
               <div className="grid grid-cols-2 gap-8 mb-8">
                 <div>
-                  <h4 className="font-bold text-gray-900 mb-3">Thông tin khách hàng</h4>
+                  <h4 className="font-bold text-gray-900 mb-3">
+                    Thông tin khách hàng
+                  </h4>
                   <div className="text-sm space-y-1">
                     <p className="text-gray-700">
                       <strong>Họ tên:</strong> {bookingData.guestInfo?.fullName}
@@ -130,12 +152,15 @@ export default function BookingConfirmationPage() {
                       <strong>Email:</strong> {bookingData.guestInfo?.email}
                     </p>
                     <p className="text-gray-700">
-                      <strong>Điện thoại:</strong> {bookingData.guestInfo?.phone}
+                      <strong>Điện thoại:</strong>{' '}
+                      {bookingData.guestInfo?.phone}
                     </p>
                   </div>
                 </div>
                 <div>
-                  <h4 className="font-bold text-gray-900 mb-3">Thông tin khách sạn</h4>
+                  <h4 className="font-bold text-gray-900 mb-3">
+                    Thông tin khách sạn
+                  </h4>
                   <div className="text-sm space-y-1">
                     <p className="text-gray-700">
                       <strong>Khách sạn:</strong> {bookingData.hotelName}
@@ -152,22 +177,30 @@ export default function BookingConfirmationPage() {
 
               {/* Booking Details */}
               <div className="mb-8">
-                <h4 className="font-bold text-gray-900 mb-3">Chi tiết đặt phòng</h4>
+                <h4 className="font-bold text-gray-900 mb-3">
+                  Chi tiết đặt phòng
+                </h4>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
                       <p className="text-gray-600 mb-1">Nhận phòng</p>
-                      <p className="font-semibold text-gray-900">{bookingData.checkIn}</p>
+                      <p className="font-semibold text-gray-900">
+                        {bookingData.checkIn}
+                      </p>
                       <p className="text-xs text-gray-600">Sau 14:00</p>
                     </div>
                     <div>
                       <p className="text-gray-600 mb-1">Trả phòng</p>
-                      <p className="font-semibold text-gray-900">{bookingData.checkOut}</p>
+                      <p className="font-semibold text-gray-900">
+                        {bookingData.checkOut}
+                      </p>
                       <p className="text-xs text-gray-600">Trước 12:00</p>
                     </div>
                     <div>
                       <p className="text-gray-600 mb-1">Thời gian lưu trú</p>
-                      <p className="font-semibold text-gray-900">{bookingData.nights} đêm</p>
+                      <p className="font-semibold text-gray-900">
+                        {bookingData.nights} đêm
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -178,16 +211,28 @@ export default function BookingConfirmationPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b-2 border-gray-300">
-                      <th className="text-left py-3 font-bold text-gray-900">Mô tả</th>
-                      <th className="text-right py-3 font-bold text-gray-900">Số lượng</th>
-                      <th className="text-right py-3 font-bold text-gray-900">Đơn giá</th>
-                      <th className="text-right py-3 font-bold text-gray-900">Thành tiền</th>
+                      <th className="text-left py-3 font-bold text-gray-900">
+                        Mô tả
+                      </th>
+                      <th className="text-right py-3 font-bold text-gray-900">
+                        Số lượng
+                      </th>
+                      <th className="text-right py-3 font-bold text-gray-900">
+                        Đơn giá
+                      </th>
+                      <th className="text-right py-3 font-bold text-gray-900">
+                        Thành tiền
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="border-b border-gray-200">
-                      <td className="py-3 text-gray-700">{bookingData.roomType}</td>
-                      <td className="text-right text-gray-700">{bookingData.nights} đêm</td>
+                      <td className="py-3 text-gray-700">
+                        {bookingData.roomType}
+                      </td>
+                      <td className="text-right text-gray-700">
+                        {bookingData.nights} đêm
+                      </td>
                       <td className="text-right text-gray-700">
                         {bookingData.roomPrice.toLocaleString('vi-VN')} ₫
                       </td>
@@ -196,19 +241,18 @@ export default function BookingConfirmationPage() {
                       </td>
                     </tr>
                     <tr className="border-b border-gray-200">
-                      <td className="py-3 text-gray-700" colSpan={3}>Phí dịch vụ (5%)</td>
-                      <td className="text-right font-semibold text-gray-900">
-                        {serviceFee.toLocaleString('vi-VN')} ₫
+                      <td className="py-3 text-gray-700" colSpan={3}>
+                        Thuế & phí (10%)
                       </td>
-                    </tr>
-                    <tr className="border-b border-gray-200">
-                      <td className="py-3 text-gray-700" colSpan={3}>Thuế VAT (10%)</td>
                       <td className="text-right font-semibold text-gray-900">
                         {tax.toLocaleString('vi-VN')} ₫
                       </td>
                     </tr>
                     <tr className="border-t-2 border-gray-300">
-                      <td className="py-4 font-bold text-gray-900 text-lg" colSpan={3}>
+                      <td
+                        className="py-4 font-bold text-gray-900 text-lg"
+                        colSpan={3}
+                      >
                         TỔNG CỘNG
                       </td>
                       <td className="text-right font-bold text-[#0071c2] text-2xl">
@@ -221,18 +265,25 @@ export default function BookingConfirmationPage() {
 
               {/* Payment Info */}
               <div className="mb-8 p-4 bg-blue-50 rounded-lg">
-                <h4 className="font-bold text-gray-900 mb-2">Phương thức thanh toán</h4>
+                <h4 className="font-bold text-gray-900 mb-2">
+                  Phương thức thanh toán
+                </h4>
                 <p className="text-sm text-gray-700">
-                  {bookingData.paymentMethod === 'credit_card' && '💳 Thẻ tín dụng/Ghi nợ'}
-                  {bookingData.paymentMethod === 'bank_transfer' && '🏦 Chuyển khoản ngân hàng'}
-                  {bookingData.paymentMethod === 'cash' && '💵 Thanh toán tại khách sạn'}
+                  {bookingData.paymentMethod === 'credit_card' &&
+                    '💳 Thẻ tín dụng/Ghi nợ'}
+                  {bookingData.paymentMethod === 'bank_transfer' &&
+                    '🏦 Chuyển khoản ngân hàng'}
+                  {bookingData.paymentMethod === 'cash' &&
+                    '💵 Thanh toán tại khách sạn'}
                 </p>
               </div>
 
               {/* Special Requests */}
               {bookingData.guestInfo?.specialRequests && (
                 <div className="mb-8">
-                  <h4 className="font-bold text-gray-900 mb-2">Yêu cầu đặc biệt</h4>
+                  <h4 className="font-bold text-gray-900 mb-2">
+                    Yêu cầu đặc biệt
+                  </h4>
                   <p className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg">
                     {bookingData.guestInfo.specialRequests}
                   </p>
@@ -241,10 +292,14 @@ export default function BookingConfirmationPage() {
 
               {/* Cancellation Policy */}
               <div className="mb-8 p-4 border-2 border-yellow-200 bg-yellow-50 rounded-lg">
-                <h4 className="font-bold text-gray-900 mb-2">Chính sách hủy phòng</h4>
+                <h4 className="font-bold text-gray-900 mb-2">
+                  Chính sách hủy phòng
+                </h4>
                 <ul className="text-sm text-gray-700 space-y-1">
                   <li>• Hủy miễn phí trước 24 giờ so với giờ nhận phòng</li>
-                  <li>• Hủy trong vòng 24 giờ: phí 50% tổng giá trị đặt phòng</li>
+                  <li>
+                    • Hủy trong vòng 24 giờ: phí 50% tổng giá trị đặt phòng
+                  </li>
                   <li>• Không đến (No-show): không hoàn tiền</li>
                 </ul>
               </div>
@@ -258,16 +313,22 @@ export default function BookingConfirmationPage() {
 
               {/* Actions (hidden when printing) */}
               <div className="flex flex-col sm:flex-row gap-4 print:hidden">
-                <Button onClick={handlePrint} variant="outline" className="flex-1">
+                <Button
+                  onClick={handlePrint}
+                  variant="outline"
+                  className="flex-1"
+                >
                   🖨️ In hóa đơn
                 </Button>
-                <Button onClick={handleDownloadPDF} variant="outline" className="flex-1">
+                <Button
+                  onClick={handleDownloadPDF}
+                  variant="outline"
+                  className="flex-1"
+                >
                   📥 Tải PDF
                 </Button>
                 <Link href={ROUTES.USER.DASHBOARD} className="flex-1">
-                  <Button className="w-full">
-                    📊 Xem đơn đặt phòng
-                  </Button>
+                  <Button className="w-full">📊 Xem đơn đặt phòng</Button>
                 </Link>
               </div>
             </Card>

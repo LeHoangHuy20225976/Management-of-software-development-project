@@ -18,22 +18,30 @@ export default function CheckoutPage() {
   const searchParams = useSearchParams();
 
   // Get booking details from URL params
-  const hotelId = searchParams.get('hotelId') || '1';
-  const roomId = searchParams.get('roomId') || '1';
+  const hotelId = searchParams.get('hotelId') || '';
+  const hotelName = searchParams.get('hotelName') || '';
+  const hotelImage = searchParams.get('hotelImage') || '';
+  const hotelSlug = searchParams.get('hotelSlug') || '';
+  const roomId = searchParams.get('roomId') || '';
+  const roomType = searchParams.get('roomType') || '';
+  const roomPrice = Number(searchParams.get('roomPrice')) || 0;
   const checkIn = searchParams.get('checkIn') || '';
   const checkOut = searchParams.get('checkOut') || '';
-  const guests = searchParams.get('guests') || '2';
+  const nights = Number(searchParams.get('nights')) || 0;
+  const guests = Number(searchParams.get('guests')) || 2;
 
-  // Mock hotel data - in real app, fetch from API
   const bookingInfo = {
-    hotelName: 'Grand Hotel Saigon',
-    hotelImage: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400',
-    roomType: 'Deluxe Room',
-    roomPrice: 2000000,
+    hotelId,
+    hotelName,
+    hotelImage,
+    hotelSlug,
+    roomId,
+    roomType,
+    roomPrice,
     checkIn,
     checkOut,
-    guests: Number(guests),
-    nights: 3,
+    nights,
+    guests,
   };
 
   const [guestInfo, setGuestInfo] = useState({
@@ -43,12 +51,13 @@ export default function CheckoutPage() {
     specialRequests: '',
   });
 
-  const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'bank_transfer' | 'cash'>('credit_card');
+  const [paymentMethod, setPaymentMethod] = useState<
+    'credit_card' | 'bank_transfer' | 'cash'
+  >('credit_card');
 
   const totalPrice = bookingInfo.roomPrice * bookingInfo.nights;
-  const serviceFee = totalPrice * 0.05;
   const tax = totalPrice * 0.1;
-  const grandTotal = totalPrice + serviceFee + tax;
+  const grandTotal = totalPrice + tax;
 
   const handleProceedToPayment = () => {
     if (!guestInfo.fullName || !guestInfo.email || !guestInfo.phone) {
@@ -57,12 +66,15 @@ export default function CheckoutPage() {
     }
 
     // Store booking data in sessionStorage
-    sessionStorage.setItem('bookingData', JSON.stringify({
-      ...bookingInfo,
-      guestInfo,
-      paymentMethod,
-      totalPrice: grandTotal,
-    }));
+    sessionStorage.setItem(
+      'bookingData',
+      JSON.stringify({
+        ...bookingInfo,
+        guestInfo,
+        paymentMethod,
+        totalPrice: grandTotal,
+      })
+    );
 
     router.push('/payment');
   };
@@ -79,21 +91,27 @@ export default function CheckoutPage() {
                 <div className="w-10 h-10 rounded-full bg-[#0071c2] text-white flex items-center justify-center font-bold">
                   1
                 </div>
-                <span className="ml-2 font-medium hidden sm:inline">Thông tin</span>
+                <span className="ml-2 font-medium hidden sm:inline">
+                  Thông tin
+                </span>
               </div>
               <div className="w-16 h-0.5 bg-gray-300"></div>
               <div className="flex items-center text-gray-400">
                 <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold">
                   2
                 </div>
-                <span className="ml-2 font-medium hidden sm:inline">Thanh toán</span>
+                <span className="ml-2 font-medium hidden sm:inline">
+                  Thanh toán
+                </span>
               </div>
               <div className="w-16 h-0.5 bg-gray-300"></div>
               <div className="flex items-center text-gray-400">
                 <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold">
                   3
                 </div>
-                <span className="ml-2 font-medium hidden sm:inline">Hoàn tất</span>
+                <span className="ml-2 font-medium hidden sm:inline">
+                  Hoàn tất
+                </span>
               </div>
             </div>
           </div>
@@ -103,7 +121,9 @@ export default function CheckoutPage() {
             <div className="lg:col-span-2 space-y-6">
               {/* Guest Details */}
               <Card>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Thông tin khách hàng</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Thông tin khách hàng
+                </h2>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-900 mb-2">
@@ -111,7 +131,9 @@ export default function CheckoutPage() {
                     </label>
                     <Input
                       value={guestInfo.fullName}
-                      onChange={(e) => setGuestInfo({ ...guestInfo, fullName: e.target.value })}
+                      onChange={(e) =>
+                        setGuestInfo({ ...guestInfo, fullName: e.target.value })
+                      }
                       placeholder="Nguyễn Văn A"
                       required
                     />
@@ -125,7 +147,9 @@ export default function CheckoutPage() {
                       <Input
                         type="email"
                         value={guestInfo.email}
-                        onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
+                        onChange={(e) =>
+                          setGuestInfo({ ...guestInfo, email: e.target.value })
+                        }
                         placeholder="example@email.com"
                         required
                       />
@@ -138,7 +162,9 @@ export default function CheckoutPage() {
                       <Input
                         type="tel"
                         value={guestInfo.phone}
-                        onChange={(e) => setGuestInfo({ ...guestInfo, phone: e.target.value })}
+                        onChange={(e) =>
+                          setGuestInfo({ ...guestInfo, phone: e.target.value })
+                        }
                         placeholder="0901 234 567"
                         required
                       />
@@ -151,7 +177,12 @@ export default function CheckoutPage() {
                     </label>
                     <textarea
                       value={guestInfo.specialRequests}
-                      onChange={(e) => setGuestInfo({ ...guestInfo, specialRequests: e.target.value })}
+                      onChange={(e) =>
+                        setGuestInfo({
+                          ...guestInfo,
+                          specialRequests: e.target.value,
+                        })
+                      }
                       placeholder="VD: Giường đơn, tầng cao, không hút thuốc..."
                       rows={4}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
@@ -162,7 +193,9 @@ export default function CheckoutPage() {
 
               {/* Payment Method */}
               <Card>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Phương thức thanh toán</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Phương thức thanh toán
+                </h2>
                 <div className="space-y-3">
                   <label className="flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#0071c2] transition-colors">
                     <input
@@ -175,9 +208,13 @@ export default function CheckoutPage() {
                     <div className="ml-3 flex-1">
                       <div className="flex items-center space-x-2">
                         <span className="text-xl">💳</span>
-                        <span className="font-semibold text-gray-900">Thẻ tín dụng / Ghi nợ</span>
+                        <span className="font-semibold text-gray-900">
+                          Thẻ tín dụng / Ghi nợ
+                        </span>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">Visa, Mastercard, JCB</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Visa, Mastercard, JCB
+                      </p>
                     </div>
                   </label>
 
@@ -192,9 +229,13 @@ export default function CheckoutPage() {
                     <div className="ml-3 flex-1">
                       <div className="flex items-center space-x-2">
                         <span className="text-xl">🏦</span>
-                        <span className="font-semibold text-gray-900">Chuyển khoản ngân hàng</span>
+                        <span className="font-semibold text-gray-900">
+                          Chuyển khoản ngân hàng
+                        </span>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">Thanh toán qua tài khoản ngân hàng</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Thanh toán qua tài khoản ngân hàng
+                      </p>
                     </div>
                   </label>
 
@@ -209,9 +250,13 @@ export default function CheckoutPage() {
                     <div className="ml-3 flex-1">
                       <div className="flex items-center space-x-2">
                         <span className="text-xl">💵</span>
-                        <span className="font-semibold text-gray-900">Thanh toán tại khách sạn</span>
+                        <span className="font-semibold text-gray-900">
+                          Thanh toán tại khách sạn
+                        </span>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">Trả tiền mặt khi nhận phòng</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Trả tiền mặt khi nhận phòng
+                      </p>
                     </div>
                   </label>
                 </div>
@@ -227,14 +272,20 @@ export default function CheckoutPage() {
                   />
                   <p className="text-sm text-gray-700">
                     Tôi đồng ý với{' '}
-                    <a href="/terms" className="font-semibold text-[#0071c2] hover:underline">
+                    <a
+                      href="/terms"
+                      className="font-semibold text-[#0071c2] hover:underline"
+                    >
                       Điều khoản sử dụng
-                    </a>
-                    {' '}và{' '}
-                    <a href="/privacy" className="font-semibold text-[#0071c2] hover:underline">
+                    </a>{' '}
+                    và{' '}
+                    <a
+                      href="/privacy"
+                      className="font-semibold text-[#0071c2] hover:underline"
+                    >
                       Chính sách bảo mật
-                    </a>
-                    {' '}của VietStay
+                    </a>{' '}
+                    của VietStay
                   </p>
                 </div>
               </Card>
@@ -243,7 +294,9 @@ export default function CheckoutPage() {
             {/* Right Column - Booking Summary */}
             <div className="lg:col-span-1">
               <Card className="sticky top-4">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Chi tiết đặt phòng</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                  Chi tiết đặt phòng
+                </h2>
 
                 {/* Hotel Info */}
                 <div className="mb-6">
@@ -252,27 +305,39 @@ export default function CheckoutPage() {
                     alt={bookingInfo.hotelName}
                     className="w-full h-40 object-cover rounded-lg mb-3"
                   />
-                  <h3 className="font-bold text-gray-900">{bookingInfo.hotelName}</h3>
-                  <p className="text-sm text-gray-600">{bookingInfo.roomType}</p>
+                  <h3 className="font-bold text-gray-900">
+                    {bookingInfo.hotelName}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {bookingInfo.roomType}
+                  </p>
                 </div>
 
                 {/* Booking Details */}
                 <div className="space-y-3 mb-6 pb-6 border-b">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Nhận phòng</span>
-                    <span className="font-semibold text-gray-900">{bookingInfo.checkIn}</span>
+                    <span className="font-semibold text-gray-900">
+                      {bookingInfo.checkIn}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Trả phòng</span>
-                    <span className="font-semibold text-gray-900">{bookingInfo.checkOut}</span>
+                    <span className="font-semibold text-gray-900">
+                      {bookingInfo.checkOut}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Số đêm</span>
-                    <span className="font-semibold text-gray-900">{bookingInfo.nights} đêm</span>
+                    <span className="font-semibold text-gray-900">
+                      {bookingInfo.nights} đêm
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Số khách</span>
-                    <span className="font-semibold text-gray-900">{bookingInfo.guests} người</span>
+                    <span className="font-semibold text-gray-900">
+                      {bookingInfo.guests} người
+                    </span>
                   </div>
                 </div>
 
@@ -280,20 +345,15 @@ export default function CheckoutPage() {
                 <div className="space-y-3 mb-6 pb-6 border-b">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">
-                      {bookingInfo.roomPrice.toLocaleString('vi-VN')} ₫ x {bookingInfo.nights} đêm
+                      {bookingInfo.roomPrice.toLocaleString('vi-VN')} ₫ x{' '}
+                      {bookingInfo.nights} đêm
                     </span>
                     <span className="font-semibold text-gray-900">
                       {totalPrice.toLocaleString('vi-VN')} ₫
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Phí dịch vụ (5%)</span>
-                    <span className="font-semibold text-gray-900">
-                      {serviceFee.toLocaleString('vi-VN')} ₫
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Thuế VAT (10%)</span>
+                    <span className="text-gray-600">Thuế & phí (10%)</span>
                     <span className="font-semibold text-gray-900">
                       {tax.toLocaleString('vi-VN')} ₫
                     </span>
@@ -302,7 +362,9 @@ export default function CheckoutPage() {
 
                 {/* Total */}
                 <div className="flex justify-between mb-6">
-                  <span className="text-lg font-bold text-gray-900">Tổng cộng</span>
+                  <span className="text-lg font-bold text-gray-900">
+                    Tổng cộng
+                  </span>
                   <span className="text-2xl font-bold text-[#0071c2]">
                     {grandTotal.toLocaleString('vi-VN')} ₫
                   </span>
@@ -319,7 +381,9 @@ export default function CheckoutPage() {
 
                 {/* Cancellation Policy */}
                 <div className="mt-6 p-4 bg-green-50 rounded-lg">
-                  <p className="text-sm font-semibold text-green-800 mb-2">✓ Miễn phí hủy phòng</p>
+                  <p className="text-sm font-semibold text-green-800 mb-2">
+                    ✓ Miễn phí hủy phòng
+                  </p>
                   <p className="text-xs text-green-700">
                     Hủy miễn phí trước 24 giờ trước giờ nhận phòng
                   </p>

@@ -12,6 +12,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
+import { bookingsApi } from '@/lib/api/services';
 
 export default function PaymentPage() {
   const router = useRouter();
@@ -40,7 +41,12 @@ export default function PaymentPage() {
     e.preventDefault();
 
     if (bookingData.paymentMethod === 'credit_card') {
-      if (!cardInfo.cardNumber || !cardInfo.cardName || !cardInfo.expiryDate || !cardInfo.cvv) {
+      if (
+        !cardInfo.cardNumber ||
+        !cardInfo.cardName ||
+        !cardInfo.expiryDate ||
+        !cardInfo.cvv
+      ) {
         alert('Vui lòng điền đầy đủ thông tin thẻ!');
         return;
       }
@@ -48,22 +54,53 @@ export default function PaymentPage() {
 
     setIsProcessing(true);
 
-    // Simulate payment processing
-    setTimeout(() => {
-      // Create booking ID
-      const bookingId = 'BK' + Date.now();
+    try {
+      // Simulate payment processing delay
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // Store booking confirmation
-      sessionStorage.setItem('bookingConfirmation', JSON.stringify({
-        ...bookingData,
-        bookingId,
-        bookingDate: new Date().toISOString(),
+      // Create booking via API
+      const bookingPayload = {
+        hotelId: bookingData.hotelId,
+        hotelName: bookingData.hotelName,
+        hotelImage: bookingData.hotelImage,
+        roomType: bookingData.roomType,
+        checkIn: bookingData.checkIn,
+        checkOut: bookingData.checkOut,
+        nights: bookingData.nights,
+        guests: bookingData.guests,
+        totalPrice: bookingData.totalPrice,
+        status: 'confirmed',
         paymentStatus: 'paid',
-      }));
+        bookingDate: new Date().toISOString(),
+        paymentMethod:
+          bookingData.paymentMethod === 'credit_card'
+            ? 'Thẻ tín dụng'
+            : bookingData.paymentMethod === 'bank_transfer'
+            ? 'Chuyển khoản'
+            : 'Tiền mặt',
+      };
 
+      const created = await bookingsApi.create(bookingPayload as any);
+
+      // Store booking confirmation for display
+      sessionStorage.setItem(
+        'bookingConfirmation',
+        JSON.stringify({
+          ...bookingData,
+          bookingId: created.id,
+          bookingDate: bookingPayload.bookingDate,
+          paymentStatus: 'paid',
+          roomPrice: bookingData.roomPrice,
+        })
+      );
+
+      router.push(`/booking/confirmation?id=${created.id}`);
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Có lỗi xảy ra khi xử lý thanh toán. Vui lòng thử lại!');
+    } finally {
       setIsProcessing(false);
-      router.push(`/booking/confirmation?id=${bookingId}`);
-    }, 2000);
+    }
   };
 
   if (!bookingData) {
@@ -90,21 +127,27 @@ export default function PaymentPage() {
                 <div className="w-10 h-10 rounded-full bg-green-600 text-white flex items-center justify-center font-bold">
                   ✓
                 </div>
-                <span className="ml-2 font-medium hidden sm:inline">Thông tin</span>
+                <span className="ml-2 font-medium hidden sm:inline">
+                  Thông tin
+                </span>
               </div>
               <div className="w-16 h-0.5 bg-[#0071c2]"></div>
               <div className="flex items-center text-[#0071c2]">
                 <div className="w-10 h-10 rounded-full bg-[#0071c2] text-white flex items-center justify-center font-bold">
                   2
                 </div>
-                <span className="ml-2 font-medium hidden sm:inline">Thanh toán</span>
+                <span className="ml-2 font-medium hidden sm:inline">
+                  Thanh toán
+                </span>
               </div>
               <div className="w-16 h-0.5 bg-gray-300"></div>
               <div className="flex items-center text-gray-400">
                 <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold">
                   3
                 </div>
-                <span className="ml-2 font-medium hidden sm:inline">Hoàn tất</span>
+                <span className="ml-2 font-medium hidden sm:inline">
+                  Hoàn tất
+                </span>
               </div>
             </div>
           </div>
@@ -113,7 +156,9 @@ export default function PaymentPage() {
             {/* Left Column - Payment Form */}
             <div className="lg:col-span-2">
               <Card>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Thanh toán</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Thanh toán
+                </h2>
 
                 <form onSubmit={handlePayment} className="space-y-6">
                   {bookingData.paymentMethod === 'credit_card' && (
@@ -127,7 +172,8 @@ export default function PaymentPage() {
                           onChange={(e) => {
                             // Format card number with spaces
                             const value = e.target.value.replace(/\s/g, '');
-                            const formatted = value.match(/.{1,4}/g)?.join(' ') || value;
+                            const formatted =
+                              value.match(/.{1,4}/g)?.join(' ') || value;
                             setCardInfo({ ...cardInfo, cardNumber: formatted });
                           }}
                           placeholder="1234 5678 9012 3456"
@@ -135,9 +181,21 @@ export default function PaymentPage() {
                           required
                         />
                         <div className="flex items-center space-x-2 mt-2">
-                          <img src="https://img.icons8.com/color/48/visa.png" alt="Visa" className="h-8" />
-                          <img src="https://img.icons8.com/color/48/mastercard.png" alt="Mastercard" className="h-8" />
-                          <img src="https://img.icons8.com/color/48/jcb.png" alt="JCB" className="h-8" />
+                          <img
+                            src="https://img.icons8.com/color/48/visa.png"
+                            alt="Visa"
+                            className="h-8"
+                          />
+                          <img
+                            src="https://img.icons8.com/color/48/mastercard.png"
+                            alt="Mastercard"
+                            className="h-8"
+                          />
+                          <img
+                            src="https://img.icons8.com/color/48/jcb.png"
+                            alt="JCB"
+                            className="h-8"
+                          />
                         </div>
                       </div>
 
@@ -147,7 +205,12 @@ export default function PaymentPage() {
                         </label>
                         <Input
                           value={cardInfo.cardName}
-                          onChange={(e) => setCardInfo({ ...cardInfo, cardName: e.target.value.toUpperCase() })}
+                          onChange={(e) =>
+                            setCardInfo({
+                              ...cardInfo,
+                              cardName: e.target.value.toUpperCase(),
+                            })
+                          }
                           placeholder="NGUYEN VAN A"
                           required
                         />
@@ -164,7 +227,8 @@ export default function PaymentPage() {
                               // Format MM/YY
                               let value = e.target.value.replace(/\D/g, '');
                               if (value.length >= 2) {
-                                value = value.slice(0, 2) + '/' + value.slice(2, 4);
+                                value =
+                                  value.slice(0, 2) + '/' + value.slice(2, 4);
                               }
                               setCardInfo({ ...cardInfo, expiryDate: value });
                             }}
@@ -181,7 +245,12 @@ export default function PaymentPage() {
                           <Input
                             type="password"
                             value={cardInfo.cvv}
-                            onChange={(e) => setCardInfo({ ...cardInfo, cvv: e.target.value.replace(/\D/g, '') })}
+                            onChange={(e) =>
+                              setCardInfo({
+                                ...cardInfo,
+                                cvv: e.target.value.replace(/\D/g, ''),
+                              })
+                            }
                             placeholder="123"
                             maxLength={3}
                             required
@@ -193,10 +262,13 @@ export default function PaymentPage() {
 
                   {bookingData.paymentMethod === 'bank_transfer' && (
                     <div className="bg-blue-50 p-6 rounded-lg">
-                      <h3 className="font-bold text-gray-900 mb-4">Thông tin chuyển khoản</h3>
+                      <h3 className="font-bold text-gray-900 mb-4">
+                        Thông tin chuyển khoản
+                      </h3>
                       <div className="space-y-2 text-sm">
                         <p className="text-gray-700">
-                          <strong>Ngân hàng:</strong> Vietcombank - Chi nhánh TP.HCM
+                          <strong>Ngân hàng:</strong> Vietcombank - Chi nhánh
+                          TP.HCM
                         </p>
                         <p className="text-gray-700">
                           <strong>Số tài khoản:</strong> 0123456789
@@ -211,20 +283,25 @@ export default function PaymentPage() {
                           </span>
                         </p>
                         <p className="text-gray-700">
-                          <strong>Nội dung:</strong> THANHTOAN {bookingData.guestInfo?.fullName}
+                          <strong>Nội dung:</strong> THANHTOAN{' '}
+                          {bookingData.guestInfo?.fullName}
                         </p>
                       </div>
                       <p className="text-xs text-gray-600 mt-4">
-                        * Vui lòng chuyển khoản đúng nội dung để xử lý đơn hàng nhanh chóng
+                        * Vui lòng chuyển khoản đúng nội dung để xử lý đơn hàng
+                        nhanh chóng
                       </p>
                     </div>
                   )}
 
                   {bookingData.paymentMethod === 'cash' && (
                     <div className="bg-green-50 p-6 rounded-lg">
-                      <h3 className="font-bold text-gray-900 mb-4">Thanh toán tại khách sạn</h3>
+                      <h3 className="font-bold text-gray-900 mb-4">
+                        Thanh toán tại khách sạn
+                      </h3>
                       <p className="text-sm text-gray-700 mb-4">
-                        Bạn sẽ thanh toán trực tiếp tại khách sạn khi nhận phòng. Vui lòng mang theo:
+                        Bạn sẽ thanh toán trực tiếp tại khách sạn khi nhận
+                        phòng. Vui lòng mang theo:
                       </p>
                       <ul className="text-sm text-gray-700 space-y-2">
                         <li>• CMND/CCCD/Hộ chiếu gốc</li>
@@ -267,29 +344,43 @@ export default function PaymentPage() {
             {/* Right Column - Booking Summary */}
             <div className="lg:col-span-1">
               <Card className="sticky top-4">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Tóm tắt đặt phòng</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                  Tóm tắt đặt phòng
+                </h2>
 
                 <div className="space-y-3 mb-6 pb-6 border-b">
                   <div>
-                    <h3 className="font-bold text-gray-900">{bookingData.hotelName}</h3>
-                    <p className="text-sm text-gray-600">{bookingData.roomType}</p>
+                    <h3 className="font-bold text-gray-900">
+                      {bookingData.hotelName}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {bookingData.roomType}
+                    </p>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Nhận phòng</span>
-                    <span className="font-semibold text-gray-900">{bookingData.checkIn}</span>
+                    <span className="font-semibold text-gray-900">
+                      {bookingData.checkIn}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Trả phòng</span>
-                    <span className="font-semibold text-gray-900">{bookingData.checkOut}</span>
+                    <span className="font-semibold text-gray-900">
+                      {bookingData.checkOut}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Số đêm</span>
-                    <span className="font-semibold text-gray-900">{bookingData.nights} đêm</span>
+                    <span className="font-semibold text-gray-900">
+                      {bookingData.nights} đêm
+                    </span>
                   </div>
                 </div>
 
                 <div className="flex justify-between mb-4">
-                  <span className="text-lg font-bold text-gray-900">Tổng cộng</span>
+                  <span className="text-lg font-bold text-gray-900">
+                    Tổng cộng
+                  </span>
                   <span className="text-2xl font-bold text-[#0071c2]">
                     {bookingData.totalPrice?.toLocaleString('vi-VN')} ₫
                   </span>

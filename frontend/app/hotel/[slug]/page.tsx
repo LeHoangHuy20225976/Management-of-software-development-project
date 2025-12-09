@@ -23,6 +23,7 @@ export default function HotelDetailPage({
   const [loading, setLoading] = useState(true);
   const [nights, setNights] = useState<number>(0);
   const [totalPrice, setTotalPrice] = useState<number>(0);
+  const [isBooking, setIsBooking] = useState(false);
 
   useEffect(() => {
     const loadHotel = async () => {
@@ -72,7 +73,7 @@ export default function HotelDetailPage({
     }
   }, [checkIn, checkOut, selectedRoom, hotel]);
 
-  const handleBook = async () => {
+  const handleBook = () => {
     if (!hotel) return;
     if (!selectedRoom) {
       alert('Vui lòng chọn loại phòng');
@@ -99,49 +100,22 @@ export default function HotelDetailPage({
       roomName = 'Phòng Suite';
     }
 
-    const bookingPayload = {
+    // Navigate to checkout with booking info
+    const checkoutParams = new URLSearchParams({
       hotelId: hotel.id,
       hotelName: hotel.name,
       hotelImage: hotel.thumbnail,
+      hotelSlug: hotel.slug,
+      roomId: selectedRoom,
       roomType: roomName,
+      roomPrice: roomPrice.toString(),
       checkIn,
       checkOut,
-      nights: stayNights,
-      guests,
-      totalPrice: roomPrice * stayNights,
-      status: 'confirmed',
-      paymentStatus: 'paid',
-      bookingDate: new Date().toISOString(),
-      paymentMethod: 'Thẻ tín dụng',
-    };
+      nights: stayNights.toString(),
+      guests: guests.toString(),
+    });
 
-    const created = await bookingsApi.create(bookingPayload as any);
-
-    // Save for confirmation page display
-    sessionStorage.setItem(
-      'bookingConfirmation',
-      JSON.stringify({
-        bookingId: created.id,
-        bookingDate: bookingPayload.bookingDate,
-        hotelName: bookingPayload.hotelName,
-        roomType: bookingPayload.roomType,
-        roomPrice: roomPrice,
-        nights: stayNights,
-        checkIn,
-        checkOut,
-        guests,
-        paymentStatus: bookingPayload.paymentStatus,
-        paymentMethod: 'credit_card',
-        guestInfo: {
-          fullName: 'Bạn',
-          email: 'user@example.com',
-          phone: '090xxxxxxx',
-          specialRequests: '',
-        },
-      })
-    );
-
-    router.push(`/booking/confirmation?id=${created.id}`);
+    router.push(`/checkout?${checkoutParams.toString()}`);
   };
 
   if (loading) {
@@ -458,11 +432,17 @@ export default function HotelDetailPage({
                     <Button
                       className="w-full"
                       disabled={
-                        !selectedRoom || !checkIn || !checkOut || nights <= 0
+                        !selectedRoom ||
+                        !checkIn ||
+                        !checkOut ||
+                        nights <= 0 ||
+                        isBooking
                       }
                       onClick={handleBook}
                     >
-                      {!selectedRoom
+                      {isBooking
+                        ? 'Đang xử lý...'
+                        : !selectedRoom
                         ? 'Chọn phòng để đặt'
                         : nights <= 0
                         ? 'Chọn ngày nhận/trả phòng'
