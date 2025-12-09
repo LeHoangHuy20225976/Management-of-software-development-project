@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
+import { hotelManagerApi } from '@/lib/api/services';
 
 // Mock reviews data - in real app would fetch from API
 const mockReviews = [
@@ -75,7 +76,7 @@ const mockReviews = [
 ];
 
 export default function HotelReviewsPage() {
-  const [reviews] = useState(mockReviews);
+  const [reviews, setReviews] = useState(mockReviews);
   const [filter, setFilter] = useState<'all' | 'unreplied' | '5star' | 'low'>(
     'all'
   );
@@ -106,11 +107,29 @@ export default function HotelReviewsPage() {
     setReplyText('');
   };
 
-  const submitReply = (reviewId: string) => {
-    // In real app, would call API to submit reply
-    console.log('Submitting reply to review:', reviewId, replyText);
-    setReplyingTo(null);
-    setReplyText('');
+  const submitReply = async (reviewId: string) => {
+    if (!replyText.trim()) {
+      alert('Vui lòng nhập nội dung phản hồi.');
+      return;
+    }
+
+    try {
+      const updatedReview = await hotelManagerApi.replyToReview(
+        reviewId,
+        replyText
+      );
+      setReviews((prevReviews: any[]) =>
+        prevReviews.map((review: any) =>
+          review.id === reviewId ? updatedReview : review
+        )
+      );
+      setReplyingTo(null);
+      setReplyText('');
+      alert('✅ Phản hồi đã được gửi thành công!');
+    } catch (error) {
+      console.error('Error sending reply:', error);
+      alert('❌ Gửi phản hồi thất bại. Vui lòng thử lại!');
+    }
   };
 
   return (

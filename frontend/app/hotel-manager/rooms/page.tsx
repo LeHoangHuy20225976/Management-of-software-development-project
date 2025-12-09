@@ -5,83 +5,91 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
-import { ROUTES } from '@/lib/routes';
+import { formatCurrency } from '@/lib/utils/format';
+import { hotelManagerApi } from '@/lib/api/services';
+import type { RoomType } from '@/types';
 
-// Mock rooms data - in real app would fetch from API
-const mockRooms = [
-  {
-    id: 'r1',
-    name: 'Phòng Standard',
-    type: 'Standard Room',
-    price: 1500000,
-    size: '25m²',
-    beds: '1 giường đôi',
-    maxGuests: 2,
-    available: 8,
-    total: 10,
-    amenities: ['WiFi', 'TV', 'Minibar', 'Điều hòa'],
-    status: 'active',
-    image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=400',
-  },
-  {
-    id: 'r2',
-    name: 'Phòng Deluxe',
-    type: 'Deluxe Room',
-    price: 2200000,
-    size: '35m²',
-    beds: '1 giường king',
-    maxGuests: 2,
-    available: 5,
-    total: 8,
-    amenities: ['WiFi', 'TV', 'Minibar', 'Điều hòa', 'Ban công', 'Bồn tắm'],
-    status: 'active',
-    image: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=400',
-  },
-  {
-    id: 'r3',
-    name: 'Phòng Suite',
-    type: 'Executive Suite',
-    price: 3500000,
-    size: '55m²',
-    beds: '1 giường king + Sofa',
-    maxGuests: 4,
-    available: 2,
-    total: 5,
-    amenities: [
-      'WiFi',
-      'TV',
-      'Minibar',
-      'Điều hòa',
-      'Ban công',
-      'Bồn tắm',
-      'Phòng khách riêng',
-    ],
-    status: 'active',
-    image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400',
-  },
-  {
-    id: 'r4',
-    name: 'Phòng Family',
-    type: 'Family Room',
-    price: 2800000,
-    size: '45m²',
-    beds: '2 giường đôi',
-    maxGuests: 4,
-    available: 3,
-    total: 6,
-    amenities: ['WiFi', 'TV', 'Minibar', 'Điều hòa', 'Khu vực chơi cho trẻ'],
-    status: 'active',
-    image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400',
-  },
-];
+// Helper to convert RoomType to display format
+const convertRoomType = (
+  roomType: RoomType,
+  availableCount: number,
+  total: number
+) => ({
+  id: roomType.id,
+  name: roomType.name,
+  price: roomType.basePrice,
+  size: `${roomType.size}m²`,
+  beds: roomType.beds,
+  maxGuests: roomType.maxGuests,
+  available: availableCount,
+  total,
+  amenities: roomType.amenities,
+  status: roomType.available > 0 ? 'active' : 'inactive',
+  image:
+    roomType.images[0] ||
+    'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400',
+});
 
 export default function HotelRoomsPage() {
-  const [rooms] = useState(mockRooms);
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'available' | 'full'>('all');
+
+  useEffect(() => {
+    loadRooms();
+  }, []);
+
+  const loadRooms = async () => {
+    try {
+      const hotelId = 'h1'; // In real app, get from auth context
+      const roomTypes = await hotelManagerApi.getRooms(hotelId);
+
+      // Convert to display format with mock availability
+      const displayRooms = roomTypes.map((rt, index) =>
+        convertRoomType(rt, 5 + index, 10)
+      );
+
+      setRooms(displayRooms);
+    } catch (error) {
+      console.error('Error loading rooms:', error);
+      alert('Có lỗi khi tải danh sách phòng!');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteRoom = async (roomId: string, roomName: string) => {
+    if (!confirm(`Bạn có chắc muốn xóa "${roomName}"?`)) {
+      return;
+    }
+
+    try {
+      await hotelManagerApi.deleteRoom(roomId);
+      alert('✅ Xóa phòng thành công!');
+      loadRooms(); // Reload list
+    } catch (error) {
+      console.error('Error deleting room:', error);
+      alert('❌ Có lỗi khi xóa phòng!');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <div className="text-center py-8">
+            <p className="text-gray-900 font-medium">
+              ⏳ Đang tải danh sách phòng...
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   const filteredRooms =
     filter === 'all'
@@ -93,6 +101,8 @@ export default function HotelRoomsPage() {
   const totalRooms = rooms.reduce((sum, r) => sum + r.total, 0);
   const availableRooms = rooms.reduce((sum, r) => sum + r.available, 0);
   const occupiedRooms = totalRooms - availableRooms;
+  const occupancyRate =
+    totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -125,8 +135,8 @@ export default function HotelRoomsPage() {
         </Card>
         <Card>
           <div className="text-center">
-            <div className="text-4xl mb-2">🔒</div>
-            <div className="text-3xl font-bold text-red-600">
+            <div className="text-4xl mb-2">📋</div>
+            <div className="text-3xl font-bold text-yellow-600">
               {occupiedRooms}
             </div>
             <div className="text-gray-900 font-medium">Đã đặt</div>
@@ -135,148 +145,145 @@ export default function HotelRoomsPage() {
         <Card>
           <div className="text-center">
             <div className="text-4xl mb-2">📊</div>
-            <div className="text-3xl font-bold text-[#0071c2]">
-              {Math.round((occupiedRooms / totalRooms) * 100)}%
+            <div className="text-3xl font-bold text-blue-600">
+              {occupancyRate}%
             </div>
             <div className="text-gray-900 font-medium">Tỷ lệ lấp đầy</div>
           </div>
         </Card>
       </div>
 
-      {/* Filter */}
-      <Card>
-        <div className="flex space-x-3">
-          <Button
-            variant={filter === 'all' ? 'primary' : 'outline'}
-            size="sm"
-            onClick={() => setFilter('all')}
-          >
-            Tất cả ({rooms.length})
-          </Button>
-          <Button
-            variant={filter === 'available' ? 'primary' : 'outline'}
-            size="sm"
-            onClick={() => setFilter('available')}
-          >
-            Còn trống ({rooms.filter((r) => r.available > 0).length})
-          </Button>
-          <Button
-            variant={filter === 'full' ? 'primary' : 'outline'}
-            size="sm"
-            onClick={() => setFilter('full')}
-          >
-            Hết phòng ({rooms.filter((r) => r.available === 0).length})
-          </Button>
-        </div>
-      </Card>
+      {/* Filter Tabs */}
+      <div className="flex space-x-3">
+        <Button
+          variant={filter === 'all' ? 'primary' : 'outline'}
+          onClick={() => setFilter('all')}
+          className={
+            filter === 'all' ? 'bg-[#0071c2] text-white' : 'text-gray-800'
+          }
+        >
+          Tất cả ({rooms.length})
+        </Button>
+        <Button
+          variant={filter === 'available' ? 'primary' : 'outline'}
+          onClick={() => setFilter('available')}
+          className={
+            filter === 'available' ? 'bg-green-600 text-white' : 'text-gray-800'
+          }
+        >
+          Phòng trống ({rooms.filter((r) => r.available > 0).length})
+        </Button>
+        <Button
+          variant={filter === 'full' ? 'primary' : 'outline'}
+          onClick={() => setFilter('full')}
+          className={
+            filter === 'full' ? 'bg-red-600 text-white' : 'text-gray-800'
+          }
+        >
+          Hết phòng ({rooms.filter((r) => r.available === 0).length})
+        </Button>
+      </div>
 
       {/* Rooms List */}
-      <div className="grid grid-cols-1 gap-6">
-        {filteredRooms.map((room) => (
-          <Card key={room.id} padding="none" className="overflow-hidden">
-            <div className="md:flex">
-              {/* Image */}
-              <div className="md:w-1/3 relative h-64 md:h-auto">
-                <div
-                  className="absolute inset-0 bg-cover bg-center"
-                  style={{ backgroundImage: `url('${room.image}')` }}
+      {filteredRooms.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {filteredRooms.map((room) => (
+            <Card key={room.id}>
+              <div className="flex gap-4">
+                <img
+                  src={room.image}
+                  alt={room.name}
+                  className="w-32 h-32 object-cover rounded-lg"
                 />
-                <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full shadow-lg">
-                  <span className="font-bold text-[#0071c2]">
-                    {room.available}/{room.total}
-                  </span>
-                  <span className="text-sm text-gray-600 ml-1">
-                    phòng trống
-                  </span>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="md:w-2/3 p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-1">
-                      {room.name}
-                    </h3>
-                    <p className="text-gray-800 font-medium">{room.type}</p>
+                <div className="flex-1">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">
+                        {room.name}
+                      </h3>
+                    </div>
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        room.status === 'active'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {room.status === 'active' ? 'Hoạt động' : 'Tạm ngưng'}
+                    </span>
                   </div>
-                  <div className="text-right">
-                    <p className="text-3xl font-bold text-[#0071c2]">
-                      {room.price.toLocaleString('vi-VN')} ₫
+
+                  <div className="space-y-1 text-sm text-gray-800 mb-3">
+                    <p>
+                      📏 {room.size} • 🛏️ {room.beds} • 👥 {room.maxGuests}{' '}
+                      khách
                     </p>
-                    <p className="text-sm text-gray-600">/ đêm</p>
+                    <p className="font-semibold text-[#0071c2] text-lg">
+                      {formatCurrency(room.price)}/đêm
+                    </p>
+                    <p>
+                      Trống:{' '}
+                      <span
+                        className={`font-semibold ${
+                          room.available > 0 ? 'text-green-600' : 'text-red-600'
+                        }`}
+                      >
+                        {room.available}/{room.total}
+                      </span>
+                    </p>
                   </div>
-                </div>
 
-                {/* Room Info */}
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="flex items-center space-x-2 text-gray-700">
-                    <span>📏</span>
-                    <span>{room.size}</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-gray-700">
-                    <span>🛏️</span>
-                    <span>{room.beds}</span>
-                  </div>
-                  <div className="flex items-center space-x-2 text-gray-700">
-                    <span>👥</span>
-                    <span>{room.maxGuests} khách</span>
-                  </div>
-                </div>
-
-                {/* Amenities */}
-                <div className="mb-4">
-                  <p className="text-sm font-semibold text-gray-900 mb-2">
-                    Tiện nghi:
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {room.amenities.map((amenity) => (
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {room.amenities.slice(0, 3).map((amenity: string) => (
                       <span
                         key={amenity}
-                        className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full"
+                        className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium"
                       >
                         {amenity}
                       </span>
                     ))}
+                    {room.amenities.length > 3 && (
+                      <span className="text-xs text-gray-600">
+                        +{room.amenities.length - 3} khác
+                      </span>
+                    )}
                   </div>
-                </div>
 
-                {/* Status & Actions */}
-                <div className="flex items-center justify-between pt-4 border-t">
-                  <div className="flex items-center space-x-2">
-                    <span
-                      className={`inline-block w-3 h-3 rounded-full ${
-                        room.available > 0 ? 'bg-green-500' : 'bg-red-500'
-                      }`}
-                    />
-                    <span className="font-semibold text-gray-900">
-                      {room.available > 0 ? 'Còn phòng' : 'Hết phòng'}
-                    </span>
-                  </div>
-                  <div className="flex space-x-2">
+                  <div className="flex gap-2">
                     <Link href={`/hotel-manager/rooms/${room.id}/edit`}>
                       <Button variant="outline" size="sm">
                         ✏️ Chỉnh sửa
                       </Button>
                     </Link>
-                    <Button variant="outline" size="sm">
-                      📊 Thống kê
-                    </Button>
-                    <Button variant="danger" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteRoom(room.id, room.name)}
+                      className="text-red-600 border-red-200 hover:bg-red-50"
+                    >
                       🗑️ Xóa
                     </Button>
                   </div>
                 </div>
               </div>
-            </div>
-          </Card>
-        ))}
-      </div>
-
-      {filteredRooms.length === 0 && (
-        <Card className="text-center py-12">
-          <div className="text-6xl mb-4">🛏️</div>
-          <p className="text-gray-900 font-medium">Không tìm thấy phòng nào</p>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🏨</div>
+            <p className="text-gray-900 font-medium mb-4">
+              {filter === 'all'
+                ? 'Chưa có loại phòng nào'
+                : filter === 'available'
+                ? 'Không có phòng trống'
+                : 'Không có phòng nào hết'}
+            </p>
+            <Link href="/hotel-manager/rooms/create">
+              <Button>+ Thêm loại phòng mới</Button>
+            </Link>
+          </div>
         </Card>
       )}
     </div>

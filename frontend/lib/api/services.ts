@@ -22,7 +22,6 @@ import {
   setMockReviews,
   setMockRoomTypes,
   initializeMockData,
-  deleteMockReview,
 } from '../utils/mockData';
 import type { Hotel, TourismSpot, Review, Booking, User, SearchFilters, RoomType } from '@/types';
 
@@ -188,8 +187,8 @@ export const bookingsApi = {
       ensureMockLayerReady();
       await mockDelay();
       const newBooking: Booking = {
-        id: `BK${Date.now()}`,
         ...bookingData as Booking,
+        id: `BK${Date.now()}`,
         bookingDate: new Date().toISOString(),
         status: 'pending',
         paymentStatus: 'pending',
@@ -250,8 +249,8 @@ export const reviewsApi = {
       ensureMockLayerReady();
       await mockDelay();
       const newReview: Review = {
-        id: `rv${Date.now()}`,
         ...reviewData as Review,
+        id: `rv${Date.now()}`,
         date: new Date().toISOString(),
         helpful: 0,
         verified: true,
@@ -351,15 +350,14 @@ export const hotelManagerApi = {
         id: `${hotelId}-r${Date.now()}`,
         hotelId: hotelId,
         name: roomData.name || '',
-        type: roomData.type || '',
         description: roomData.description || '',
         basePrice: roomData.basePrice || 0,
         maxGuests: roomData.maxGuests || 2,
-        size: roomData.size || '',
-        bedType: roomData.bedType || '',
+        size: Number(roomData.size) || 25,
+        beds: roomData.beds || '',
         amenities: roomData.amenities || [],
         images: roomData.images || [],
-        available: roomData.available !== undefined ? roomData.available : true,
+        available: Number(roomData.available) || 0,
       };
 
       const allRoomTypes = getMockRoomTypes();
@@ -457,13 +455,13 @@ export const hotelManagerApi = {
   },
 
   // Reviews Management
-  async replyToReview(reviewId: string, reply: string): Promise<Review> {
+  async replyToReview(reviewId: string, reply: string): Promise<any> {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
       
       const reviews = getMockReviews();
-      const review = reviews.find(r => r.id === reviewId);
+      const review: any = reviews.find(r => r.id === reviewId);
       if (!review) throw new Error('Review not found');
 
       review.reply = {
@@ -476,7 +474,7 @@ export const hotelManagerApi = {
       setMockReviews(reviews);
       return review;
     }
-    return apiClient.post<Review>(`/hotel-manager/reviews/${reviewId}/reply`, { reply });
+    return apiClient.post<any>(`/hotel-manager/reviews/${reviewId}/reply`, { reply });
   },
 
   // Hotel Info Management

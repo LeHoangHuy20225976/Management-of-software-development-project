@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
+import { hotelManagerApi } from '@/lib/api/services';
 
 export default function HotelProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
@@ -25,6 +26,18 @@ export default function HotelProfilePage() {
     stars: 5,
     checkInTime: '14:00',
     checkOutTime: '12:00',
+    amenities: [
+      'wifi',
+      'pool',
+      'spa',
+      'restaurant',
+      'bar',
+      'gym',
+      'parking',
+      'concierge',
+      'laundry',
+      'room-service',
+    ],
   });
 
   const [policies, setPolicies] = useState({
@@ -48,10 +61,42 @@ export default function HotelProfilePage() {
     { id: 'meeting', name: 'Phòng họp', icon: '👔', enabled: true },
   ];
 
-  const handleSave = () => {
-    // In real app, would call API to save changes
-    console.log('Saving hotel info:', hotelInfo, policies);
-    setIsEditing(false);
+  const toggleAmenity = (amenityId: string) => {
+    if (!isEditing) return;
+    setHotelInfo((prev) => {
+      const hasAmenity = prev.amenities.includes(amenityId);
+      return {
+        ...prev,
+        amenities: hasAmenity
+          ? prev.amenities.filter((id) => id !== amenityId)
+          : [...prev.amenities, amenityId],
+      };
+    });
+  };
+
+  const handleSave = async () => {
+    try {
+      const hotelId = 'h1'; // In real app, get from auth context
+      await hotelManagerApi.updateHotelInfo(hotelId, {
+        name: hotelInfo.name,
+        description: hotelInfo.description,
+        address: hotelInfo.address,
+        city: hotelInfo.city,
+        phone: hotelInfo.phone,
+        email: hotelInfo.email,
+        amenities: hotelInfo.amenities,
+        settings: {
+          checkInTime: hotelInfo.checkInTime,
+          checkOutTime: hotelInfo.checkOutTime,
+          policies,
+        },
+      });
+      alert('✅ Cập nhật thông tin thành công!');
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error saving hotel info:', error);
+      alert('❌ Có lỗi khi lưu thông tin!');
+    }
   };
 
   return (
@@ -246,15 +291,16 @@ export default function HotelProfilePage() {
             <label
               key={amenity.id}
               className={`flex flex-col items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                amenity.enabled
+                hotelInfo.amenities.includes(amenity.id)
                   ? 'border-[#0071c2] bg-blue-50'
                   : 'border-gray-200 bg-white hover:border-gray-300'
               } ${!isEditing ? 'cursor-not-allowed opacity-70' : ''}`}
             >
               <input
                 type="checkbox"
-                checked={amenity.enabled}
+                checked={hotelInfo.amenities.includes(amenity.id)}
                 disabled={!isEditing}
+                onChange={() => toggleAmenity(amenity.id)}
                 className="sr-only"
               />
               <span className="text-4xl mb-2">{amenity.icon}</span>
