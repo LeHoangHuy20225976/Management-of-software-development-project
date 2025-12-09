@@ -1,15 +1,32 @@
 
 'use client';
 
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 import "leaflet-defaulticon-compatibility";
+import L from 'leaflet';
 import { Hotel } from '@/types';
 
 interface MapViewProps {
   hotels: Hotel[];
 }
+
+const MapBounds = ({ hotels }: MapViewProps) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (hotels && hotels.length > 0) {
+      const bounds = new L.LatLngBounds(
+        hotels.map((hotel) => [hotel.latitude, hotel.longitude])
+      );
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+  }, [hotels, map]);
+
+  return null;
+};
 
 const MapView = ({ hotels }: MapViewProps) => {
   if (!hotels || hotels.length === 0) {
@@ -34,6 +51,7 @@ const MapView = ({ hotels }: MapViewProps) => {
           </Popup>
         </Marker>
       ))}
+      <MapBounds hotels={hotels} />
     </MapContainer>
   );
 };
