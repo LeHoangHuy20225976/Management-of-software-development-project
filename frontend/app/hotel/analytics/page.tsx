@@ -1,299 +1,326 @@
 /**
- * Analytics & Statistics for Hotel Owners
+ * Hotel Analytics & Statistics
  * FE4: Hotel Manager Portal
  */
 
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Card } from '@/components/common/Card';
-import { useState } from 'react';
+import { Button } from '@/components/common/Button';
+import { bookingsApi } from '@/lib/api/services';
+import { formatCurrency } from '@/lib/utils/format';
+import type { Booking } from '@/types';
 
 export default function HotelAnalyticsPage() {
-  const [period, setPeriod] = useState<'week' | 'month' | 'year'>('month');
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>(
+    'month'
+  );
 
-  // Mock data
-  const stats = {
-    revenue: {
-      current: 450000000,
-      previous: 420000000,
-      change: 7.1,
-    },
-    bookings: {
-      current: 156,
-      previous: 142,
-      change: 9.9,
-    },
-    occupancy: {
-      current: 82,
-      previous: 78,
-      change: 5.1,
-    },
-    avgRating: {
-      current: 4.7,
-      previous: 4.5,
-      change: 4.4,
-    },
-  };
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const data = await bookingsApi.getAll();
+        setBookings(data);
+      } catch (error) {
+        console.error('Error loading analytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const revenueByMonth = [
-    { month: 'T6', revenue: 380 },
-    { month: 'T7', revenue: 420 },
-    { month: 'T8', revenue: 450 },
-    { month: 'T9', revenue: 390 },
-    { month: 'T10', revenue: 410 },
-    { month: 'T11', revenue: 450 },
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Card>Đang tải...</Card>
+      </div>
+    );
+  }
+
+  // Calculate metrics
+  const totalRevenue = bookings
+    .filter((b) => b.paymentStatus === 'paid')
+    .reduce((sum, b) => sum + b.totalPrice, 0);
+
+  const confirmedBookings = bookings.filter((b) => b.status === 'confirmed');
+  const completedBookings = bookings.filter((b) => b.status === 'completed');
+  const cancelledBookings = bookings.filter((b) => b.status === 'cancelled');
+
+  const totalNights = bookings.reduce((sum, b) => sum + b.nights, 0);
+  const averageBookingValue =
+    bookings.length > 0 ? totalRevenue / bookings.length : 0;
+  const averageStayLength =
+    bookings.length > 0 ? totalNights / bookings.length : 0;
+
+  // Room type distribution
+  const roomTypeCounts = bookings.reduce((acc, b) => {
+    acc[b.roomType] = (acc[b.roomType] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Monthly revenue (mock data for chart)
+  const monthlyData = [
+    { month: 'T1', revenue: 85000000, bookings: 12 },
+    { month: 'T2', revenue: 92000000, bookings: 15 },
+    { month: 'T3', revenue: 78000000, bookings: 11 },
+    { month: 'T4', revenue: 105000000, bookings: 18 },
+    { month: 'T5', revenue: 98000000, bookings: 16 },
+    { month: 'T6', revenue: 112000000, bookings: 20 },
+    { month: 'T7', revenue: 125000000, bookings: 22 },
+    { month: 'T8', revenue: 118000000, bookings: 21 },
+    { month: 'T9', revenue: 95000000, bookings: 17 },
+    { month: 'T10', revenue: 102000000, bookings: 18 },
+    { month: 'T11', revenue: 88000000, bookings: 14 },
+    { month: 'T12', revenue: totalRevenue, bookings: bookings.length },
   ];
 
-  const topRooms = [
-    { name: 'Deluxe Room', bookings: 45, revenue: 90000000 },
-    { name: 'Family Suite', bookings: 28, revenue: 98000000 },
-    { name: 'Superior Room', bookings: 52, revenue: 78000000 },
-    { name: 'Standard Room', bookings: 31, revenue: 37200000 },
-  ];
-
-  const bookingsBySource = [
-    { source: 'Website trực tiếp', count: 62, percentage: 40 },
-    { source: 'Booking.com', count: 47, percentage: 30 },
-    { source: 'Agoda', count: 31, percentage: 20 },
-    { source: 'Khác', count: 16, percentage: 10 },
-  ];
-
-  const occupancyTrend = [
-    { day: 'T2', rate: 75 },
-    { day: 'T3', rate: 78 },
-    { day: 'T4', rate: 82 },
-    { day: 'T5', rate: 85 },
-    { day: 'T6', rate: 90 },
-    { day: 'T7', rate: 95 },
-    { day: 'CN', rate: 92 },
-  ];
-
-  const maxRevenue = Math.max(...revenueByMonth.map(m => m.revenue));
+  const maxRevenue = Math.max(...monthlyData.map((d) => d.revenue));
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Thống kê & Phân tích</h1>
-
-        {/* Period Selector */}
+        <h1 className="text-3xl font-bold text-gray-900">
+          Thống kê & Phân tích
+        </h1>
         <div className="flex space-x-2">
-          {(['week', 'month', 'year'] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                period === p
-                  ? 'bg-[#0071c2] text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {p === 'week' && 'Tuần'}
-              {p === 'month' && 'Tháng'}
-              {p === 'year' && 'Năm'}
-            </button>
-          ))}
+          <Button
+            variant={timeRange === 'week' ? 'primary' : 'outline'}
+            size="sm"
+            onClick={() => setTimeRange('week')}
+          >
+            Tuần
+          </Button>
+          <Button
+            variant={timeRange === 'month' ? 'primary' : 'outline'}
+            size="sm"
+            onClick={() => setTimeRange('month')}
+          >
+            Tháng
+          </Button>
+          <Button
+            variant={timeRange === 'year' ? 'primary' : 'outline'}
+            size="sm"
+            onClick={() => setTimeRange('year')}
+          >
+            Năm
+          </Button>
         </div>
       </div>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
-          <div className="flex items-start justify-between mb-2">
-            <div className="text-4xl">💰</div>
-            <div className={`text-sm px-2 py-1 rounded-full ${
-              stats.revenue.change > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-            }`}>
-              {stats.revenue.change > 0 ? '↑' : '↓'} {Math.abs(stats.revenue.change)}%
+          <div className="text-center">
+            <div className="text-4xl mb-2">💰</div>
+            <div className="text-3xl font-bold text-[#0071c2]">
+              {formatCurrency(totalRevenue).replace(' ₫', '')}
+            </div>
+            <div className="text-gray-600">Tổng doanh thu</div>
+            <div className="text-sm text-green-600 mt-1">
+              +12.5% so với tháng trước
             </div>
           </div>
-          <div className="text-2xl font-bold text-[#0071c2] mb-1">
-            {(stats.revenue.current / 1000000).toFixed(0)}M ₫
-          </div>
-          <div className="text-sm text-gray-600">Doanh thu</div>
         </Card>
-
         <Card>
-          <div className="flex items-start justify-between mb-2">
-            <div className="text-4xl">📋</div>
-            <div className={`text-sm px-2 py-1 rounded-full ${
-              stats.bookings.change > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-            }`}>
-              {stats.bookings.change > 0 ? '↑' : '↓'} {Math.abs(stats.bookings.change)}%
+          <div className="text-center">
+            <div className="text-4xl mb-2">📋</div>
+            <div className="text-3xl font-bold text-[#0071c2]">
+              {bookings.length}
+            </div>
+            <div className="text-gray-600">Tổng đơn đặt</div>
+            <div className="text-sm text-green-600 mt-1">
+              +8.3% so với tháng trước
             </div>
           </div>
-          <div className="text-2xl font-bold text-[#0071c2] mb-1">
-            {stats.bookings.current}
-          </div>
-          <div className="text-sm text-gray-600">Đặt phòng</div>
         </Card>
-
         <Card>
-          <div className="flex items-start justify-between mb-2">
-            <div className="text-4xl">🏨</div>
-            <div className={`text-sm px-2 py-1 rounded-full ${
-              stats.occupancy.change > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-            }`}>
-              {stats.occupancy.change > 0 ? '↑' : '↓'} {Math.abs(stats.occupancy.change)}%
+          <div className="text-center">
+            <div className="text-4xl mb-2">💵</div>
+            <div className="text-3xl font-bold text-[#0071c2]">
+              {formatCurrency(averageBookingValue).replace(' ₫', '')}
+            </div>
+            <div className="text-gray-600">Giá trị TB/đơn</div>
+            <div className="text-sm text-green-600 mt-1">
+              +5.2% so với tháng trước
             </div>
           </div>
-          <div className="text-2xl font-bold text-[#0071c2] mb-1">
-            {stats.occupancy.current}%
-          </div>
-          <div className="text-sm text-gray-600">Tỷ lệ lấp đầy</div>
         </Card>
-
         <Card>
-          <div className="flex items-start justify-between mb-2">
-            <div className="text-4xl">⭐</div>
-            <div className={`text-sm px-2 py-1 rounded-full ${
-              stats.avgRating.change > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-            }`}>
-              {stats.avgRating.change > 0 ? '↑' : '↓'} {Math.abs(stats.avgRating.change)}%
+          <div className="text-center">
+            <div className="text-4xl mb-2">🌙</div>
+            <div className="text-3xl font-bold text-[#0071c2]">
+              {averageStayLength.toFixed(1)}
             </div>
-          </div>
-          <div className="text-2xl font-bold text-[#0071c2] mb-1">
-            {stats.avgRating.current}
-          </div>
-          <div className="text-sm text-gray-600">Đánh giá TB</div>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue Trend */}
-        <Card>
-          <h2 className="text-xl font-bold mb-4">Doanh thu 6 tháng gần đây</h2>
-          <div className="space-y-3">
-            {revenueByMonth.map((item) => (
-              <div key={item.month} className="flex items-center space-x-3">
-                <div className="w-12 text-sm font-medium">{item.month}</div>
-                <div className="flex-1">
-                  <div className="bg-gray-200 rounded-full h-8 relative overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-blue-500 to-blue-600 h-full flex items-center justify-end pr-3 rounded-full transition-all"
-                      style={{ width: `${(item.revenue / maxRevenue) * 100}%` }}
-                    >
-                      <span className="text-white text-xs font-medium">
-                        {item.revenue}M
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Occupancy Trend */}
-        <Card>
-          <h2 className="text-xl font-bold mb-4">Tỷ lệ lấp đầy theo ngày</h2>
-          <div className="space-y-3">
-            {occupancyTrend.map((item) => (
-              <div key={item.day} className="flex items-center space-x-3">
-                <div className="w-12 text-sm font-medium">{item.day}</div>
-                <div className="flex-1">
-                  <div className="bg-gray-200 rounded-full h-8 relative overflow-hidden">
-                    <div
-                      className={`h-full flex items-center justify-end pr-3 rounded-full transition-all ${
-                        item.rate >= 90
-                          ? 'bg-gradient-to-r from-green-500 to-green-600'
-                          : item.rate >= 75
-                          ? 'bg-gradient-to-r from-blue-500 to-blue-600'
-                          : 'bg-gradient-to-r from-yellow-500 to-yellow-600'
-                      }`}
-                      style={{ width: `${item.rate}%` }}
-                    >
-                      <span className="text-white text-xs font-medium">
-                        {item.rate}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+            <div className="text-gray-600">Số đêm TB</div>
+            <div className="text-sm text-gray-500 mt-1">Không đổi</div>
           </div>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Performing Rooms */}
-        <Card>
-          <h2 className="text-xl font-bold mb-4">Top phòng theo doanh thu</h2>
-          <div className="space-y-3">
-            {topRooms.map((room, index) => (
-              <div key={room.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                    index === 0 ? 'bg-yellow-100 text-yellow-800' :
-                    index === 1 ? 'bg-gray-100 text-gray-800' :
-                    index === 2 ? 'bg-orange-100 text-orange-800' :
-                    'bg-blue-100 text-blue-800'
-                  }`}>
-                    #{index + 1}
-                  </div>
-                  <div>
-                    <p className="font-semibold">{room.name}</p>
-                    <p className="text-sm text-gray-600">{room.bookings} đặt phòng</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-[#0071c2]">
-                    {(room.revenue / 1000000).toFixed(0)}M ₫
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Bookings by Source */}
-        <Card>
-          <h2 className="text-xl font-bold mb-4">Nguồn đặt phòng</h2>
-          <div className="space-y-4">
-            {bookingsBySource.map((source) => (
-              <div key={source.source}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">{source.source}</span>
-                  <span className="text-sm text-gray-600">
-                    {source.count} ({source.percentage}%)
-                  </span>
-                </div>
-                <div className="bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-[#0071c2] h-2 rounded-full transition-all"
-                    style={{ width: `${source.percentage}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-900">
-              💡 <strong>Mẹo:</strong> Website trực tiếp chiếm tỷ trọng cao nhất.
-              Hãy tối ưu SEO và marketing để tăng đặt phòng trực tiếp, giảm phí hoa hồng cho OTA.
-            </p>
-          </div>
-        </Card>
-      </div>
-
-      {/* Additional Insights */}
+      {/* Revenue Chart */}
       <Card>
-        <h2 className="text-xl font-bold mb-4">📊 Thông tin chi tiết</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="border-l-4 border-green-500 pl-4">
-            <p className="text-sm text-gray-600 mb-1">Thời gian đặt trước TB</p>
-            <p className="text-2xl font-bold text-green-600">18 ngày</p>
-            <p className="text-xs text-gray-500 mt-1">↑ 2 ngày so với tháng trước</p>
+        <h3 className="text-xl font-bold text-gray-900 mb-6">
+          Doanh thu theo tháng
+        </h3>
+        <div className="space-y-3">
+          {monthlyData.map((data) => (
+            <div key={data.month}>
+              <div className="flex justify-between mb-1">
+                <span className="text-sm font-semibold text-gray-700">
+                  {data.month}
+                </span>
+                <span className="text-sm text-gray-600">
+                  {formatCurrency(data.revenue)} • {data.bookings} đơn
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-blue-500 to-[#0071c2] h-full rounded-full transition-all"
+                  style={{ width: `${(data.revenue / maxRevenue) * 100}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Additional Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Booking Status */}
+        <Card>
+          <h3 className="text-xl font-bold text-gray-900 mb-4">
+            Trạng thái đặt phòng
+          </h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl">✅</span>
+                <span className="font-semibold text-gray-900">Đã xác nhận</span>
+              </div>
+              <span className="text-2xl font-bold text-green-600">
+                {confirmedBookings.length}
+              </span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl">🎉</span>
+                <span className="font-semibold text-gray-900">Hoàn thành</span>
+              </div>
+              <span className="text-2xl font-bold text-blue-600">
+                {completedBookings.length}
+              </span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <span className="text-2xl">❌</span>
+                <span className="font-semibold text-gray-900">Đã hủy</span>
+              </div>
+              <span className="text-2xl font-bold text-red-600">
+                {cancelledBookings.length}
+              </span>
+            </div>
+            <div className="pt-3 border-t">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-gray-900">
+                  Tỷ lệ hoàn thành
+                </span>
+                <span className="text-xl font-bold text-[#0071c2]">
+                  {bookings.length > 0
+                    ? Math.round(
+                        ((completedBookings.length + confirmedBookings.length) /
+                          bookings.length) *
+                          100
+                      )
+                    : 0}
+                  %
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="border-l-4 border-blue-500 pl-4">
-            <p className="text-sm text-gray-600 mb-1">Thời gian lưu trú TB</p>
-            <p className="text-2xl font-bold text-blue-600">2.8 đêm</p>
-            <p className="text-xs text-gray-500 mt-1">↑ 0.3 đêm so với tháng trước</p>
+        </Card>
+
+        {/* Room Type Performance */}
+        <Card>
+          <h3 className="text-xl font-bold text-gray-900 mb-4">
+            Hiệu suất theo loại phòng
+          </h3>
+          <div className="space-y-3">
+            {Object.entries(roomTypeCounts)
+              .sort(([, a], [, b]) => b - a)
+              .map(([roomType, count]) => {
+                const percentage = (count / bookings.length) * 100;
+                return (
+                  <div key={roomType}>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm font-semibold text-gray-700">
+                        {roomType}
+                      </span>
+                      <span className="text-sm text-gray-600">
+                        {count} đơn ({percentage.toFixed(0)}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-[#0071c2] h-full rounded-full transition-all"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
           </div>
-          <div className="border-l-4 border-purple-500 pl-4">
-            <p className="text-sm text-gray-600 mb-1">Tỷ lệ khách quay lại</p>
-            <p className="text-2xl font-bold text-purple-600">23%</p>
-            <p className="text-xs text-gray-500 mt-1">↑ 3% so với tháng trước</p>
+        </Card>
+      </div>
+
+      {/* Performance Insights */}
+      <Card>
+        <h3 className="text-xl font-bold text-gray-900 mb-4">
+          Thông tin chi tiết
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <span className="text-3xl">📈</span>
+              <div>
+                <p className="font-semibold text-gray-900 mb-1">
+                  Xu hướng tăng trưởng
+                </p>
+                <p className="text-sm text-gray-600">
+                  Doanh thu và lượng booking tăng đều qua các tháng
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <span className="text-3xl">⭐</span>
+              <div>
+                <p className="font-semibold text-gray-900 mb-1">
+                  Đánh giá tích cực
+                </p>
+                <p className="text-sm text-gray-600">
+                  Điểm đánh giá trung bình 4.8/5 sao
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <span className="text-3xl">💡</span>
+              <div>
+                <p className="font-semibold text-gray-900 mb-1">
+                  Cơ hội cải thiện
+                </p>
+                <p className="text-sm text-gray-600">
+                  Tăng marketing cho phòng Standard
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </Card>
