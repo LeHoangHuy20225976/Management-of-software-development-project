@@ -97,7 +97,7 @@ export default function HotelBookingsPage() {
             <div className="text-3xl font-bold text-yellow-600">
               {bookings.filter((b) => b.status === 'pending').length}
             </div>
-            <div className="text-gray-600">Chờ xác nhận</div>
+            <div className="text-gray-900 font-medium">Chờ xác nhận</div>
           </div>
         </Card>
         <Card>
@@ -106,7 +106,7 @@ export default function HotelBookingsPage() {
             <div className="text-3xl font-bold text-green-600">
               {bookings.filter((b) => b.status === 'confirmed').length}
             </div>
-            <div className="text-gray-600">Đã xác nhận</div>
+            <div className="text-gray-900 font-medium">Đã xác nhận</div>
           </div>
         </Card>
         <Card>
@@ -115,7 +115,7 @@ export default function HotelBookingsPage() {
             <div className="text-3xl font-bold text-blue-600">
               {bookings.filter((b) => b.status === 'completed').length}
             </div>
-            <div className="text-gray-600">Hoàn thành</div>
+            <div className="text-gray-900 font-medium">Hoàn thành</div>
           </div>
         </Card>
         <Card>
@@ -124,7 +124,7 @@ export default function HotelBookingsPage() {
             <div className="text-3xl font-bold text-red-600">
               {bookings.filter((b) => b.status === 'cancelled').length}
             </div>
-            <div className="text-gray-600">Đã hủy</div>
+            <div className="text-gray-900 font-medium">Đã hủy</div>
           </div>
         </Card>
       </div>
@@ -169,7 +169,9 @@ export default function HotelBookingsPage() {
       {filteredBookings.length === 0 ? (
         <Card className="text-center py-12">
           <div className="text-6xl mb-4">📋</div>
-          <p className="text-gray-600">Không có đơn đặt phòng nào</p>
+          <p className="text-gray-900 font-medium">
+            Không có đơn đặt phòng nào
+          </p>
         </Card>
       ) : (
         <div className="space-y-4">
@@ -201,25 +203,33 @@ export default function HotelBookingsPage() {
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div>
-                      <p className="text-sm text-gray-600">Nhận phòng</p>
+                      <p className="text-sm text-gray-800 font-medium">
+                        Nhận phòng
+                      </p>
                       <p className="font-semibold text-gray-900">
                         {formatDate(booking.checkIn, 'long')}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Trả phòng</p>
+                      <p className="text-sm text-gray-800 font-medium">
+                        Trả phòng
+                      </p>
                       <p className="font-semibold text-gray-900">
                         {formatDate(booking.checkOut, 'long')}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Số đêm</p>
+                      <p className="text-sm text-gray-800 font-medium">
+                        Số đêm
+                      </p>
                       <p className="font-semibold text-gray-900">
                         {booking.nights} đêm
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Số khách</p>
+                      <p className="text-sm text-gray-800 font-medium">
+                        Số khách
+                      </p>
                       <p className="font-semibold text-gray-900">
                         {booking.guests} người
                       </p>
@@ -228,7 +238,9 @@ export default function HotelBookingsPage() {
 
                   <div className="flex flex-col md:flex-row items-start md:items-center justify-between pt-4 border-t border-gray-200">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">Thanh toán</p>
+                      <p className="text-sm text-gray-800 font-medium mb-1">
+                        Thanh toán
+                      </p>
                       <div className="flex items-center space-x-3">
                         <p className="text-2xl font-bold text-[#0071c2]">
                           {formatCurrency(booking.totalPrice)}

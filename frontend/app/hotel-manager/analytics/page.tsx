@@ -120,7 +120,7 @@ export default function HotelAnalyticsPage() {
             <div className="text-3xl font-bold text-[#0071c2]">
               {formatCurrency(totalRevenue).replace(' ₫', '')}
             </div>
-            <div className="text-gray-600">Tổng doanh thu</div>
+            <div className="text-gray-900 font-medium">Tổng doanh thu</div>
             <div className="text-sm text-green-600 mt-1">
               +12.5% so với tháng trước
             </div>
@@ -132,7 +132,7 @@ export default function HotelAnalyticsPage() {
             <div className="text-3xl font-bold text-[#0071c2]">
               {bookings.length}
             </div>
-            <div className="text-gray-600">Tổng đơn đặt</div>
+            <div className="text-gray-900 font-medium">Tổng đơn đặt</div>
             <div className="text-sm text-green-600 mt-1">
               +8.3% so với tháng trước
             </div>
@@ -144,7 +144,7 @@ export default function HotelAnalyticsPage() {
             <div className="text-3xl font-bold text-[#0071c2]">
               {formatCurrency(averageBookingValue).replace(' ₫', '')}
             </div>
-            <div className="text-gray-600">Giá trị TB/đơn</div>
+            <div className="text-gray-900 font-medium">Giá trị TB/đơn</div>
             <div className="text-sm text-green-600 mt-1">
               +5.2% so với tháng trước
             </div>
@@ -156,7 +156,7 @@ export default function HotelAnalyticsPage() {
             <div className="text-3xl font-bold text-[#0071c2]">
               {averageStayLength.toFixed(1)}
             </div>
-            <div className="text-gray-600">Số đêm TB</div>
+            <div className="text-gray-900 font-medium">Số đêm TB</div>
             <div className="text-sm text-gray-500 mt-1">Không đổi</div>
           </div>
         </Card>
@@ -174,7 +174,7 @@ export default function HotelAnalyticsPage() {
                 <span className="text-sm font-semibold text-gray-700">
                   {data.month}
                 </span>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-800 font-medium">
                   {formatCurrency(data.revenue)} • {data.bookings} đơn
                 </span>
               </div>

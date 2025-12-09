@@ -98,7 +98,7 @@ export default function HotelRoomsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Quản lý phòng</h1>
-        <Link href={ROUTES.HOTEL.ROOMS + '/create'}>
+        <Link href="/hotel-manager/rooms/create">
           <Button>+ Thêm loại phòng mới</Button>
         </Link>
       </div>
@@ -111,7 +111,7 @@ export default function HotelRoomsPage() {
             <div className="text-3xl font-bold text-[#0071c2]">
               {totalRooms}
             </div>
-            <div className="text-gray-600">Tổng số phòng</div>
+            <div className="text-gray-900 font-medium">Tổng số phòng</div>
           </div>
         </Card>
         <Card>
@@ -120,7 +120,7 @@ export default function HotelRoomsPage() {
             <div className="text-3xl font-bold text-green-600">
               {availableRooms}
             </div>
-            <div className="text-gray-600">Phòng trống</div>
+            <div className="text-gray-900 font-medium">Phòng trống</div>
           </div>
         </Card>
         <Card>
@@ -129,7 +129,7 @@ export default function HotelRoomsPage() {
             <div className="text-3xl font-bold text-red-600">
               {occupiedRooms}
             </div>
-            <div className="text-gray-600">Đã đặt</div>
+            <div className="text-gray-900 font-medium">Đã đặt</div>
           </div>
         </Card>
         <Card>
@@ -138,7 +138,7 @@ export default function HotelRoomsPage() {
             <div className="text-3xl font-bold text-[#0071c2]">
               {Math.round((occupiedRooms / totalRooms) * 100)}%
             </div>
-            <div className="text-gray-600">Tỷ lệ lấp đầy</div>
+            <div className="text-gray-900 font-medium">Tỷ lệ lấp đầy</div>
           </div>
         </Card>
       </div>
@@ -198,7 +198,7 @@ export default function HotelRoomsPage() {
                     <h3 className="text-2xl font-bold text-gray-900 mb-1">
                       {room.name}
                     </h3>
-                    <p className="text-gray-600">{room.type}</p>
+                    <p className="text-gray-800 font-medium">{room.type}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-3xl font-bold text-[#0071c2]">
@@ -254,7 +254,7 @@ export default function HotelRoomsPage() {
                     </span>
                   </div>
                   <div className="flex space-x-2">
-                    <Link href={`${ROUTES.HOTEL.ROOMS}/${room.id}/edit`}>
+                    <Link href={`/hotel-manager/rooms/${room.id}/edit`}>
                       <Button variant="outline" size="sm">
                         ✏️ Chỉnh sửa
                       </Button>
@@ -276,7 +276,7 @@ export default function HotelRoomsPage() {
       {filteredRooms.length === 0 && (
         <Card className="text-center py-12">
           <div className="text-6xl mb-4">🛏️</div>
-          <p className="text-gray-600">Không tìm thấy phòng nào</p>
+          <p className="text-gray-900 font-medium">Không tìm thấy phòng nào</p>
         </Card>
       )}
     </div>

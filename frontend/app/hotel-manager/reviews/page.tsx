@@ -161,7 +161,9 @@ export default function HotelReviewsPage() {
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
-                    <span className="text-sm text-gray-600 w-8">{count}</span>
+                    <span className="text-sm text-gray-800 font-medium w-8">
+                      {count}
+                    </span>
                   </div>
                 );
               })}
@@ -250,7 +252,7 @@ export default function HotelReviewsPage() {
       {filteredReviews.length === 0 ? (
         <Card className="text-center py-12">
           <div className="text-6xl mb-4">⭐</div>
-          <p className="text-gray-600">Không có đánh giá nào</p>
+          <p className="text-gray-900 font-medium">Không có đánh giá nào</p>
         </Card>
       ) : (
         <div className="space-y-4">
