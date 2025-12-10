@@ -54,6 +54,17 @@ const hotelProfileService = {
             description: typeData.description ? typeData.description : 'No description provided',
             quantity: 0
         });
+        // get priceData on typeData
+        const priceData = typeData.priceData;
+        await db.RoomPrice.create({
+            type_id: priceData.type_id,
+            start_date: NOW,
+            end_date: null,
+            special_price: priceData.special_price ? priceData.special_price : null,
+            event: priceData.event ? priceData.event : 'No event',
+            basic_price: priceData.basic_price,
+            discount: priceData.discount ? priceData.discount : 0.0
+        });
     },
     async addRoom(roomData, userid) {
         const typeId = roomData.type_id;
@@ -154,6 +165,109 @@ const hotelProfileService = {
             await transaction.rollback(); 
             throw error;
         }
+    },
+    updateFacilityForHotel: async(facilityData, userid, hotelid) => {
+        const hotel = await db.Hotel.findByPk(hotelid);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+        // check for the verification of update 
+        const ownerid = hotel.hotel_owner;
+        if(ownerid !== userid) {
+            throw new Error("You are not the owner of hotel");
+        }
+        // add facility for hotel (must be initialized first)
+        const listFacilities = facilityData.facilities; // list of facilities and descriptions
+        for(const facility of listFacilities) {   
+            // first, delete all existed facilities for hotel (on FacilitiesPossessing table)
+            await db.FacilitiesPossessing.destroy({
+                where: {
+                    hotel_id: facilityData.hotel_id
+                }
+            });
+            // then, add new facilities
+            await db.FacilitiesPossessing.create({
+                facility_id: facility.facility_id,
+                hotel_id: facilityData.hotel_id,
+                description: facility.description ? facility.description : 'No description provided'
+            });
+        }
+    },
+    updatePriceForRoomType: async(priceData, userid) => {
+        const roomType = await db.RoomType.findByPk(priceData.type_id);
+        if(!roomType) {
+            throw new Error("Room type not found");
+        }
+        // update room price
+        const hotel = await db.Hotel.findByPk(roomType.hotel_id);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+        const ownerid = hotel.hotel_owner;
+        if(ownerid !== userid) {
+            throw new Error("You are not the owner of this hotel");
+        }
+        const roomPrice = await db.RoomPrice.findOne({
+            where: {
+                type_id: priceData.type_id}
+        });   
+        await db.RoomPrice.update({
+            start_date: priceData.start_date  ?? roomPrice.start_date,
+            end_date: priceData.end_date ?? roomPrice.end_date,
+            special_price: priceData.special_price ?? roomPrice.special_price,
+            event: priceData.event ?? roomPrice.event,
+            basic_price: priceData.basic_price ?? roomPrice.basic_price,
+            discount: priceData.discount ?? roomPrice.discount
+        }, {
+            where: {
+                type_id: priceData.type_id
+            }
+        });
+    },
+    getAllTypeForHotel: async(hotelid) => {
+        const hotel = await db.Hotel.findByPk(hotelid);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+        const roomTypes = await db.RoomType.findAll({
+            where: { hotel_id: hotelid}
+        })
+        return roomTypes;
+    },
+    getAllRoomsForHotel: async(hotelid) => {
+        const hotel = await db.Hotel.findByPk(hotelid);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+        // get all room types of hotel first
+        const roomTypes = await db.RoomType.findAll({
+            where: {hotel_id: hotelid}
+        });
+        const typeIds = roomTypes.map((roomType) => roomType.type_id);
+        const rooms = await db.Room.findAll({
+            where: {type_id: typeIds}
+        });
+        // get price for each room based on type_id
+        const roomsWithPrices = [];
+        for(const room of rooms) {
+            const roomType = roomTypes.find((type) => type.type_id === room.type_id);
+            const roomPrice = await db.RoomPrice.findOne({
+                where: { type_id: room.type_id }
+            });
+            // check for special price and price, if existed special price, use it, else use basic price
+            const price = roomPrice.special_price ? roomPrice.special_price : roomPrice.basic_price;
+            roomsWithPrices.push({
+                roomData: room,
+                roomTypeData: roomType,
+                priceData: {
+                    price: price,
+                    discount: roomPrice.discount,
+                    start_date: roomPrice.start_date,
+                    end_date: roomPrice.end_date,
+                }
+            });
+        }
+        return roomsWithPrices;
     }
 };
 module.exports = hotelProfileService;
