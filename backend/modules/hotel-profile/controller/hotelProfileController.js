@@ -1,4 +1,3 @@
-const { get } = require("../../../routes");
 const responseUtils = require("../../../utils/responseUtils");
 const hotelProfileService = require("../services/hotelProfileService");
 
@@ -100,6 +99,14 @@ const hotelProfileController = {
         try {
             const hotelid = req.params.hotel_id;
             const rooms = await hotelProfileService.getAllRoomsForHotel(hotelid);
+            return responseUtils.ok(res, rooms);
+        } catch(error) {
+            return responseUtils.error(res, error.message);
+        }
+    },
+    getAllRooms: async(req, res) => {
+        try {
+            const rooms = await hotelProfileService.getAllRooms();
             return responseUtils.ok(res, rooms);
         } catch(error) {
             return responseUtils.error(res, error.message);

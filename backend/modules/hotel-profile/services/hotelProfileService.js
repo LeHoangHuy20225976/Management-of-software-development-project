@@ -46,7 +46,7 @@ const hotelProfileService = {
         if(userid !== ownerid) {
             throw new Error("You are not the owner of this hotel");
         }
-        await db.RoomType.create({
+        const newRoomType = await db.RoomType.create({
             hotel_id: typeData.hotel_id,
             type: typeData.type,
             availability: typeData.availability ? typeData.availability : true,
@@ -54,10 +54,11 @@ const hotelProfileService = {
             description: typeData.description ? typeData.description : 'No description provided',
             quantity: 0
         });
-        // get priceData on typeData
+        // get type_id from the roomtype be created to add price
+        const NOW = new Date();
         const priceData = typeData.priceData;
         await db.RoomPrice.create({
-            type_id: priceData.type_id,
+            type_id: newRoomType.type_id,
             start_date: NOW,
             end_date: null,
             special_price: priceData.special_price ? priceData.special_price : null,
@@ -82,7 +83,7 @@ const hotelProfileService = {
             throw new Error("You are not the owner of this hotel");
         }
         await db.Room.create({
-            type_id: roomData.type_id,
+            type_id: roomType.type_id,
             name: roomData.name, 
             location: roomData.location,
             status: 1,
@@ -247,6 +248,23 @@ const hotelProfileService = {
         const rooms = await db.Room.findAll({
             where: {type_id: typeIds}
         });
+        // check from bookings for each room to check availablity
+        // get bookings for rooms
+        const bookings = await db.Booking.findAll({
+            where: {
+                room_id: rooms.map((room) => room.room_id),
+                status: { [Op.ne]: 'cancelled' } // exclude cancelled bookings
+            }
+        });
+        // check for each room in current Date is between check-in and check-out date of booking
+        const currentDate = new Date();
+        for(const room of rooms) {
+            const roomBookings = bookings.filter((booking) => booking.room_id === room.room_id);
+            const isAvailable = !roomBookings.some(
+                b => currentDate >= b.check_in_date && currentDate <= b.check_out_date
+            );
+            room.setDataValue('isAvailable', isAvailable); // make it JSON-visible
+        }
         // get price for each room based on type_id
         const roomsWithPrices = [];
         for(const room of rooms) {
@@ -254,10 +272,72 @@ const hotelProfileService = {
             const roomPrice = await db.RoomPrice.findOne({
                 where: { type_id: room.type_id }
             });
+            if(!roomPrice) {
+                roomsWithPrices.push({
+                    roomData: room,
+                    roomTypeData: roomType,
+                    priceData: null, // or set defaults
+                });
+                continue;
+            }
             // check for special price and price, if existed special price, use it, else use basic price
-            const price = roomPrice.special_price ? roomPrice.special_price : roomPrice.basic_price;
+            const price = roomPrice?.special_price ?? roomPrice?.basic_price;
             roomsWithPrices.push({
-                roomData: room,
+                roomData: room.get({ plain: true }), // includes isAvailable
+                roomTypeData: roomType,
+                priceData: {
+                    price: price,
+                    discount: roomPrice.discount,
+                    start_date: roomPrice.start_date,
+                    end_date: roomPrice.end_date,
+                }
+            });
+        }
+        return roomsWithPrices;
+    },
+    getAllRooms: async() => {
+        const rooms = await db.Room.findAll();
+        // get all room types based on rooms
+        const typeIds = rooms.map((room) => room.type_id);
+        const roomTypes = await db.RoomType.findAll({
+            where: {type_id: typeIds}
+        });
+        // get bookings for rooms
+        const bookings = await db.Booking.findAll({
+            where: {
+                room_id: rooms.map((room) => room.room_id),
+                status: { [Op.ne]: 'cancelled' } // exclude cancelled bookings
+            }
+        });
+        // check for each room in current Date is between check-in and check-out date of booking
+        const currentDate = new Date();
+        for(const room of rooms) {
+            const roomBookings = bookings.filter((booking) => booking.room_id === room.room_id);
+            const isAvailable = !roomBookings.some(
+                b => currentDate >= b.check_in_date && currentDate <= b.check_out_date
+            );
+            room.setDataValue('isAvailable', isAvailable); // make it JSON-visible
+        }
+        // get price for each room based on type_id
+        const roomsWithPrices = [];
+        for(const room of rooms) {
+            const roomType = roomTypes.find((type) => type.type_id === room.type_id);
+            const roomPrice = await db.RoomPrice.findOne({
+                where: { type_id: room.type_id }
+            });
+            if(!roomPrice) {
+                roomsWithPrices.push({
+                    roomData: room,
+                    roomTypeData: roomType,
+                    priceData: null, // or set defaults
+                });
+                continue;
+            }
+            // check for special price and price, if existed special price, use it, else use basic price
+            const price = roomPrice?.special_price ?? roomPrice?.basic_price;
+
+            roomsWithPrices.push({
+                roomData: room.get({ plain: true }), // includes isAvailable
                 roomTypeData: roomType,
                 priceData: {
                     price: price,

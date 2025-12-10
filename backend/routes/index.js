@@ -39,6 +39,7 @@ router.group('/hotel-profile', (router) => {
   router.put('/update-price', middlewares([authMiddleware, rbacMiddleware(['room:update'])]), hotelProfileController.updatePriceForRoomType);
   router.get('/view-room-types/:hotel_id', hotelProfileController.getAllTypeForHotel);
   router.get('/view-all-rooms/:hotel_id', hotelProfileController.getAllRoomsForHotel);
+  router.get('/all-rooms', hotelProfileController.getAllRooms);
 });
 
 // Booking Engine routes
