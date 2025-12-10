@@ -5,8 +5,8 @@ This document summarizes the role and responsibilities of each backend module in
 ## Modules
 
 - Auth **(Owner: Minh)**
-  - Handles user authentication (register, login, logout) and session/JWT management.
-  - Provides role-based access control (RBAC) for User, Hotel Manager, and Admin.
+  - Handles user authentication (register, login, logout) and session/JWT management.  
+  - Provides role-based access control (RBAC) for User, Hotel Manager, and Admin. 
   - Password lifecycle features (reset/forget), token issuing/refresh, and auth guards.
 
 - User Profile **(Owner: Khanh)**

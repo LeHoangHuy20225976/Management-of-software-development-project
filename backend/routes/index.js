@@ -35,6 +35,10 @@ router.group('/hotel-profile', (router) => {
   router.get('/view-hotel/:hotel_id',  hotelProfileController.viewHotelProfile);
   router.put('/update-hotel/:hotel_id', middlewares([authMiddleware, rbacMiddleware(['hotel:update'])]), hotelProfileController.updateHotelProfile);
   router.delete('/delete-hotel/:hotel_id', middlewares([authMiddleware, rbacMiddleware(['hotel:update'])]), hotelProfileController.disableHotel);
+  router.post('/add-facility/:hotel_id', middlewares([authMiddleware, rbacMiddleware(['hotel:update'])]), hotelProfileController.addFacilityForHotel);
+  router.put('/update-price', middlewares([authMiddleware, rbacMiddleware(['room:update'])]), hotelProfileController.updatePriceForRoomType);
+  router.get('/view-room-types/:hotel_id', hotelProfileController.getAllTypeForHotel);
+  router.get('/view-all-rooms/:hotel_id', hotelProfileController.getAllRoomsForHotel);
 });
 
 // Booking Engine routes
