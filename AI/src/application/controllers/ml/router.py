@@ -21,6 +21,15 @@ from src.application.dtos.ml.recommendation_dto import (
     RoomRecommendationResponse,
 )
 
+# Add pricing_optimizer service code
+from src.application.dtos.ml.pricing_dto import (
+    PricingOptimizationRequest,
+    PricingOptimizationResponse,
+    CurrentPriceRequest,
+    CurrentPriceResponse,
+)
+from src.application.services.ml.pricing_optimizer import get_pricing_optimizer
+
 from src.application.services.ml.recommender import get_recommender
 from src.application.services.ml.churn_predictor import get_churn_predictor
 from src.application.ml_models.model_registry import get_model_registry
@@ -241,3 +250,63 @@ async def ml_health_check():
             "model_registry": "ok"
         }
     }
+
+
+
+
+# ========== Dynamic Pricing Endpoints ==========
+
+@router.post(
+    "/pricing/optimize",
+    response_model=PricingOptimizationResponse,
+    summary="Optimize room pricing",
+    description="Get optimized pricing schedule for rooms over a date range"
+)
+async def optimize_pricing(
+    request: PricingOptimizationRequest
+) -> PricingOptimizationResponse:
+    """
+    Generate optimized pricing for rooms
+    
+    Uses ML model to balance occupancy and revenue
+    """
+    try:
+        optimizer = get_pricing_optimizer()
+        
+        response = await optimizer.optimize_pricing(request)
+        
+        return response
+        
+    except Exception as e:
+        app_logger.error(f"Pricing optimization failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Pricing optimization failed: {str(e)}"
+        )
+
+
+@router.post(
+    "/pricing/current",
+    response_model=CurrentPriceResponse,
+    summary="Get current optimal price",
+    description="Get current optimized price for a room type"
+)
+async def get_current_pricing(
+    request: CurrentPriceRequest
+) -> CurrentPriceResponse:
+    """
+    Get current optimized price for a room type
+    """
+    try:
+        optimizer = get_pricing_optimizer()
+        
+        response = await optimizer.get_current_price(request)
+        
+        return response
+        
+    except Exception as e:
+        app_logger.error(f"Get current pricing failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Get current pricing failed: {str(e)}"
+        )
