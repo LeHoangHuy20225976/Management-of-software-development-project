@@ -17,7 +17,20 @@ jest.mock('models/index', () => ({
   },
   Room: {
     create: jest.fn(),
+    update: jest.fn(),
+    findAll: jest.fn()
+  },
+  RoomPrice: {
+    create: jest.fn(),
+    findOne: jest.fn(),
     update: jest.fn()
+  },
+  FacilitiesPossessing: {
+    destroy: jest.fn(),
+    create: jest.fn()
+  },
+  Booking: {
+    findAll: jest.fn()
   },
   sequelize: {
     transaction: jest.fn()
@@ -94,7 +107,8 @@ describe('hotelProfileService - Unit Tests', () => {
     const typeData = {
       hotel_id: 1,
       type: 'Suite',
-      max_guests: 3
+      max_guests: 3,
+      priceData: { basic_price: 100, special_price: null, discount: 0, event: 'No event' }
     };
 
     it('throws when hotel does not exist', async () => {
@@ -158,7 +172,7 @@ describe('hotelProfileService - Unit Tests', () => {
     });
 
     it('creates room and increments quantity for valid data', async () => {
-      const roomType = { hotel_id: 1, quantity: 0, save: jest.fn().mockResolvedValue() };
+      const roomType = { type_id: 1, hotel_id: 1, quantity: 0, save: jest.fn().mockResolvedValue() };
       db.RoomType.findByPk.mockResolvedValue(roomType);
       db.Hotel.findByPk.mockResolvedValue({ hotel_owner: 1 });
       db.Room.create.mockResolvedValue({});
@@ -314,6 +328,124 @@ describe('hotelProfileService - Unit Tests', () => {
         .toThrow('update failed');
       expect(transaction.rollback).toHaveBeenCalled();
       expect(transaction.commit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updateFacilityForHotel', () => {
+    it('throws when hotel not found', async () => {
+      db.Hotel.findByPk.mockResolvedValue(null);
+      await expect(hotelProfileService.updateFacilityForHotel({ facilities: [] }, 1, 1))
+        .rejects.toThrow('Hotel not found');
+    });
+
+    it('throws when user is not owner', async () => {
+      db.Hotel.findByPk.mockResolvedValue({ hotel_owner: 2 });
+      await expect(hotelProfileService.updateFacilityForHotel({ facilities: [] }, 1, 1))
+        .rejects.toThrow('You are not the owner of hotel');
+    });
+
+    it('replaces facilities when data valid', async () => {
+      db.Hotel.findByPk.mockResolvedValue({ hotel_owner: 1 });
+      const facilityData = {
+        hotel_id: 1,
+        facilities: [{ facility_id: 10, description: 'Pool' }]
+      };
+      db.FacilitiesPossessing.destroy.mockResolvedValue();
+      db.FacilitiesPossessing.create.mockResolvedValue();
+
+      await hotelProfileService.updateFacilityForHotel(facilityData, 1, 1);
+
+      expect(db.FacilitiesPossessing.destroy).toHaveBeenCalledWith({ where: { hotel_id: facilityData.hotel_id } });
+      expect(db.FacilitiesPossessing.create).toHaveBeenCalledWith({
+        facility_id: 10,
+        hotel_id: 1,
+        description: 'Pool'
+      });
+    });
+  });
+
+  describe('updatePriceForRoomType', () => {
+    it('throws when room type missing', async () => {
+      db.RoomType.findByPk.mockResolvedValue(null);
+      await expect(hotelProfileService.updatePriceForRoomType({ type_id: 1 }, 1))
+        .rejects.toThrow('Room type not found');
+    });
+
+    it('throws when user is not owner', async () => {
+      db.RoomType.findByPk.mockResolvedValue({ hotel_id: 2 });
+      db.Hotel.findByPk.mockResolvedValue({ hotel_owner: 3 });
+      await expect(hotelProfileService.updatePriceForRoomType({ type_id: 1 }, 1))
+        .rejects.toThrow('You are not the owner of this hotel');
+    });
+
+    it('updates price when valid', async () => {
+      db.RoomType.findByPk.mockResolvedValue({ type_id: 1, hotel_id: 1 });
+      db.Hotel.findByPk.mockResolvedValue({ hotel_owner: 5 });
+      db.RoomPrice.findOne.mockResolvedValue({
+        start_date: null, end_date: null, special_price: null, event: 'No event', basic_price: 100, discount: 0
+      });
+      db.RoomPrice.update = jest.fn().mockResolvedValue();
+
+      await hotelProfileService.updatePriceForRoomType({ type_id: 1, basic_price: 150 }, 5);
+
+      expect(db.RoomPrice.update).toHaveBeenCalledWith(
+        expect.objectContaining({ basic_price: 150 }),
+        { where: { type_id: 1 } }
+      );
+    });
+  });
+
+  describe('getAllTypeForHotel', () => {
+    it('throws when hotel missing', async () => {
+      db.Hotel.findByPk.mockResolvedValue(null);
+      await expect(hotelProfileService.getAllTypeForHotel(1)).rejects.toThrow('Hotel not found');
+    });
+
+    it('returns types when hotel found', async () => {
+      const types = [{ type_id: 1 }];
+      db.Hotel.findByPk.mockResolvedValue({ hotel_id: 1 });
+      db.RoomType.findAll.mockResolvedValue(types);
+      const result = await hotelProfileService.getAllTypeForHotel(1);
+      expect(result).toBe(types);
+    });
+  });
+
+  describe('getAllRoomsForHotel', () => {
+    it('throws when hotel missing', async () => {
+      db.Hotel.findByPk.mockResolvedValue(null);
+      await expect(hotelProfileService.getAllRoomsForHotel(1)).rejects.toThrow('Hotel not found');
+    });
+
+    it('returns rooms with availability and price', async () => {
+      db.Hotel.findByPk.mockResolvedValue({ hotel_id: 1 });
+      const roomTypes = [{ type_id: 1 }];
+      const rooms = [{ room_id: 1, type_id: 1, get: () => ({ room_id: 1, type_id: 1, isAvailable: true }), setDataValue: jest.fn() }];
+      db.RoomType.findAll.mockResolvedValue(roomTypes);
+      db.Room.findAll.mockResolvedValue(rooms);
+      db.Booking.findAll.mockResolvedValue([]);
+      db.RoomPrice.findOne.mockResolvedValue({ special_price: null, basic_price: 200, discount: 0, start_date: null, end_date: null });
+
+      const result = await hotelProfileService.getAllRoomsForHotel(1);
+
+      expect(result[0].priceData.price).toBe(200);
+      expect(rooms[0].setDataValue).toHaveBeenCalledWith('isAvailable', true);
+    });
+  });
+
+  describe('getAllRooms', () => {
+    it('returns all rooms with availability and price', async () => {
+      const rooms = [{ room_id: 1, type_id: 1, get: () => ({ room_id: 1, type_id: 1, isAvailable: true }), setDataValue: jest.fn() }];
+      const roomTypes = [{ type_id: 1 }];
+      db.Room.findAll.mockResolvedValue(rooms);
+      db.RoomType.findAll.mockResolvedValue(roomTypes);
+      db.Booking.findAll.mockResolvedValue([]);
+      db.RoomPrice.findOne.mockResolvedValue({ special_price: 120, basic_price: 150, discount: 0.1, start_date: null, end_date: null });
+
+      const result = await hotelProfileService.getAllRooms();
+
+      expect(result[0].priceData.price).toBe(120);
+      expect(result[0].roomTypeData).toEqual(roomTypes[0]);
+      expect(rooms[0].setDataValue).toHaveBeenCalledWith('isAvailable', true);
     });
   });
 });
