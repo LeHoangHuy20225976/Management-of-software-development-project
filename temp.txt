@@ -21,9 +21,7 @@ jest.mock('models/index', () => ({
     findAll: jest.fn()
   },
   RoomPrice: {
-    create: jest.fn(),
-    findOne: jest.fn(),
-    update: jest.fn()
+    findOne: jest.fn()
   },
   FacilitiesPossessing: {
     destroy: jest.fn(),
@@ -107,8 +105,7 @@ describe('hotelProfileService - Unit Tests', () => {
     const typeData = {
       hotel_id: 1,
       type: 'Suite',
-      max_guests: 3,
-      priceData: { basic_price: 100, special_price: null, discount: 0, event: 'No event' }
+      max_guests: 3
     };
 
     it('throws when hotel does not exist', async () => {
@@ -172,7 +169,7 @@ describe('hotelProfileService - Unit Tests', () => {
     });
 
     it('creates room and increments quantity for valid data', async () => {
-      const roomType = { type_id: 1, hotel_id: 1, quantity: 0, save: jest.fn().mockResolvedValue() };
+      const roomType = { hotel_id: 1, quantity: 0, save: jest.fn().mockResolvedValue() };
       db.RoomType.findByPk.mockResolvedValue(roomType);
       db.Hotel.findByPk.mockResolvedValue({ hotel_owner: 1 });
       db.Room.create.mockResolvedValue({});

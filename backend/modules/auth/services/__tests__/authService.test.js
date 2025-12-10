@@ -1,6 +1,7 @@
 const authService = require('../authService');
 const bcrypt = require('bcryptjs');
 const { sign, signRefreshToken } = require('utils/jwtUtils');
+const redis = require('utils/redisClient');
 const { Op } = require('sequelize');
 
 // Mock dependencies
@@ -18,6 +19,12 @@ jest.mock('bcryptjs', () => ({
 jest.mock('utils/jwtUtils', () => ({
   sign: jest.fn(),
   signRefreshToken: jest.fn()
+}));
+
+jest.mock('utils/redisClient', () => ({
+  get: jest.fn(),
+  set: jest.fn(),
+  del: jest.fn()
 }));
 
 jest.mock('sequelize', () => ({
@@ -333,6 +340,50 @@ describe('AuthService', () => {
       expect(result).toEqual({
         email: mockCreatedUser.email
       });
+    });
+  });
+
+  describe('resetPassword', () => {
+    const mockUser = {
+      user_id: 1,
+      password: 'old-hash',
+      save: jest.fn()
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('throws when user not found', async () => {
+      db.User.findByPk = jest.fn().mockResolvedValue(null);
+      await expect(authService.resetPassword(1, 'old', 'new', 'new'))
+        .rejects.toThrow('User not found');
+    });
+
+    it('throws when confirm does not match', async () => {
+      db.User.findByPk = jest.fn().mockResolvedValue(mockUser);
+      bcrypt.compare = jest.fn().mockResolvedValue(true);
+      await expect(authService.resetPassword(1, 'old', 'new', 'mismatch'))
+        .rejects.toThrow('New password and confirm new password do not match');
+    });
+  });
+
+  describe('resetForgetPassword', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('throws when user missing', async () => {
+      db.User.findOne = jest.fn().mockResolvedValue(null);
+      await expect(authService.resetForgetPassword('none@example.com', 'new', 'token'))
+        .rejects.toThrow('User not found.');
+    });
+
+    it('throws when token mismatched', async () => {
+      db.User.findOne = jest.fn().mockResolvedValue({ email: 'a' });
+      redis.get = jest.fn().mockResolvedValue('expected');
+      await expect(authService.resetForgetPassword('a', 'new', 'wrong'))
+        .rejects.toThrow('Token mismatch.');
     });
   });
 });
