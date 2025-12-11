@@ -3,22 +3,16 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Button } from '../common/Button';
 import { Logo } from './Logo';
-import { getMockUser } from '@/lib/utils/mockData';
-import type { User } from '@/types';
+import { useAuth } from '@/lib/context/AuthContext';
 
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const router = useRouter();
+  const { user, isAuthenticated, logout, isLoading } = useAuth();
 
   useEffect(() => {
-    // Check if user is logged in
-    const currentUser = getMockUser();
-    setUser(currentUser);
-
     // Close dropdown when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -33,13 +27,264 @@ export const Header = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showUserMenu]);
 
-  const handleLogout = () => {
-    // Clear user data
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('auth_token');
-    setUser(null);
-    setShowUserMenu(false);
-    router.push('/');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setShowUserMenu(false);
+      setIsMenuOpen(false);
+      router.push('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still redirect even if logout API fails
+      router.push('/');
+    }
+  };
+
+  // Get display name (first character for avatar)
+  const displayName = user?.name || '';
+  const displayEmail = user?.email || '';
+  const avatarChar = displayName.charAt(0).toUpperCase() || '?';
+
+  // Get role-specific dashboard URL and label
+  const getDashboardInfo = () => {
+    switch (user?.role) {
+      case 'hotel_manager':
+        return {
+          dashboardUrl: '/hotel-manager/dashboard',
+          roleLabel: 'Quản lý khách sạn',
+          roleColor: 'bg-purple-100 text-purple-700',
+        };
+      case 'admin':
+        return {
+          dashboardUrl: '/admin/dashboard',
+          roleLabel: 'Quản trị viên',
+          roleColor: 'bg-red-100 text-red-700',
+        };
+      case 'customer':
+      default:
+        return {
+          dashboardUrl: '/user/dashboard',
+          roleLabel: 'Khách hàng',
+          roleColor: 'bg-blue-100 text-blue-700',
+        };
+    }
+  };
+
+  const { dashboardUrl, roleLabel, roleColor } = getDashboardInfo();
+
+  // Render role-specific menu items
+  const renderRoleMenuItems = () => {
+    if (user?.role === 'hotel_manager') {
+      return (
+        <>
+          <Link
+            href="/hotel-manager/dashboard"
+            className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
+            onClick={() => setShowUserMenu(false)}
+          >
+            <span className="mr-3">📊</span>
+            Bảng điều khiển
+          </Link>
+          <Link
+            href="/hotel-manager/bookings"
+            className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
+            onClick={() => setShowUserMenu(false)}
+          >
+            <span className="mr-3">📋</span>
+            Quản lý đặt phòng
+          </Link>
+          <Link
+            href="/hotel-manager/rooms"
+            className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
+            onClick={() => setShowUserMenu(false)}
+          >
+            <span className="mr-3">🛏️</span>
+            Quản lý phòng
+          </Link>
+          <Link
+            href="/hotel-manager/settings"
+            className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
+            onClick={() => setShowUserMenu(false)}
+          >
+            <span className="mr-3">⚙️</span>
+            Cài đặt khách sạn
+          </Link>
+        </>
+      );
+    }
+
+    if (user?.role === 'admin') {
+      return (
+        <>
+          <Link
+            href="/admin/dashboard"
+            className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
+            onClick={() => setShowUserMenu(false)}
+          >
+            <span className="mr-3">📊</span>
+            Bảng điều khiển
+          </Link>
+          <Link
+            href="/admin/users"
+            className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
+            onClick={() => setShowUserMenu(false)}
+          >
+            <span className="mr-3">👥</span>
+            Quản lý người dùng
+          </Link>
+          <Link
+            href="/admin/hotels"
+            className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
+            onClick={() => setShowUserMenu(false)}
+          >
+            <span className="mr-3">🏨</span>
+            Quản lý khách sạn
+          </Link>
+          <Link
+            href="/admin/settings"
+            className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
+            onClick={() => setShowUserMenu(false)}
+          >
+            <span className="mr-3">⚙️</span>
+            Cấu hình hệ thống
+          </Link>
+        </>
+      );
+    }
+
+    // Default: customer menu
+    return (
+      <>
+        <Link
+          href="/user/dashboard"
+          className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
+          onClick={() => setShowUserMenu(false)}
+        >
+          <span className="mr-3">📊</span>
+          Tổng quan
+        </Link>
+        <Link
+          href="/user/dashboard/bookings"
+          className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
+          onClick={() => setShowUserMenu(false)}
+        >
+          <span className="mr-3">📋</span>
+          Đơn đặt phòng
+        </Link>
+        <Link
+          href="/user/reviews"
+          className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
+          onClick={() => setShowUserMenu(false)}
+        >
+          <span className="mr-3">⭐</span>
+          Đánh giá của tôi
+        </Link>
+        <Link
+          href="/user/my-vouchers"
+          className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
+          onClick={() => setShowUserMenu(false)}
+        >
+          <span className="mr-3">🎟️</span>
+          Mã giảm giá của tôi
+        </Link>
+        <Link
+          href="/user/dashboard/profile"
+          className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
+          onClick={() => setShowUserMenu(false)}
+        >
+          <span className="mr-3">👤</span>
+          Thông tin cá nhân
+        </Link>
+      </>
+    );
+  };
+
+  // Render role-specific mobile menu items
+  const renderMobileRoleMenuItems = () => {
+    if (user?.role === 'hotel_manager') {
+      return (
+        <>
+          <Link href="/hotel-manager/dashboard" onClick={() => setIsMenuOpen(false)}>
+            <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
+              📊 Bảng điều khiển
+            </button>
+          </Link>
+          <Link href="/hotel-manager/bookings" onClick={() => setIsMenuOpen(false)}>
+            <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
+              📋 Quản lý đặt phòng
+            </button>
+          </Link>
+          <Link href="/hotel-manager/rooms" onClick={() => setIsMenuOpen(false)}>
+            <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
+              🛏️ Quản lý phòng
+            </button>
+          </Link>
+          <Link href="/hotel-manager/settings" onClick={() => setIsMenuOpen(false)}>
+            <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
+              ⚙️ Cài đặt khách sạn
+            </button>
+          </Link>
+        </>
+      );
+    }
+
+    if (user?.role === 'admin') {
+      return (
+        <>
+          <Link href="/admin/dashboard" onClick={() => setIsMenuOpen(false)}>
+            <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
+              📊 Bảng điều khiển
+            </button>
+          </Link>
+          <Link href="/admin/users" onClick={() => setIsMenuOpen(false)}>
+            <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
+              👥 Quản lý người dùng
+            </button>
+          </Link>
+          <Link href="/admin/hotels" onClick={() => setIsMenuOpen(false)}>
+            <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
+              🏨 Quản lý khách sạn
+            </button>
+          </Link>
+          <Link href="/admin/settings" onClick={() => setIsMenuOpen(false)}>
+            <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
+              ⚙️ Cấu hình hệ thống
+            </button>
+          </Link>
+        </>
+      );
+    }
+
+    // Default: customer menu
+    return (
+      <>
+        <Link href="/user/dashboard" onClick={() => setIsMenuOpen(false)}>
+          <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
+            📊 Tổng quan
+          </button>
+        </Link>
+        <Link href="/user/dashboard/bookings" onClick={() => setIsMenuOpen(false)}>
+          <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
+            📋 Đơn đặt phòng
+          </button>
+        </Link>
+        <Link href="/user/reviews" onClick={() => setIsMenuOpen(false)}>
+          <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
+            ⭐ Đánh giá của tôi
+          </button>
+        </Link>
+        <Link href="/user/my-vouchers" onClick={() => setIsMenuOpen(false)}>
+          <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
+            🎟️ Mã giảm giá của tôi
+          </button>
+        </Link>
+        <Link href="/user/dashboard/profile" onClick={() => setIsMenuOpen(false)}>
+          <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
+            👤 Thông tin cá nhân
+          </button>
+        </Link>
+      </>
+    );
   };
 
   return (
@@ -83,87 +328,54 @@ export const Header = () => {
 
           {/* User Actions */}
           <div className="hidden md:flex items-center space-x-3">
-            {/* Hotel Manager Link */}
-            <Link
-              href="/hotel-manager/login"
-              className="text-sm font-medium text-gray-700 hover:text-[#003580] transition-colors"
-            >
-              For Hotel owners
-            </Link>
+            {/* Hotel Manager Link - only show if not logged in or is customer */}
+            {(!isAuthenticated || user?.role === 'customer') && (
+              <Link
+                href="/hotel-manager/login"
+                className="text-sm font-medium text-gray-700 hover:text-[#003580] transition-colors"
+              >
+                Dành cho khách sạn
+              </Link>
+            )}
 
-            {/* User is logged in */}
-            {user ? (
+            {/* Loading state */}
+            {isLoading ? (
+              <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse"></div>
+            ) : isAuthenticated && user ? (
+              /* User is logged in */
               <div className="relative user-menu-container">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center space-x-2 px-3 py-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0071c2] to-[#005999] flex items-center justify-center text-white text-sm font-bold">
-                    {user.name.charAt(0)}
-                  </div>
-                  <span className="text-sm font-medium text-gray-900">
-                    {user.name}
-                  </span>
-                  <svg
-                    className={`w-4 h-4 text-gray-600 transition-transform ${
-                      showUserMenu ? 'rotate-180' : ''
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
+                  {user.profile_image ? (
+                    <img
+                      src={user.profile_image}
+                      alt={displayName}
+                      className="w-8 h-8 rounded-full object-cover"
                     />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0071c2] to-[#005999] flex items-center justify-center text-white text-sm font-bold">
+                      {avatarChar}
+                    </div>
+                  )}
+                  <span className="text-sm font-medium text-gray-900">{displayName}</span>
+                  <svg className={`w-4 h-4 text-gray-600 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
 
                 {/* Dropdown Menu */}
                 {showUserMenu && (
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
-                    <Link
-                      href="/user/dashboard"
-                      className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
-                      onClick={() => setShowUserMenu(false)}
-                    >
-                      <span className="mr-3">📊</span>
-                      Overview
-                    </Link>
-                    <Link
-                      href="/user/dashboard/bookings"
-                      className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
-                      onClick={() => setShowUserMenu(false)}
-                    >
-                      <span className="mr-3">📋</span>
-                      Booking history
-                    </Link>
-                    <Link
-                      href="/user/reviews"
-                      className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
-                      onClick={() => setShowUserMenu(false)}
-                    >
-                      <span className="mr-3">⭐</span>
-                      My review
-                    </Link>
-                    <Link
-                      href="/user/my-vouchers"
-                      className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
-                      onClick={() => setShowUserMenu(false)}
-                    >
-                      <span className="mr-3">🎟️</span>
-                      My discount coupon
-                    </Link>
-                    <Link
-                      href="/user/dashboard/profile"
-                      className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
-                      onClick={() => setShowUserMenu(false)}
-                    >
-                      <span className="mr-3">👤</span>
-                      My profile
-                    </Link>
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900">{displayName}</p>
+                      <p className="text-xs text-gray-500">{displayEmail}</p>
+                      <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full ${roleColor}`}>
+                        {roleLabel}
+                      </span>
+                    </div>
+                    {renderRoleMenuItems()}
                     <hr className="my-2 border-gray-200" />
                     <button
                       onClick={handleLogout}
@@ -229,87 +441,66 @@ export const Header = () => {
               <Link
                 href="/"
                 className="text-gray-700 hover:bg-gray-100 font-medium px-4 py-3 rounded transition-colors"
+                onClick={() => setIsMenuOpen(false)}
               >
                 Home
               </Link>
               <Link
                 href="/search"
                 className="text-gray-700 hover:bg-gray-100 font-medium px-4 py-3 rounded transition-colors"
+                onClick={() => setIsMenuOpen(false)}
               >
                 Hotels
               </Link>
               <Link
                 href="/tourism"
                 className="text-gray-700 hover:bg-gray-100 font-medium px-4 py-3 rounded transition-colors"
+                onClick={() => setIsMenuOpen(false)}
               >
                 Tourism
               </Link>
               <Link
                 href="/about"
                 className="text-gray-700 hover:bg-gray-100 font-medium px-4 py-3 rounded transition-colors"
+                onClick={() => setIsMenuOpen(false)}
               >
                 About us
               </Link>
               <hr className="border-gray-200 my-2" />
-              <Link
-                href="/hotel-manager/login"
-                className="text-gray-600 hover:bg-gray-100 px-4 py-3 rounded transition-colors"
-              >
-                For hotel owners
-              </Link>
+              {(!isAuthenticated || user?.role === 'customer') && (
+                <Link
+                  href="/hotel-manager/login"
+                  className="text-gray-600 hover:bg-gray-100 px-4 py-3 rounded transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Dành cho khách sạn
+                </Link>
+              )}
 
-              {user ? (
+              {isAuthenticated && user ? (
                 /* Logged in - Mobile */
                 <div className="pt-2 px-4 space-y-2">
                   <div className="flex items-center space-x-3 px-4 py-3 bg-gray-50 rounded-lg">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0071c2] to-[#005999] flex items-center justify-center text-white font-bold">
-                      {user.name.charAt(0)}
-                    </div>
+                    {user.profile_image ? (
+                      <img
+                        src={user.profile_image}
+                        alt={displayName}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0071c2] to-[#005999] flex items-center justify-center text-white font-bold">
+                        {avatarChar}
+                      </div>
+                    )}
                     <div>
-                      <p className="font-bold text-gray-900">{user.name}</p>
-                      <p className="text-xs text-gray-600">{user.email}</p>
+                      <p className="font-bold text-gray-900">{displayName}</p>
+                      <p className="text-xs text-gray-600">{displayEmail}</p>
+                      <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full ${roleColor}`}>
+                        {roleLabel}
+                      </span>
                     </div>
                   </div>
-                  <Link
-                    href="/user/dashboard"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
-                      📊 Overview
-                    </button>
-                  </Link>
-                  <Link
-                    href="/user/dashboard/bookings"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
-                      📋 Booking History
-                    </button>
-                  </Link>
-                  <Link
-                    href="/user/reviews"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
-                      ⭐ My review
-                    </button>
-                  </Link>
-                  <Link
-                    href="/user/my-vouchers"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
-                      🎟️ My discount coupon
-                    </button>
-                  </Link>
-                  <Link
-                    href="/user/dashboard/profile"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
-                      👤 My profile
-                    </button>
-                  </Link>
+                  {renderMobileRoleMenuItems()}
                   <button
                     onClick={handleLogout}
                     className="w-full px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded transition-colors text-left"
@@ -320,12 +511,12 @@ export const Header = () => {
               ) : (
                 /* Not logged in - Mobile */
                 <div className="flex flex-col space-y-2 pt-2 px-4">
-                  <Link href="/login">
+                  <Link href="/login" onClick={() => setIsMenuOpen(false)}>
                     <button className="w-full px-4 py-2 text-sm font-medium text-[#003580] hover:bg-blue-50 rounded transition-colors border border-[#003580]">
                       Login
                     </button>
                   </Link>
-                  <Link href="/register">
+                  <Link href="/register" onClick={() => setIsMenuOpen(false)}>
                     <button className="w-full px-4 py-2 text-sm font-medium text-white bg-[#003580] hover:bg-[#00224f] rounded transition-colors">
                       Register
                     </button>

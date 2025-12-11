@@ -9,18 +9,21 @@ import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { useState, useEffect } from 'react';
-import { getMockUser, updateMockUser, getMockBookings, getMockReviews } from '@/lib/utils/mockData';
+import { useAuth } from '@/lib/context/AuthContext';
+import { authApi } from '@/lib/api/auth';
+import { getMockBookings, getMockReviews } from '@/lib/utils/mockData';
 
 export default function UserProfilePage() {
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    dateOfBirth: '1990-01-15',
+    dateOfBirth: '',
     gender: 'male',
-    address: '123 Đường Lê Lợi, Quận 1',
-    city: 'Hồ Chí Minh',
+    address: '',
+    city: '',
     nationality: 'Việt Nam',
   });
 
@@ -30,58 +33,89 @@ export default function UserProfilePage() {
     points: 0,
   });
 
+  // Initialize form data from auth user
   useEffect(() => {
-    const user = getMockUser();
     if (user) {
       setFormData({
-        name: user.name,
-        email: user.email,
-        phone: user.phone || '',
-        dateOfBirth: '1990-01-15',
-        gender: 'male',
-        address: '123 Đường Lê Lợi, Quận 1',
-        city: 'Hồ Chí Minh',
+        name: user.name || '',
+        email: user.email || '',
+        phone: '',
+        dateOfBirth: '',
+        gender: user.gender || 'male',
+        address: '',
+        city: '',
         nationality: 'Việt Nam',
       });
     }
 
-    // Load stats
+    // Load stats (mock data for now)
     const bookings = getMockBookings();
     const reviews = getMockReviews();
     setStats({
       bookings: bookings.length,
       reviews: reviews.length,
-      points: user?.points || 0,
+      points: 0,
     });
-  }, []);
+  }, [user]);
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    updateMockUser({
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-    });
+    // TODO: Call API to update profile
     setIsEditing(false);
     alert('Cập nhật thông tin thành công!');
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    // Validate passwords match
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      alert('Mật khẩu mới không khớp!');
+      setPasswordError('Mật khẩu mới không khớp!');
       return;
     }
-    // TODO: Call API to change password
-    alert('Đổi mật khẩu thành công!');
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+
+    // Validate minimum length
+    if (passwordData.newPassword.length < 8) {
+      setPasswordError('Mật khẩu mới phải có ít nhất 8 ký tự');
+      return;
+    }
+
+    setPasswordLoading(true);
+
+    try {
+      await authApi.changePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword,
+        passwordData.confirmPassword
+      );
+      
+      setPasswordSuccess('Đổi mật khẩu thành công!');
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setPasswordSuccess(''), 3000);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Đổi mật khẩu thất bại. Vui lòng thử lại!';
+      setPasswordError(errorMessage);
+    } finally {
+      setPasswordLoading(false);
+    }
   };
+
+  const displayName = user?.name || formData.name || '';
+  const displayEmail = user?.email || formData.email || '';
+  const avatarChar = displayName.charAt(0).toUpperCase() || '?';
 
   return (
     <div className="space-y-6">
@@ -91,9 +125,17 @@ export default function UserProfilePage() {
       <Card>
         <div className="flex items-center space-x-6">
           <div className="relative">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#0071c2] to-[#005999] flex items-center justify-center text-white text-3xl font-bold">
-              {formData.name.charAt(0)}
-            </div>
+            {user?.profile_image ? (
+              <img
+                src={user.profile_image}
+                alt={displayName}
+                className="w-24 h-24 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#0071c2] to-[#005999] flex items-center justify-center text-white text-3xl font-bold">
+                {avatarChar}
+              </div>
+            )}
             {isEditing && (
               <button className="absolute bottom-0 right-0 bg-white border-2 border-gray-200 rounded-full p-2 hover:bg-gray-50 transition-colors">
                 📷
@@ -101,8 +143,8 @@ export default function UserProfilePage() {
             )}
           </div>
           <div className="flex-1">
-            <h2 className="text-2xl font-bold text-gray-900">{formData.name}</h2>
-            <p className="text-gray-600">{formData.email}</p>
+            <h2 className="text-2xl font-bold text-gray-900">{displayName}</h2>
+            <p className="text-gray-600">{displayEmail}</p>
             <div className="flex items-center space-x-4 mt-2">
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
                 ⭐ Thành viên
@@ -253,6 +295,24 @@ export default function UserProfilePage() {
       {/* Change Password */}
       <Card>
         <h3 className="text-xl font-bold text-gray-900 mb-6">Đổi mật khẩu</h3>
+        
+        {/* Success message */}
+        {passwordSuccess && (
+          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <span className="text-green-600">✓</span>
+              <p className="text-green-700 text-sm font-medium">{passwordSuccess}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Error message */}
+        {passwordError && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600 text-sm font-medium">{passwordError}</p>
+          </div>
+        )}
+
         <form onSubmit={handleChangePassword} className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-2">
@@ -264,6 +324,7 @@ export default function UserProfilePage() {
               onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
               placeholder="Nhập mật khẩu hiện tại"
               required
+              disabled={passwordLoading}
             />
           </div>
 
@@ -277,6 +338,8 @@ export default function UserProfilePage() {
               onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
               placeholder="Nhập mật khẩu mới"
               required
+              minLength={8}
+              disabled={passwordLoading}
             />
             <p className="mt-1 text-xs text-gray-600">Tối thiểu 8 ký tự</p>
           </div>
@@ -291,11 +354,22 @@ export default function UserProfilePage() {
               onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
               placeholder="Nhập lại mật khẩu mới"
               required
+              disabled={passwordLoading}
             />
           </div>
 
-          <Button type="submit">
-            🔒 Đổi mật khẩu
+          <Button type="submit" disabled={passwordLoading}>
+            {passwordLoading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Đang xử lý...
+              </span>
+            ) : (
+              '🔒 Đổi mật khẩu'
+            )}
           </Button>
         </form>
       </Card>

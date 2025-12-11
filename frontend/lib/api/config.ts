@@ -9,16 +9,19 @@ export const API_CONFIG = {
   USE_MOCK_DATA: process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true' ? true : process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'false' ? false : true,
 
   // Backend API URL
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
   API_VERSION: process.env.NEXT_PUBLIC_API_VERSION || 'v1',
 
   // API Endpoints
   ENDPOINTS: {
-    // Auth
+    // Auth (matches backend format_message.md)
     LOGIN: '/auth/login',
     REGISTER: '/auth/register',
     LOGOUT: '/auth/logout',
-    REFRESH_TOKEN: '/auth/refresh',
+    REFRESH_TOKEN: '/auth/refresh-tokens',
+    CHANGE_PASSWORD: '/auth/reset-password',
+    FORGOT_PASSWORD: '/auth/verify-forget-password',
+    RESET_FORGOT_PASSWORD: '/auth/reset-forget-password',
 
     // Hotels
     HOTELS: '/hotels',
@@ -69,7 +72,8 @@ export const API_CONFIG = {
 };
 
 export const getApiUrl = (endpoint: string, params?: Record<string, string>): string => {
-  let url = `${API_CONFIG.BASE_URL}/api/${API_CONFIG.API_VERSION}${endpoint}`;
+  // Direct URL without /api/v1 prefix (backend uses /auth/login, /auth/register, etc.)
+  let url = `${API_CONFIG.BASE_URL}${endpoint}`;
 
   if (params) {
     Object.keys(params).forEach(key => {
