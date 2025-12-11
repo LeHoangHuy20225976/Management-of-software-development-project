@@ -179,14 +179,12 @@ const hotelProfileService = {
         }
         // add facility for hotel (must be initialized first)
         const listFacilities = facilityData.facilities; // list of facilities and descriptions
+        await db.FacilitiesPossessing.destroy({
+            where: {
+                hotel_id: facilityData.hotel_id
+            }
+        });
         for(const facility of listFacilities) {   
-            // first, delete all existed facilities for hotel (on FacilitiesPossessing table)
-            await db.FacilitiesPossessing.destroy({
-                where: {
-                    hotel_id: facilityData.hotel_id
-                }
-            });
-            // then, add new facilities
             await db.FacilitiesPossessing.create({
                 facility_id: facility.facility_id,
                 hotel_id: facilityData.hotel_id,

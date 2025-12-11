@@ -348,7 +348,10 @@ describe('hotelProfileService - Unit Tests', () => {
       db.Hotel.findByPk.mockResolvedValue({ hotel_owner: 1 });
       const facilityData = {
         hotel_id: 1,
-        facilities: [{ facility_id: 10, description: 'Pool' }]
+        facilities: [
+          { facility_id: 10, description: 'Pool' },
+          { facility_id: 11, description: 'Gym' }
+        ]
       };
       db.FacilitiesPossessing.destroy.mockResolvedValue();
       db.FacilitiesPossessing.create.mockResolvedValue();
@@ -360,6 +363,11 @@ describe('hotelProfileService - Unit Tests', () => {
         facility_id: 10,
         hotel_id: 1,
         description: 'Pool'
+      });
+      expect(db.FacilitiesPossessing.create).toHaveBeenCalledWith({
+        facility_id: 11,
+        hotel_id: 1,
+        description: 'Gym'
       });
     });
   });
