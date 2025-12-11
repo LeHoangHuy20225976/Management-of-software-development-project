@@ -2,6 +2,9 @@
  * TypeScript Type Definitions
  */
 
+// Re-export auth types
+export * from './auth';
+
 export interface Hotel {
   id: string;
   name: string;

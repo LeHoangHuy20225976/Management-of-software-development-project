@@ -7,10 +7,11 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
 import { HotelLogo } from '@/components/hotel/HotelLogo';
-import { ROUTES } from '@/lib/routes';
+import { useAuth } from '@/lib/context/AuthContext';
 
 export default function HotelLoginPage() {
   const router = useRouter();
+  const { login, isAuthenticated, user, isLoading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -18,13 +19,12 @@ export default function HotelLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Check if already logged in as hotel manager
+  // Redirect if already logged in as hotel manager
   useEffect(() => {
-    const hotelAuthToken = localStorage.getItem('hotel_auth_token');
-    if (hotelAuthToken) {
+    if (isAuthenticated && user?.role === 'hotel_manager' && !authLoading) {
       router.push('/hotel-manager/dashboard');
     }
-  }, [router]);
+  }, [isAuthenticated, user, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,39 +32,28 @@ export default function HotelLoginPage() {
     setError('');
 
     try {
-      // Demo validation for hotel manager
-      if (
-        (formData.email === 'hotel@vietstay.com' &&
-          formData.password === 'hotel123') ||
-        (formData.email && formData.password.length >= 6)
-      ) {
-        // Generate auth token
-        const token = `hotel_token_${Date.now()}`;
-        localStorage.setItem('hotel_auth_token', token);
-
-        // Store demo hotel manager info
-        const hotelManager = {
-          id: 'hotel-001',
-          email: formData.email,
-          name: 'Grand Hotel Saigon',
-          managerName: 'Nguyễn Văn Manager',
-          phone: '028 3823 5678',
-        };
-        localStorage.setItem('hotelManager', JSON.stringify(hotelManager));
-
-        setTimeout(() => {
-          router.push('/hotel-manager/dashboard');
-          window.location.reload();
-        }, 500);
-      } else {
-        setError('Email hoặc mật khẩu không đúng!');
-        setIsLoading(false);
-      }
+      await login(formData.email, formData.password, 'hotel_manager');
+      router.push('/hotel-manager/dashboard');
     } catch (err) {
-      setError('Có lỗi xảy ra. Vui lòng thử lại!');
+      const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra. Vui lòng thử lại!';
+      setError(errorMessage);
+    } finally {
       setIsLoading(false);
     }
   };
+
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <>
+        <Header />
+        <div className="min-h-screen bg-gray-50 py-12 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0071c2]"></div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -105,6 +94,7 @@ export default function HotelLoginPage() {
                     }
                     placeholder="hotel@example.com"
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900 placeholder:text-gray-400"
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -121,6 +111,7 @@ export default function HotelLoginPage() {
                     }
                     placeholder="••••••••"
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900 placeholder:text-gray-400"
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -129,6 +120,7 @@ export default function HotelLoginPage() {
                     <input
                       type="checkbox"
                       className="w-4 h-4 text-[#0071c2] rounded focus:ring-2 focus:ring-[#0071c2]"
+                      disabled={isLoading}
                     />
                     <span className="ml-2 text-sm text-gray-700">
                       Ghi nhớ đăng nhập
@@ -145,9 +137,19 @@ export default function HotelLoginPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full px-6 py-3 bg-[#0071c2] hover:bg-[#005999] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-6 py-3 bg-[#0071c2] hover:bg-[#005999] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
-                  {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                  {isLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Đang đăng nhập...
+                    </span>
+                  ) : (
+                    'Đăng nhập'
+                  )}
                 </button>
               </form>
 
@@ -163,11 +165,19 @@ export default function HotelLoginPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <button className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <button 
+                  type="button"
+                  className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={isLoading}
+                >
                   <span className="text-xl">📘</span>
                   <span className="font-medium text-gray-700">Facebook</span>
                 </button>
-                <button className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                <button 
+                  type="button"
+                  className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={isLoading}
+                >
                   <span className="text-xl">🔍</span>
                   <span className="font-medium text-gray-700">Google</span>
                 </button>
@@ -182,22 +192,6 @@ export default function HotelLoginPage() {
                   >
                     Đăng ký ngay
                   </Link>
-                </p>
-              </div>
-
-              {/* Demo Info */}
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm font-semibold text-gray-900 mb-2">
-                  🔐 Demo Login cho Khách sạn:
-                </p>
-                <p className="text-sm text-gray-700">
-                  Email: <strong>hotel@vietstay.com</strong>
-                </p>
-                <p className="text-sm text-gray-700">
-                  Password: <strong>hotel123</strong>
-                </p>
-                <p className="text-xs text-gray-600 mt-2">
-                  Hoặc nhập bất kỳ email + password (tối thiểu 6 ký tự)
                 </p>
               </div>
             </Card>

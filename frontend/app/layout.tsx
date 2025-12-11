@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ChatbotWrapper } from "@/components/layout/ChatbotWrapper";
 import { MockDataInitializer } from "@/components/MockDataInitializer";
+import { AuthProvider } from "@/lib/context/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,9 +30,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <MockDataInitializer />
-        {children}
-        <ChatbotWrapper />
+        <AuthProvider>
+          <MockDataInitializer />
+          {children}
+          <ChatbotWrapper />
+        </AuthProvider>
       </body>
     </html>
   );

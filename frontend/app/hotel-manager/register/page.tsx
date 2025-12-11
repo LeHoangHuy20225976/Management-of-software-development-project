@@ -1,19 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
 import { HotelLogo } from '@/components/hotel/HotelLogo';
-import { ROUTES } from '@/lib/routes';
+import { useAuth } from '@/lib/context/AuthContext';
 
 export default function HotelRegisterPage() {
   const router = useRouter();
+  const { register, isAuthenticated, user, isLoading: authLoading } = useAuth();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    // Hotel Info
+    // Hotel Info (for later use)
     hotelName: '',
     hotelStars: 3,
     hotelAddress: '',
@@ -24,12 +25,22 @@ export default function HotelRegisterPage() {
     managerName: '',
     managerEmail: '',
     managerPhone: '',
+    gender: 'male',
+    dateOfBirth: '',
     password: '',
     confirmPassword: '',
     agreeTerms: false,
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  // Redirect if already logged in as hotel manager
+  useEffect(() => {
+    if (isAuthenticated && user?.role === 'hotel_manager' && !authLoading) {
+      router.push('/hotel-manager/dashboard');
+    }
+  }, [isAuthenticated, user, authLoading, router]);
 
   const handleNext = () => {
     setError('');
@@ -66,48 +77,51 @@ export default function HotelRegisterPage() {
       return;
     }
 
+    if (!formData.dateOfBirth) {
+      setError('Vui lòng nhập ngày sinh');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // Create hotel manager account
-      const hotelManager = {
-        id: `hotel-${Date.now()}`,
+      // Register hotel manager account
+      await register({
+        name: formData.managerName,
         email: formData.managerEmail,
-        name: formData.hotelName,
-        managerName: formData.managerName,
-        phone: formData.managerPhone,
-        hotelInfo: {
-          name: formData.hotelName,
-          stars: formData.hotelStars,
-          address: formData.hotelAddress,
-          city: formData.hotelCity,
-          district: formData.hotelDistrict,
-          phone: formData.hotelPhone,
-        },
-        status: 'pending', // pending approval
-        registeredDate: new Date().toISOString().split('T')[0],
-      };
+        phone_number: formData.managerPhone,
+        gender: formData.gender,
+        date_of_birth: formData.dateOfBirth,
+        password: formData.password,
+        role: 'hotel_manager',
+      });
 
-      // Save to localStorage
-      localStorage.setItem('hotelManager', JSON.stringify(hotelManager));
-
-      // Generate auth token
-      const token = `hotel_token_${Date.now()}`;
-      localStorage.setItem('hotel_auth_token', token);
-
-      // Show success message and redirect
+      setSuccess(true);
+      
+      // Redirect to login after 2 seconds
       setTimeout(() => {
-        alert(
-          'Đăng ký thành công! Chúng tôi sẽ xem xét và liên hệ với bạn trong vòng 24 giờ.'
-        );
-        router.push('/hotel-manager/dashboard');
-        window.location.reload();
-      }, 500);
+        router.push('/hotel-manager/login');
+      }, 2000);
     } catch (err) {
-      setError('Có lỗi xảy ra. Vui lòng thử lại!');
+      const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra. Vui lòng thử lại!';
+      setError(errorMessage);
+    } finally {
       setIsLoading(false);
     }
   };
+
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <>
+        <Header />
+        <div className="min-h-screen bg-gray-50 py-12 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0071c2]"></div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -167,6 +181,15 @@ export default function HotelRegisterPage() {
             </div>
 
             <Card className="p-8">
+              {/* Success message */}
+              {success && (
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-green-600 text-sm font-medium">
+                    🎉 Đăng ký thành công! Đang chuyển hướng đến trang đăng nhập...
+                  </p>
+                </div>
+              )}
+
               {error && (
                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-red-600 text-sm font-medium">{error}</p>
@@ -196,6 +219,7 @@ export default function HotelRegisterPage() {
                         }
                         placeholder="VD: Grand Hotel Saigon"
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900 placeholder:text-gray-400"
+                        disabled={isLoading || success}
                       />
                     </div>
 
@@ -212,6 +236,7 @@ export default function HotelRegisterPage() {
                           })
                         }
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900"
+                        disabled={isLoading || success}
                       >
                         {[1, 2, 3, 4, 5].map((star) => (
                           <option key={star} value={star}>
@@ -237,6 +262,7 @@ export default function HotelRegisterPage() {
                         }
                         placeholder="Số nhà, đường..."
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900 placeholder:text-gray-400"
+                        disabled={isLoading || success}
                       />
                     </div>
 
@@ -255,6 +281,7 @@ export default function HotelRegisterPage() {
                             })
                           }
                           className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900"
+                          disabled={isLoading || success}
                         >
                           <option value="">Chọn thành phố</option>
                           <option value="Hà Nội">Hà Nội</option>
@@ -282,6 +309,7 @@ export default function HotelRegisterPage() {
                           }
                           placeholder="VD: Quận 1"
                           className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900 placeholder:text-gray-400"
+                          disabled={isLoading || success}
                         />
                       </div>
                     </div>
@@ -302,13 +330,15 @@ export default function HotelRegisterPage() {
                         }
                         placeholder="0283 xxx xxxx"
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900 placeholder:text-gray-400"
+                        disabled={isLoading || success}
                       />
                     </div>
 
                     <button
                       type="button"
                       onClick={handleNext}
-                      className="w-full px-6 py-3 bg-[#0071c2] hover:bg-[#005999] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                      disabled={isLoading || success}
+                      className="w-full px-6 py-3 bg-[#0071c2] hover:bg-[#005999] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
                       Tiếp theo →
                     </button>
@@ -337,6 +367,7 @@ export default function HotelRegisterPage() {
                         }
                         placeholder="Nguyễn Văn A"
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900 placeholder:text-gray-400"
+                        disabled={isLoading || success}
                       />
                     </div>
 
@@ -356,6 +387,7 @@ export default function HotelRegisterPage() {
                         }
                         placeholder="manager@hotel.com"
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900 placeholder:text-gray-400"
+                        disabled={isLoading || success}
                       />
                     </div>
 
@@ -375,7 +407,43 @@ export default function HotelRegisterPage() {
                         }
                         placeholder="0901 xxx xxx"
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900 placeholder:text-gray-400"
+                        disabled={isLoading || success}
                       />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 mb-2">
+                          Giới tính *
+                        </label>
+                        <select
+                          value={formData.gender}
+                          onChange={(e) =>
+                            setFormData({ ...formData, gender: e.target.value })
+                          }
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900"
+                          disabled={isLoading || success}
+                        >
+                          <option value="male">Nam</option>
+                          <option value="female">Nữ</option>
+                          <option value="other">Khác</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-900 mb-2">
+                          Ngày sinh *
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={formData.dateOfBirth}
+                          onChange={(e) =>
+                            setFormData({ ...formData, dateOfBirth: e.target.value })
+                          }
+                          className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900"
+                          disabled={isLoading || success}
+                        />
+                      </div>
                     </div>
 
                     <div>
@@ -391,6 +459,7 @@ export default function HotelRegisterPage() {
                         }
                         placeholder="••••••••"
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900 placeholder:text-gray-400"
+                        disabled={isLoading || success}
                       />
                       <p className="mt-1 text-xs text-gray-500">
                         Tối thiểu 8 ký tự
@@ -413,6 +482,7 @@ export default function HotelRegisterPage() {
                         }
                         placeholder="••••••••"
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900 placeholder:text-gray-400"
+                        disabled={isLoading || success}
                       />
                     </div>
 
@@ -429,6 +499,7 @@ export default function HotelRegisterPage() {
                             })
                           }
                           className="w-4 h-4 mt-1 text-[#0071c2] rounded focus:ring-2 focus:ring-[#0071c2]"
+                          disabled={isLoading || success}
                         />
                         <span className="ml-2 text-sm text-gray-700">
                           Tôi đồng ý với{' '}
@@ -453,43 +524,34 @@ export default function HotelRegisterPage() {
                       <button
                         type="button"
                         onClick={() => setStep(1)}
-                        className="flex-1 px-6 py-3 border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-semibold rounded-lg transition-colors"
+                        disabled={isLoading || success}
+                        className="flex-1 px-6 py-3 border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-semibold rounded-lg transition-colors disabled:opacity-50"
                       >
                         ← Quay lại
                       </button>
                       <button
                         type="submit"
-                        disabled={isLoading}
-                        className="flex-1 px-6 py-3 bg-[#0071c2] hover:bg-[#005999] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={isLoading || success}
+                        className="flex-1 px-6 py-3 bg-[#0071c2] hover:bg-[#005999] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                       >
-                        {isLoading ? 'Đang đăng ký...' : 'Hoàn tất đăng ký'}
+                        {isLoading ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            Đang đăng ký...
+                          </span>
+                        ) : success ? (
+                          '✓ Đăng ký thành công'
+                        ) : (
+                          'Hoàn tất đăng ký'
+                        )}
                       </button>
                     </div>
                   </>
                 )}
               </form>
-
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white text-gray-500">
-                    Hoặc đăng ký với
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <button className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                  <span className="text-xl">📘</span>
-                  <span className="font-medium text-gray-700">Facebook</span>
-                </button>
-                <button className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                  <span className="text-xl">🔍</span>
-                  <span className="font-medium text-gray-700">Google</span>
-                </button>
-              </div>
 
               <div className="mt-6 text-center">
                 <p className="text-gray-600">
@@ -504,57 +566,30 @@ export default function HotelRegisterPage() {
               </div>
             </Card>
 
-            {/* Demo Info */}
-            <Card className="mt-6 bg-blue-50 border border-blue-200">
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <span className="text-xl">💡</span>
-                Demo cho Test
-              </h3>
-              <div className="space-y-2 text-sm text-gray-700">
-                <p>
-                  Để test nhanh, bạn có thể điền bất kỳ thông tin nào và hệ
-                  thống sẽ tự động tạo tài khoản demo.
-                </p>
-                <p className="font-semibold mt-3">
-                  Hoặc sử dụng thông tin có sẵn:
-                </p>
-                <ul className="space-y-1 ml-4">
-                  <li>• Tên khách sạn: Grand Hotel Saigon</li>
-                  <li>• Email: manager@grandhotel.com</li>
-                  <li>• Password: hotel123456</li>
-                </ul>
-                <p className="text-xs text-gray-600 mt-3">
-                  Sau khi đăng ký, bạn có thể truy cập dashboard để quản lý
-                  khách sạn
-                </p>
-              </div>
-            </Card>
-
-            {/* Info Card */}
+            {/* Benefits */}
             <Card className="mt-6">
-              <h3 className="font-semibold text-gray-900 mb-3">
-                📝 Quy trình xét duyệt
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <span className="text-xl">🎯</span>
+                Lợi ích khi trở thành đối tác
               </h3>
-              <div className="space-y-2 text-sm text-gray-600">
-                <p className="flex items-start gap-2">
-                  <span className="text-[#0071c2] mt-0.5">1.</span>
-                  <span>Điền đầy đủ thông tin khách sạn và người quản lý</span>
-                </p>
-                <p className="flex items-start gap-2">
-                  <span className="text-[#0071c2] mt-0.5">2.</span>
-                  <span>
-                    Đội ngũ VietStay sẽ xem xét hồ sơ trong vòng 24 giờ
-                  </span>
-                </p>
-                <p className="flex items-start gap-2">
-                  <span className="text-[#0071c2] mt-0.5">3.</span>
-                  <span>Nhận email xác nhận và bắt đầu sử dụng hệ thống</span>
-                </p>
-                <p className="flex items-start gap-2">
-                  <span className="text-[#0071c2] mt-0.5">4.</span>
-                  <span>Hoàn thiện thông tin khách sạn, phòng và giá cả</span>
-                </p>
-              </div>
+              <ul className="text-sm text-gray-600 space-y-2">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>Tiếp cận hàng triệu khách hàng tiềm năng</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>Hệ thống quản lý đặt phòng dễ dàng</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>Báo cáo và thống kê chi tiết theo thời gian thực</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600 mt-0.5">✓</span>
+                  <span>Hỗ trợ 24/7 từ đội ngũ VietStay</span>
+                </li>
+              </ul>
             </Card>
 
             <div className="mt-6 text-center">

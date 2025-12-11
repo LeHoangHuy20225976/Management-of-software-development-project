@@ -11,39 +11,38 @@ import { Button } from '@/components/common/Button';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import { ROUTES } from '@/lib/routes';
 import { useEffect, useState } from 'react';
-import { getMockUser, getMockBookings } from '@/lib/utils/mockData';
-import type { User, Booking } from '@/types';
+import { getMockBookings } from '@/lib/utils/mockData';
+import { useAuth } from '@/lib/context/AuthContext';
+import type { Booking } from '@/types';
 
 export default function UserDashboardPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useAuth();
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
 
   useEffect(() => {
-    const userData = getMockUser();
     const bookings = getMockBookings();
-    setUser(userData);
     setUpcomingBookings(bookings.filter(b => b.status === 'confirmed'));
   }, []);
 
-  if (!user) return <div className="text-gray-900 font-medium">Đang tải...</div>;
+  const displayName = user?.name || 'User';
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Xin chào, {user.name}!</h1>
+      <h1 className="text-3xl font-bold text-gray-900">Xin chào, {displayName}!</h1>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <div className="text-center">
             <div className="text-4xl mb-2">📋</div>
-            <div className="text-3xl font-bold text-[#0071c2]">{user.totalBookings}</div>
+            <div className="text-3xl font-bold text-[#0071c2]">{upcomingBookings.length}</div>
             <div className="text-sm font-medium text-gray-700">Tổng đơn đặt</div>
           </div>
         </Card>
         <Card>
           <div className="text-center">
             <div className="text-4xl mb-2">⭐</div>
-            <div className="text-3xl font-bold text-[#0071c2]">{user.points}</div>
+            <div className="text-3xl font-bold text-[#0071c2]">0</div>
             <div className="text-sm font-medium text-gray-700">Điểm tích lũy</div>
           </div>
         </Card>
