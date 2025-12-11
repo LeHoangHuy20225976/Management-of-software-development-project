@@ -8,28 +8,42 @@ import { formatCurrency } from '@/lib/utils/format';
 import { hotelManagerApi } from '@/lib/api/services';
 import type { RoomType } from '@/types';
 
+type DisplayRoom = {
+  id: string;
+  name: string;
+  price: number;
+  size: string;
+  beds: string;
+  maxGuests: number;
+  available: number;
+  total: number;
+  amenities: string[];
+  status: 'active' | 'inactive';
+  image: string;
+};
+
 const convertRoomType = (
   roomType: RoomType,
   availableCount: number,
   total: number
-) => ({
-  id: roomType.id,
-  name: roomType.name,
-  price: roomType.basePrice,
-  size: `${roomType.size}m²`,
-  beds: roomType.beds,
-  maxGuests: roomType.maxGuests,
+): DisplayRoom => ({
+  id: String(roomType.type_id),
+  name: roomType.type,
+  price: roomType.basePrice || 0,
+  size: `${roomType.size || 0}m²`,
+  beds: roomType.beds || '',
+  maxGuests: roomType.max_guests,
   available: availableCount,
   total,
-  amenities: roomType.amenities,
-  status: roomType.available > 0 ? 'active' : 'inactive',
+  amenities: roomType.amenities || [],
+  status: roomType.availability ? 'active' : 'inactive',
   image:
-    roomType.images[0] ||
+    (roomType.images && roomType.images[0]) ||
     'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400',
 });
 
 export default function HotelRoomsPage() {
-  const [rooms, setRooms] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<DisplayRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'available' | 'full'>('all');
 

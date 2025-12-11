@@ -1,8 +1,3 @@
-/**
- * Chatbot Component - AI Chat Widget
- * FE5: AI Features
- */
-
 'use client';
 
 import { useState } from 'react';
@@ -49,7 +44,7 @@ export const Chatbot = () => {
         sender: 'bot',
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, botMessage]);
+      setMessages((prev) => [...prev, botMessage]);
     }, 1000);
   };
 
@@ -57,7 +52,10 @@ export const Chatbot = () => {
     <div className="fixed bottom-6 right-6 z-50">
       {/* Chat Window */}
       {isOpen && (
-        <Card padding="none" className="w-96 h-[500px] mb-4 shadow-2xl flex flex-col">
+        <Card
+          padding="none"
+          className="w-96 h-[500px] mb-4 shadow-2xl flex flex-col"
+        >
           {/* Header */}
           <div className="bg-[#0071c2] text-white p-4 rounded-t-xl">
             <div className="flex items-center justify-between">
@@ -84,7 +82,9 @@ export const Chatbot = () => {
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${
+                  message.sender === 'user' ? 'justify-end' : 'justify-start'
+                }`}
               >
                 <div
                   className={`max-w-[80%] px-4 py-2 rounded-lg ${

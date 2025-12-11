@@ -6,23 +6,27 @@
 export * from './auth';
 
 export interface Hotel {
-  id: string;
+  hotel_id: number;
+  hotel_owner: number;
   name: string;
-  slug: string;
-  description: string;
-  stars: number;
   address: string;
-  city: string;
-  district: string;
-  images: string[];
-  thumbnail: string;
-  basePrice: number;
-  amenities: string[];
+  status: number; // 1 = Active, 0 = Inactive
   rating: number;
-  reviewCount: number;
-  latitude: number;
   longitude: number;
-  policies: {
+  latitude: number;
+  description: string;
+  contact_phone: string;
+  thumbnail: string;
+  // Optional frontend fields
+  slug?: string;
+  stars?: number;
+  city?: string;
+  district?: string;
+  images?: string[];
+  basePrice?: number;
+  amenities?: string[];
+  reviewCount?: number;
+  policies?: {
     checkIn: string;
     checkOut: string;
     cancellation: string;
@@ -30,65 +34,94 @@ export interface Hotel {
 }
 
 export interface RoomType {
-  id: string;
-  hotelId: string;
-  name: string;
+  type_id: number;
+  hotel_id: number;
+  type: string;
+  availability: boolean;
+  max_guests: number;
   description: string;
-  size: number;
-  maxGuests: number;
-  beds: string;
-  basePrice: number;
-  images: string[];
-  amenities: string[];
-  available: number;
+  quantity: number;
+  // Optional frontend fields
+  size?: number;
+  beds?: string;
+  basePrice?: number;
+  images?: string[];
+  amenities?: string[];
 }
 
-export interface TourismSpot {
-  id: string;
+export interface Room {
+  room_id: number;
+  type_id: number;
   name: string;
-  slug: string;
-  category: string;
-  description: string;
-  fullDescription: string;
   location: string;
-  images: string[];
-  thumbnail: string;
-  rating: number;
-  visitCount: number;
-  tags: string[];
+  status: number; // 1 = Active, 0 = Inactive
+  estimated_available_time: string | null;
+  number_of_single_beds: number;
+  number_of_double_beds: number;
+  room_view: string;
+  room_size: number;
+  notes: string | null;
 }
+
+export interface Destination {
+  destination_id: number;
+  name: string;
+  rating: number;
+  location: string;
+  transportation: string;
+  entry_fee: number;
+  description: string;
+  latitude: number;
+  longitude: number;
+  type: string;
+  thumbnail: string;
+  // Optional frontend fields
+  slug?: string;
+  category?: string;
+  fullDescription?: string;
+  images?: string[];
+  visitCount?: number;
+  tags?: string[];
+}
+
+// Keep old name as alias for backward compatibility
+export type TourismSpot = Destination;
 
 export interface Review {
-  id: string;
-  hotelId: string;
-  userId: string;
-  userName: string;
-  userAvatar: string;
-  rating: number;
-  title: string;
+  review_id: number;
+  user_id: number;
+  destination_id: number | null;
+  hotel_id: number | null;
+  room_id: number | null;
+  rating: number; // 1-5
   comment: string;
-  images: string[];
-  date: string;
-  helpful: number;
-  verified: boolean;
+  date_created: string;
+  // Optional frontend fields
+  userName?: string;
+  userAvatar?: string;
+  title?: string;
+  images?: string[];
+  helpful?: number;
+  verified?: boolean;
 }
 
 export interface Booking {
-  id: string;
-  userId: string;
-  hotelId: string;
-  hotelName: string;
-  hotelImage: string;
-  roomType: string;
-  checkIn: string;
-  checkOut: string;
-  nights: number;
-  guests: number;
-  totalPrice: number;
-  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
-  bookingDate: string;
-  paymentStatus: 'pending' | 'paid' | 'refunded';
-  paymentMethod: string;
+  booking_id: number;
+  user_id: number | null;
+  room_id: number;
+  status: 'accepted' | 'pending' | 'rejected' | 'cancel requested' | 'cancelled' | 'maintained';
+  total_price: number | null;
+  check_in_date: string;
+  check_out_date: string;
+  created_at: string;
+  people: number | null;
+  // Optional frontend fields
+  hotelName?: string;
+  hotelImage?: string;
+  roomType?: string;
+  nights?: number;
+  paymentStatus?: 'pending' | 'paid' | 'refunded';
+  paymentMethod?: string;
 }
 
 export interface User {
@@ -142,4 +175,62 @@ export interface Coupon {
   discount: number;
   expiryDate: string;
   code: string;
+}
+
+// New types based on database schema
+
+export interface RoomPrice {
+  price_id: number;
+  type_id: number;
+  start_date: string | null;
+  end_date: string | null;
+  special_price: number | null;
+  event: string | null;
+  basic_price: number;
+  discount: number;
+}
+
+export interface RoomLog {
+  log_id: number;
+  room_id: number;
+  event_type: 'BOOK_CREATED' | 'BOOK_CANCELLED' | 'BOOK_CHECKIN' | 'BOOK_CHECKOUT' | 'MAINTAIN_START' | 'MAINTAIN_END';
+  extra_context: string | null;
+  created_at: string;
+}
+
+export interface LovingList {
+  id: number;
+  user_id: number;
+  destination_id: number | null;
+  hotel_id: number | null;
+}
+
+export interface HotelFacility {
+  facility_id: number;
+  name: string;
+}
+
+export interface FacilityPossessing {
+  facility_id: number;
+  hotel_id: number;
+  description: string | null;
+}
+
+export interface RoomService {
+  service_id: number;
+  name: string;
+}
+
+export interface ServicePossessing {
+  service_id: number;
+  type_id: number;
+  description: string | null;
+}
+
+export interface Image {
+  image_id: number;
+  destination_id: number | null;
+  hotel_id: number | null;
+  room_id: number | null;
+  image_url: string;
 }

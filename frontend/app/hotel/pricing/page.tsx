@@ -20,6 +20,14 @@ interface PricingRule {
   type: 'base' | 'seasonal' | 'weekend' | 'holiday';
 }
 
+type NewRuleState = {
+  roomType: string;
+  startDate: string;
+  endDate: string;
+  price: string;
+  type: PricingRule['type'];
+};
+
 export default function PricingPage() {
   const [showAddModal, setShowAddModal] = useState(false);
 
@@ -57,12 +65,12 @@ export default function PricingPage() {
     },
   ]);
 
-  const [newRule, setNewRule] = useState({
+  const [newRule, setNewRule] = useState<NewRuleState>({
     roomType: '',
     startDate: '',
     endDate: '',
     price: '',
-    type: 'seasonal' as const,
+    type: 'seasonal',
   });
 
   const handleAddRule = (e: React.FormEvent) => {
@@ -77,7 +85,13 @@ export default function PricingPage() {
     };
     setPricingRules([...pricingRules, rule]);
     setShowAddModal(false);
-    setNewRule({ roomType: '', startDate: '', endDate: '', price: '', type: 'seasonal' });
+    setNewRule({
+      roomType: '',
+      startDate: '',
+      endDate: '',
+      price: '',
+      type: 'seasonal',
+    });
     alert('Đã thêm quy tắc giá mới!');
   };
 
@@ -122,7 +136,10 @@ export default function PricingPage() {
         <h2 className="text-xl font-bold mb-4">Giá cơ bản theo loại phòng</h2>
         <div className="space-y-3">
           {roomTypes.map((room) => (
-            <div key={room.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+            <div
+              key={room.id}
+              className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
+            >
               <div>
                 <p className="font-semibold">{room.name}</p>
                 <p className="text-sm text-gray-600">Giá cơ bản</p>
@@ -144,17 +161,28 @@ export default function PricingPage() {
         {pricingRules.length > 0 ? (
           <div className="space-y-3">
             {pricingRules.map((rule) => (
-              <div key={rule.id} className="p-4 border border-gray-200 rounded-lg">
+              <div
+                key={rule.id}
+                className="p-4 border border-gray-200 rounded-lg"
+              >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
                       <h3 className="font-semibold">{rule.roomType}</h3>
-                      <span className={`text-xs px-2 py-1 rounded-full ${getTypeColor(rule.type)}`}>
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${getTypeColor(
+                          rule.type
+                        )}`}
+                      >
                         {getTypeLabel(rule.type)}
                       </span>
                     </div>
                     <div className="text-sm text-gray-600 space-y-1">
-                      <p>📅 {new Date(rule.startDate).toLocaleDateString('vi-VN')} - {new Date(rule.endDate).toLocaleDateString('vi-VN')}</p>
+                      <p>
+                        📅{' '}
+                        {new Date(rule.startDate).toLocaleDateString('vi-VN')} -{' '}
+                        {new Date(rule.endDate).toLocaleDateString('vi-VN')}
+                      </p>
                       <p className="text-xl font-bold text-[#0071c2] mt-2">
                         {rule.price.toLocaleString('vi-VN')} ₫ / đêm
                       </p>
@@ -183,7 +211,9 @@ export default function PricingPage() {
         <div className="space-y-2 text-sm text-gray-700">
           <p>• Tăng giá 20-30% vào cuối tuần và ngày lễ</p>
           <p>• Đặt giá cao hơn trong mùa du lịch (tháng 4-8, tháng 12)</p>
-          <p>• Giảm giá 10-15% cho các ngày trong tuần để tăng lượng đặt phòng</p>
+          <p>
+            • Giảm giá 10-15% cho các ngày trong tuần để tăng lượng đặt phòng
+          </p>
           <p>• Cập nhật giá thường xuyên dựa trên tình hình thị trường</p>
           <p>• Xem xét giá của đối thủ cạnh tranh trong khu vực</p>
         </div>
@@ -196,10 +226,14 @@ export default function PricingPage() {
             <h2 className="text-2xl font-bold mb-4">Thêm quy tắc giá mới</h2>
             <form onSubmit={handleAddRule} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Loại phòng *</label>
+                <label className="block text-sm font-medium mb-2">
+                  Loại phòng *
+                </label>
                 <select
                   value={newRule.roomType}
-                  onChange={(e) => setNewRule({ ...newRule, roomType: e.target.value })}
+                  onChange={(e) =>
+                    setNewRule({ ...newRule, roomType: e.target.value })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   required
                 >
@@ -213,10 +247,17 @@ export default function PricingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Loại giá *</label>
+                <label className="block text-sm font-medium mb-2">
+                  Loại giá *
+                </label>
                 <select
                   value={newRule.type}
-                  onChange={(e) => setNewRule({ ...newRule, type: e.target.value as any })}
+                  onChange={(e) =>
+                    setNewRule({
+                      ...newRule,
+                      type: e.target.value as NewRuleState['type'],
+                    })
+                  }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   required
                 >
@@ -228,31 +269,43 @@ export default function PricingPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Từ ngày *</label>
+                  <label className="block text-sm font-medium mb-2">
+                    Từ ngày *
+                  </label>
                   <Input
                     type="date"
                     value={newRule.startDate}
-                    onChange={(e) => setNewRule({ ...newRule, startDate: e.target.value })}
+                    onChange={(e) =>
+                      setNewRule({ ...newRule, startDate: e.target.value })
+                    }
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Đến ngày *</label>
+                  <label className="block text-sm font-medium mb-2">
+                    Đến ngày *
+                  </label>
                   <Input
                     type="date"
                     value={newRule.endDate}
-                    onChange={(e) => setNewRule({ ...newRule, endDate: e.target.value })}
+                    onChange={(e) =>
+                      setNewRule({ ...newRule, endDate: e.target.value })
+                    }
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Giá (VNĐ/đêm) *</label>
+                <label className="block text-sm font-medium mb-2">
+                  Giá (VNĐ/đêm) *
+                </label>
                 <Input
                   type="number"
                   value={newRule.price}
-                  onChange={(e) => setNewRule({ ...newRule, price: e.target.value })}
+                  onChange={(e) =>
+                    setNewRule({ ...newRule, price: e.target.value })
+                  }
                   placeholder="2500000"
                   required
                 />
@@ -264,9 +317,7 @@ export default function PricingPage() {
               </div>
 
               <div className="flex space-x-4 pt-4">
-                <Button type="submit">
-                  ➕ Thêm quy tắc
-                </Button>
+                <Button type="submit">➕ Thêm quy tắc</Button>
                 <Button
                   type="button"
                   variant="outline"

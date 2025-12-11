@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { hotelManagerApi } from '@/lib/api/services';
+import type { Review } from '@/types';
 
 const mockReviews = [
   {
-    id: 'rv1',
+    review_id: 'rv1',
     guestName: 'Nguyễn Văn A',
     guestAvatar: 'https://i.pravatar.cc/150?u=user1',
     rating: 5,
@@ -21,7 +22,7 @@ const mockReviews = [
     replied: false,
   },
   {
-    id: 'rv2',
+    review_id: 'rv2',
     guestName: 'Trần Thị B',
     guestAvatar: 'https://i.pravatar.cc/150?u=user2',
     rating: 4,
@@ -40,7 +41,7 @@ const mockReviews = [
     },
   },
   {
-    id: 'rv3',
+    review_id: 'rv3',
     guestName: 'Lê Văn C',
     guestAvatar: 'https://i.pravatar.cc/150?u=user3',
     rating: 5,
@@ -54,7 +55,7 @@ const mockReviews = [
     replied: false,
   },
   {
-    id: 'rv4',
+    review_id: 'rv4',
     guestName: 'Phạm Thị D',
     guestAvatar: 'https://i.pravatar.cc/150?u=user4',
     rating: 3,
@@ -108,13 +109,15 @@ export default function HotelReviewsPage() {
     }
 
     try {
-      const updatedReview = await hotelManagerApi.replyToReview(
+      await hotelManagerApi.replyToReview(
         reviewId,
         replyText
       );
-      setReviews((prevReviews: any[]) =>
-        prevReviews.map((review: any) =>
-          review.id === reviewId ? updatedReview : review
+      setReviews((prevReviews) =>
+        prevReviews.map((review) =>
+          review.review_id === reviewId
+            ? { ...review, replied: true, reply: { content: replyText, date: new Date().toISOString().split('T')[0] } }
+            : review
         )
       );
       setReplyingTo(null);
@@ -270,7 +273,7 @@ export default function HotelReviewsPage() {
       ) : (
         <div className="space-y-4">
           {filteredReviews.map((review) => (
-            <Card key={review.id}>
+            <Card key={review.review_id}>
               {/* Review Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-start space-x-3">
@@ -345,7 +348,7 @@ export default function HotelReviewsPage() {
               )}
 
               {/* Reply Form */}
-              {replyingTo === review.id && (
+              {replyingTo === review.review_id && (
                 <div className="border-t pt-4 mt-4">
                   <textarea
                     value={replyText}
@@ -364,7 +367,7 @@ export default function HotelReviewsPage() {
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() => submitReply(review.id)}
+                      onClick={() => submitReply(review.review_id)}
                       disabled={!replyText.trim()}
                     >
                       Gửi phản hồi
@@ -374,12 +377,12 @@ export default function HotelReviewsPage() {
               )}
 
               {/* Actions */}
-              {!review.replied && replyingTo !== review.id && (
+              {!review.replied && replyingTo !== review.review_id && (
                 <div className="flex justify-end pt-4 border-t">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleReply(review.id)}
+                    onClick={() => handleReply(review.review_id)}
                   >
                     💬 Phản hồi
                   </Button>

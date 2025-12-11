@@ -57,16 +57,17 @@ export default function HotelDetailPage({
   useEffect(() => {
     if (!hotel) return;
 
+    const basePrice = hotel.basePrice ?? 0;
     const newNights = calcNights(checkIn, checkOut);
     setNights(newNights);
 
     // Calculate room price based on selectedRoom and hotel.basePrice
     if (selectedRoom && newNights > 0) {
-      let roomPrice = hotel.basePrice;
+      let roomPrice = basePrice;
       if (selectedRoom === '2') {
-        roomPrice = hotel.basePrice * 1.3;
+        roomPrice = basePrice * 1.3;
       } else if (selectedRoom === '3') {
-        roomPrice = hotel.basePrice * 1.8;
+        roomPrice = basePrice * 1.8;
       }
       setTotalPrice(roomPrice * newNights);
     } else {
@@ -91,22 +92,23 @@ export default function HotelDetailPage({
     }
 
     // Calculate room price and name
-    let roomPrice = hotel.basePrice;
+    const basePrice = hotel.basePrice ?? 0;
+    let roomPrice = basePrice;
     let roomName = 'Phòng Standard';
     if (selectedRoom === '2') {
-      roomPrice = hotel.basePrice * 1.3;
+      roomPrice = basePrice * 1.3;
       roomName = 'Phòng Deluxe';
     } else if (selectedRoom === '3') {
-      roomPrice = hotel.basePrice * 1.8;
+      roomPrice = basePrice * 1.8;
       roomName = 'Phòng Suite';
     }
 
     // Navigate to checkout with booking info
     const checkoutParams = new URLSearchParams({
-      hotelId: hotel.id,
+      hotelId: hotel.hotel_id.toString(),
       hotelName: hotel.name,
       hotelImage: hotel.thumbnail,
-      hotelSlug: hotel.slug,
+      hotelSlug: hotel.slug || '',
       roomId: selectedRoom,
       roomType: roomName,
       roomPrice: roomPrice.toString(),
@@ -164,7 +166,7 @@ export default function HotelDetailPage({
     {
       id: '1',
       name: 'Phòng Standard',
-      price: hotel.basePrice,
+      price: (hotel.basePrice ?? 0) * 1,
       size: '25m²',
       bed: '1 giường đôi',
       guests: 2,
@@ -172,7 +174,7 @@ export default function HotelDetailPage({
     {
       id: '2',
       name: 'Phòng Deluxe',
-      price: hotel.basePrice * 1.3,
+      price: (hotel.basePrice ?? 0) * 1.3,
       size: '32m²',
       bed: '1 giường king',
       guests: 2,
@@ -180,12 +182,14 @@ export default function HotelDetailPage({
     {
       id: '3',
       name: 'Phòng Suite',
-      price: hotel.basePrice * 1.8,
+      price: (hotel.basePrice ?? 0) * 1.8,
       size: '45m²',
       bed: '1 giường king + Sofa',
       guests: 3,
     },
   ];
+  const basePrice = hotel.basePrice ?? 0;
+  const hotelAmenities = hotel.amenities ?? [];
 
   return (
     <>
@@ -200,7 +204,7 @@ export default function HotelDetailPage({
           <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
             <div className="container mx-auto">
               <div className="inline-block bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-semibold mb-3">
-                {formatStars(hotel.stars)}
+                {hotel.stars !== undefined ? formatStars(hotel.stars) : null}
               </div>
               <h1 className="text-4xl md:text-5xl font-bold mb-2">
                 {hotel.name}
@@ -253,7 +257,7 @@ export default function HotelDetailPage({
                   Tiện ích
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {hotel.amenities.map((amenityId) => {
+                  {hotelAmenities.map((amenityId) => {
                     const amenity = amenitiesList.find(
                       (a) => a.id === amenityId
                     );
@@ -432,7 +436,7 @@ export default function HotelDetailPage({
                         <span className="text-gray-600">Giá phòng</span>
                         <span className="font-semibold text-gray-900">
                           {formatCurrency(
-                            totalPrice > 0 ? totalPrice : hotel.basePrice
+                            totalPrice > 0 ? totalPrice : basePrice
                           )}
                         </span>
                       </div>
@@ -440,8 +444,7 @@ export default function HotelDetailPage({
                         <span className="text-gray-600">Thuế & phí (10%)</span>
                         <span className="font-semibold text-gray-900">
                           {formatCurrency(
-                            (totalPrice > 0 ? totalPrice : hotel.basePrice) *
-                              0.1
+                            (totalPrice > 0 ? totalPrice : basePrice) * 0.1
                           )}
                         </span>
                       </div>
@@ -449,8 +452,7 @@ export default function HotelDetailPage({
                         <span className="font-bold text-gray-900">Tổng</span>
                         <span className="text-2xl font-bold text-[#0071c2]">
                           {formatCurrency(
-                            (totalPrice > 0 ? totalPrice : hotel.basePrice) *
-                              1.1
+                            (totalPrice > 0 ? totalPrice : basePrice) * 1.1
                           )}
                         </span>
                       </div>

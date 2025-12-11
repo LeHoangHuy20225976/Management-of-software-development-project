@@ -26,7 +26,7 @@ export default function HotelPricingPage() {
     try {
       const hotelId = 'h1';
       const data = await hotelManagerApi.getPricing(hotelId);
-      setPricing(data);
+      setPricing(data as typeof pricing);
     } catch (error) {
       console.error('Error loading pricing:', error);
       alert('Có lỗi khi tải thông tin giá!');

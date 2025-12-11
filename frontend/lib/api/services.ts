@@ -47,28 +47,28 @@ export const hotelsApi = {
       // Apply filters
       if (filters?.location) {
         hotels = hotels.filter(h =>
-          h.city.toLowerCase().includes(filters.location!.toLowerCase()) ||
-          h.district.toLowerCase().includes(filters.location!.toLowerCase())
+          (typeof h.city === 'string' && h.city.toLowerCase().includes(filters.location!.toLowerCase())) ||
+          (typeof h.district === 'string' && h.district.toLowerCase().includes(filters.location!.toLowerCase()))
         );
       }
 
       if (filters?.minPrice) {
-        hotels = hotels.filter(h => h.basePrice >= filters.minPrice!);
+        hotels = hotels.filter(h => typeof h.basePrice === 'number' && h.basePrice >= filters.minPrice!);
       }
 
       if (filters?.maxPrice) {
-        hotels = hotels.filter(h => h.basePrice <= filters.maxPrice!);
+        hotels = hotels.filter(h => typeof h.basePrice === 'number' && h.basePrice <= filters.maxPrice!);
       }
 
       if (filters?.stars && filters.stars.length > 0) {
-        hotels = hotels.filter(h => filters.stars!.includes(h.stars));
+        hotels = hotels.filter((h: Hotel) => h.stars !== undefined && filters.stars!.includes(h.stars));
       }
 
       // Sort
       if (filters?.sortBy === 'price') {
-        hotels.sort((a, b) => a.basePrice - b.basePrice);
+        hotels = hotels.slice().sort((a: Hotel, b: Hotel) => (a.basePrice ?? 0) - (b.basePrice ?? 0));
       } else if (filters?.sortBy === 'rating') {
-        hotels.sort((a, b) => b.rating - a.rating);
+        hotels = hotels.slice().sort((a: Hotel, b: Hotel) => (b.rating ?? 0) - (a.rating ?? 0));
       }
 
       return hotels;
@@ -83,7 +83,12 @@ export const hotelsApi = {
       ensureMockLayerReady();
       await mockDelay();
       const hotels = getMockHotels();
-      return hotels.find(h => h.id === id) || null;
+      return (
+        hotels.find(
+          h =>
+            String((h as any).hotel_id ?? (h as any).id) === String(id)
+        ) || null
+      );
     }
 
     return apiClient.get<Hotel>(API_CONFIG.ENDPOINTS.HOTEL_DETAILS, { id });
@@ -116,7 +121,9 @@ export const hotelsApi = {
       ensureMockLayerReady();
       await mockDelay();
       const reviews = getMockReviews();
-      return reviews.filter(r => r.hotelId === hotelId);
+      return reviews.filter(
+        r => String(r.hotel_id ?? (r as any).hotelId) === String(hotelId)
+      );
     }
 
     return apiClient.get<Review[]>(API_CONFIG.ENDPOINTS.HOTEL_REVIEWS, { id: hotelId });
@@ -140,7 +147,12 @@ export const tourismApi = {
       ensureMockLayerReady();
       await mockDelay();
       const spots = getMockTourismSpots();
-      return spots.find(t => t.id === id) || null;
+      return (
+        spots.find(
+          t =>
+            String((t as any).destination_id ?? (t as any).id) === String(id)
+        ) || null
+      );
     }
 
     return apiClient.get<TourismSpot>(API_CONFIG.ENDPOINTS.TOURISM_DETAILS, { id });
@@ -176,7 +188,12 @@ export const bookingsApi = {
       ensureMockLayerReady();
       await mockDelay();
       const bookings = getMockBookings();
-      return bookings.find(b => b.id === id) || null;
+      return (
+        bookings.find(
+          b =>
+            String((b as any).booking_id ?? (b as any).id) === String(id)
+        ) || null
+      );
     }
 
     return apiClient.get<Booking>(API_CONFIG.ENDPOINTS.BOOKING_DETAILS, { id });
@@ -186,12 +203,23 @@ export const bookingsApi = {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
+      const nowId = Date.now();
       const newBooking: Booking = {
-        ...bookingData as Booking,
-        id: `BK${Date.now()}`,
-        bookingDate: new Date().toISOString(),
-        status: 'pending',
-        paymentStatus: 'pending',
+        booking_id: nowId,
+        user_id: bookingData.user_id ?? null,
+        room_id: bookingData.room_id ?? 0,
+        status: bookingData.status ?? 'pending',
+        total_price: bookingData.total_price ?? null,
+        check_in_date: bookingData.check_in_date ?? '',
+        check_out_date: bookingData.check_out_date ?? '',
+        created_at: bookingData.created_at ?? new Date().toISOString(),
+        people: bookingData.people ?? null,
+        hotelName: bookingData.hotelName,
+        hotelImage: bookingData.hotelImage,
+        roomType: bookingData.roomType,
+        nights: bookingData.nights,
+        paymentStatus: bookingData.paymentStatus ?? 'pending',
+        paymentMethod: bookingData.paymentMethod,
       };
       // Save to localStorage
       addMockBooking(newBooking);
@@ -206,7 +234,7 @@ export const bookingsApi = {
       ensureMockLayerReady();
       await mockDelay();
       // Update booking status in localStorage
-      updateMockBooking(id, { status: 'cancelled', paymentStatus: 'refunded' });
+      updateMockBooking(Number(id), { status: 'cancelled', paymentStatus: 'refunded' });
       return true;
     }
 
@@ -248,12 +276,22 @@ export const reviewsApi = {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
+      const nowId = Date.now();
       const newReview: Review = {
-        ...reviewData as Review,
-        id: `rv${Date.now()}`,
-        date: new Date().toISOString(),
-        helpful: 0,
-        verified: true,
+        review_id: nowId,
+        user_id: reviewData.user_id ?? 0,
+        destination_id: reviewData.destination_id ?? null,
+        hotel_id: reviewData.hotel_id ?? null,
+        room_id: reviewData.room_id ?? null,
+        rating: reviewData.rating ?? 0,
+        comment: reviewData.comment ?? '',
+        date_created: reviewData.date_created ?? new Date().toISOString(),
+        userName: reviewData.userName,
+        userAvatar: reviewData.userAvatar,
+        title: reviewData.title,
+        images: reviewData.images,
+        helpful: reviewData.helpful ?? 0,
+        verified: reviewData.verified ?? true,
       };
       // Save to localStorage
       addMockReview(newReview);
@@ -268,10 +306,14 @@ export const reviewsApi = {
       ensureMockLayerReady();
       await mockDelay();
       const reviews = getMockReviews();
-      const review = reviews.find(r => r.id === id);
+      const review = reviews.find(
+        r => String(r.review_id ?? (r as any).id) === String(id)
+      );
       const updatedReview = { ...review!, ...reviewData };
       // Update in localStorage
-      const allReviews = reviews.map(r => r.id === id ? updatedReview : r);
+      const allReviews = reviews.map(r =>
+        String(r.review_id ?? (r as any).id) === String(id) ? updatedReview : r
+      );
       setMockReviews(allReviews);
       return updatedReview;
     }
@@ -285,7 +327,9 @@ export const reviewsApi = {
       await mockDelay();
       // Delete from localStorage
       const reviews = getMockReviews();
-      const filtered = reviews.filter(r => r.id !== id);
+      const filtered = reviews.filter(
+        r => String(r.review_id ?? (r as any).id) !== String(id)
+      );
       setMockReviews(filtered);
       return true;
     }
@@ -300,12 +344,6 @@ export const searchApi = {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
-      const allHotels = getMockHotels();
-      let hotels = allHotels.filter(h =>
-        h.name.toLowerCase().includes(query.toLowerCase()) ||
-        h.city.toLowerCase().includes(query.toLowerCase()) ||
-        h.description.toLowerCase().includes(query.toLowerCase())
-      );
 
       // Apply additional filters
       return hotelsApi.getAll(filters);
@@ -346,27 +384,42 @@ export const hotelManagerApi = {
       ensureMockLayerReady();
       await mockDelay();
       
-      const newRoom: RoomType = {
-        id: `${hotelId}-r${Date.now()}`,
-        hotelId: hotelId,
-        name: roomData.name || '',
-        description: roomData.description || '',
-        basePrice: roomData.basePrice || 0,
-        maxGuests: roomData.maxGuests || 2,
-        size: Number(roomData.size) || 25,
-        beds: roomData.beds || '',
-        amenities: roomData.amenities || [],
-        images: roomData.images || [],
-        available: Number(roomData.available) || 0,
+      const typeId = Date.now();
+      const providedName = (roomData as any).name;
+      const providedAvailable = (roomData as any).available;
+      const providedMaxGuests =
+        roomData.max_guests ?? (roomData as any).maxGuests ?? 2;
+      const baseRoom: RoomType = {
+        type_id: typeId,
+        hotel_id: Number(hotelId),
+        type: roomData.type ?? providedName ?? 'New Room',
+        availability: roomData.availability ?? true,
+        max_guests: providedMaxGuests,
+        description: roomData.description ?? '',
+        quantity: roomData.quantity ?? Number(providedAvailable ?? 0),
+        size: roomData.size ? Number(roomData.size) : undefined,
+        beds: roomData.beds,
+        basePrice: roomData.basePrice,
+        images: roomData.images,
+        amenities: roomData.amenities,
       };
+
+      // Keep extra frontend-friendly fields for compatibility
+      const roomWithExtras = {
+        ...baseRoom,
+        id: `${hotelId}-r${typeId}`,
+        hotelId,
+        name: providedName ?? baseRoom.type,
+        available: providedAvailable ?? baseRoom.quantity ?? 0,
+      } as RoomType;
 
       const allRoomTypes = getMockRoomTypes();
       const hotelRooms = allRoomTypes[hotelId] || [];
-      hotelRooms.push(newRoom);
+      hotelRooms.push(roomWithExtras);
       allRoomTypes[hotelId] = hotelRooms;
       setMockRoomTypes(allRoomTypes);
 
-      return newRoom;
+      return roomWithExtras;
     }
     return apiClient.post<RoomType>(`/hotel-manager/rooms`, roomData);
   },
@@ -381,7 +434,9 @@ export const hotelManagerApi = {
 
       for (const hotelId in allRoomTypes) {
         const rooms = allRoomTypes[hotelId];
-        const index = rooms.findIndex(r => r.id === roomId);
+        const index = rooms.findIndex(
+          r => String((r as any).id ?? r.type_id) === String(roomId)
+        );
         if (index !== -1) {
           updatedRoom = { ...rooms[index], ...updates };
           rooms[index] = updatedRoom;
@@ -406,7 +461,9 @@ export const hotelManagerApi = {
       const allRoomTypes = getMockRoomTypes();
       for (const hotelId in allRoomTypes) {
         const rooms = allRoomTypes[hotelId];
-        const index = rooms.findIndex(r => r.id === roomId);
+        const index = rooms.findIndex(
+          r => String((r as any).id ?? r.type_id) === String(roomId)
+        );
         if (index !== -1) {
           rooms.splice(index, 1);
           setMockRoomTypes(allRoomTypes);
@@ -419,14 +476,14 @@ export const hotelManagerApi = {
   },
 
   // Pricing Management
-  async getPricing(hotelId: string = 'h1'): Promise<any> {
+  async getPricing(hotelId: string = 'h1'): Promise<Record<string, unknown>> {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
-      
+
       const pricing = localStorage.getItem(`hotelPricing_${hotelId}`);
-      if (pricing) return JSON.parse(pricing);
-      
+      if (pricing) return JSON.parse(pricing) as Record<string, unknown>;
+
       // Default pricing
       const defaultPricing = {
         basePrice: 1500000,
@@ -441,57 +498,57 @@ export const hotelManagerApi = {
       localStorage.setItem(`hotelPricing_${hotelId}`, JSON.stringify(defaultPricing));
       return defaultPricing;
     }
-    return apiClient.get<any>(`/hotel-manager/pricing`);
+    return apiClient.get<Record<string, unknown>>(`/hotel-manager/pricing`);
   },
 
-  async updatePricing(hotelId: string, pricing: any): Promise<any> {
+  async updatePricing(hotelId: string, pricing: Record<string, unknown>): Promise<Record<string, unknown>> {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
       localStorage.setItem(`hotelPricing_${hotelId}`, JSON.stringify(pricing));
       return pricing;
     }
-    return apiClient.put<any>(`/hotel-manager/pricing`, pricing);
+    return apiClient.put<Record<string, unknown>>(`/hotel-manager/pricing`, pricing);
   },
 
   // Reviews Management
-  async replyToReview(reviewId: string, reply: string): Promise<any> {
+  async replyToReview(reviewId: string, reply: string): Promise<Review> {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
-      
+
       const reviews = getMockReviews();
-      const review: any = reviews.find(r => r.id === reviewId);
+      const review = reviews.find(r => r.review_id === Number(reviewId));
       if (!review) throw new Error('Review not found');
 
-      review.reply = {
+      (review as unknown as { reply: { content: string; date: string; authorName: string }; replied: boolean }).reply = {
         content: reply,
         date: new Date().toISOString().split('T')[0],
         authorName: 'Hotel Manager',
       };
-      review.replied = true;
+      (review as unknown as { replied: boolean }).replied = true;
 
       setMockReviews(reviews);
       return review;
     }
-    return apiClient.post<any>(`/hotel-manager/reviews/${reviewId}/reply`, { reply });
+    return apiClient.post<Review>(`/hotel-manager/reviews/${reviewId}/reply`, { reply });
   },
 
   // Hotel Info Management
-  async getHotelInfo(hotelId: string = 'h1'): Promise<any> {
+  async getHotelInfo(hotelId: string = 'h1'): Promise<Hotel & { settings?: Record<string, unknown> }> {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
-      
+
       const hotels = getMockHotels();
-      const hotel = hotels.find(h => h.id === hotelId);
+      const hotel = hotels.find(h => h.hotel_id === Number(hotelId));
       if (!hotel) throw new Error('Hotel not found');
 
       // Get additional settings from localStorage
       const settings = localStorage.getItem(`hotelSettings_${hotelId}`);
       return {
         ...hotel,
-        settings: settings ? JSON.parse(settings) : {
+        settings: settings ? (JSON.parse(settings) as Record<string, unknown>) : {
           checkInTime: '14:00',
           checkOutTime: '12:00',
           policies: {
@@ -504,17 +561,17 @@ export const hotelManagerApi = {
         },
       };
     }
-    return apiClient.get<any>(`/hotel-manager/info`);
+    return apiClient.get<Hotel & { settings?: Record<string, unknown> }>(`/hotel-manager/info`);
   },
 
-  async updateHotelInfo(hotelId: string, updates: any): Promise<any> {
+  async updateHotelInfo(hotelId: string, updates: Partial<Hotel> & { phone?: string; email?: string; settings?: Record<string, unknown> }): Promise<{ success: boolean }> {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
-      
+
       // Update hotel basic info
       const hotels = getMockHotels();
-      const hotelIndex = hotels.findIndex(h => h.id === hotelId);
+      const hotelIndex = hotels.findIndex(h => h.hotel_id === Number(hotelId));
       if (hotelIndex !== -1) {
         hotels[hotelIndex] = { ...hotels[hotelIndex], ...updates };
         localStorage.setItem('hotels', JSON.stringify(hotels));
@@ -527,6 +584,6 @@ export const hotelManagerApi = {
 
       return { success: true };
     }
-    return apiClient.put<any>(`/hotel-manager/info`, updates);
+    return apiClient.put<{ success: boolean }>(`/hotel-manager/info`, updates);
   },
 };

@@ -34,17 +34,17 @@ export default function EditRoomPage({
       try {
         const hotelId = 'h1';
         const rooms = await hotelManagerApi.getRooms(hotelId);
-        const room = rooms.find((r) => r.id === resolvedParams.id);
+        const room = rooms.find((r) => String(r.type_id) === resolvedParams.id);
 
         if (room) {
           setFormData({
-            name: room.name,
-            price: room.basePrice,
-            size: room.size,
-            beds: room.beds,
-            maxGuests: room.maxGuests,
+            name: room.type || '',
+            price: room.basePrice || 0,
+            size: room.size || 25,
+            beds: room.beds || '',
+            maxGuests: room.max_guests || 2,
             description: room.description || '',
-            amenities: room.amenities,
+            amenities: room.amenities || [],
           });
         } else {
           alert('Không tìm thấy phòng!');

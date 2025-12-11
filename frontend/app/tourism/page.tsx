@@ -12,7 +12,9 @@ import type { TourismSpot } from '@/types';
 export default function TourismPage() {
   const [tourismSpots, setTourismSpots] = useState<TourismSpot[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'north' | 'central' | 'south'>('all');
+  const [filter, setFilter] = useState<'all' | 'north' | 'central' | 'south'>(
+    'all'
+  );
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -29,15 +31,21 @@ export default function TourismPage() {
     loadTourism();
   }, []);
 
-  const filteredSpots = tourismSpots.filter(spot => {
-    const matchesSearch = spot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         spot.location.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredSpots = tourismSpots.filter((spot) => {
+    const matchesSearch =
+      spot.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      spot.location.toLowerCase().includes(searchQuery.toLowerCase());
 
     if (filter === 'all') return matchesSearch;
 
-    const region = spot.location.includes('Hà Nội') || spot.location.includes('Hạ Long') ? 'north' :
-                   spot.location.includes('Huế') || spot.location.includes('Đà Nẵng') || spot.location.includes('Hội An') ? 'central' :
-                   'south';
+    const region =
+      spot.location.includes('Hà Nội') || spot.location.includes('Hạ Long')
+        ? 'north'
+        : spot.location.includes('Huế') ||
+          spot.location.includes('Đà Nẵng') ||
+          spot.location.includes('Hội An')
+        ? 'central'
+        : 'south';
 
     return matchesSearch && region === filter;
   });
@@ -53,7 +61,8 @@ export default function TourismPage() {
                 Khám phá Việt Nam
               </h1>
               <p className="text-xl text-white/90 mb-8">
-                Trải nghiệm vẻ đẹp thiên nhiên và văn hóa độc đáo của đất nước hình chữ S
+                Trải nghiệm vẻ đẹp thiên nhiên và văn hóa độc đáo của đất nước
+                hình chữ S
               </p>
 
               <div className="bg-white rounded-lg p-4 shadow-xl">
@@ -111,7 +120,9 @@ export default function TourismPage() {
               <h2 className="text-3xl font-bold text-gray-900 mb-2">
                 {loading ? 'Đang tải...' : `${filteredSpots.length} điểm đến`}
               </h2>
-              <p className="text-gray-600">Những địa điểm du lịch tuyệt vời đang chờ bạn khám phá</p>
+              <p className="text-gray-600">
+                Những địa điểm du lịch tuyệt vời đang chờ bạn khám phá
+              </p>
             </div>
 
             {loading ? (
@@ -127,18 +138,22 @@ export default function TourismPage() {
             ) : filteredSpots.length === 0 ? (
               <Card className="text-center py-12">
                 <div className="text-6xl mb-4">🔍</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Không tìm thấy điểm đến</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Không tìm thấy điểm đến
+                </h3>
                 <p className="text-gray-600">Hãy thử từ khóa khác</p>
               </Card>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredSpots.map((spot) => (
-                  <Link key={spot.id} href={`/tourism/${spot.slug}`}>
+                  <Link key={spot.slug} href={`/tourism/${spot.slug}`}>
                     <div className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden hover:border-[#0071c2] hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
                       <div className="relative h-64 overflow-hidden">
                         <div
                           className="absolute inset-0 bg-cover bg-center transform group-hover:scale-110 transition-transform duration-500"
-                          style={{ backgroundImage: `url('${spot.thumbnail}')` }}
+                          style={{
+                            backgroundImage: `url('${spot.thumbnail}')`,
+                          }}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent group-hover:from-black/80 transition-all" />
                         <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
@@ -160,7 +175,9 @@ export default function TourismPage() {
                             <span>{spot.rating}</span>
                           </div>
                           <span className="text-gray-600">
-                            {spot.visitCount.toLocaleString()} lượt xem
+                            {typeof spot.visitCount === 'number'
+                              ? `${spot.visitCount.toLocaleString()} lượt xem`
+                              : 'Chưa có lượt xem'}
                           </span>
                         </div>
                       </div>

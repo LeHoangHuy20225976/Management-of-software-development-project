@@ -14,12 +14,31 @@ import { Button } from '@/components/common/Button';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/routes';
 
+interface BookingConfirmationData {
+  roomPrice: number;
+  nights: number;
+  guestInfo?: {
+    email?: string;
+    fullName?: string;
+    phone?: string;
+    specialRequests?: string;
+  };
+  bookingId: string;
+  bookingDate: string;
+  paymentStatus: string;
+  hotelName: string;
+  roomType: string;
+  guests: number;
+  checkIn: string;
+  checkOut: string;
+  paymentMethod: string;
+}
+
 export default function BookingConfirmationPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const bookingId = searchParams.get('id');
 
-  const [bookingData, setBookingData] = useState<any>(null);
+  const [bookingData, setBookingData] = useState<BookingConfirmationData | null>(null);
 
   useEffect(() => {
     // Get booking confirmation data from sessionStorage

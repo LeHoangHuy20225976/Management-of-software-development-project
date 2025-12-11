@@ -16,7 +16,7 @@ export default function HotelBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<
-    'all' | 'confirmed' | 'completed' | 'cancelled'
+    'all' | 'accepted' | 'pending' | 'cancelled'
   >('all');
 
   useEffect(() => {
@@ -39,16 +39,20 @@ export default function HotelBookingsPage() {
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      confirmed: 'bg-green-100 text-green-800',
-      completed: 'bg-blue-100 text-blue-800',
-      cancelled: 'bg-red-100 text-red-800',
+      accepted: 'bg-green-100 text-green-800',
       pending: 'bg-yellow-100 text-yellow-800',
+      rejected: 'bg-red-100 text-red-800',
+      'cancel requested': 'bg-orange-100 text-orange-800',
+      cancelled: 'bg-red-100 text-red-800',
+      maintained: 'bg-gray-100 text-gray-800',
     };
     const labels: Record<string, string> = {
-      confirmed: 'Đã xác nhận',
-      completed: 'Hoàn thành',
-      cancelled: 'Đã hủy',
+      accepted: 'Đã xác nhận',
       pending: 'Chờ xác nhận',
+      rejected: 'Bị từ chối',
+      'cancel requested': 'Yêu cầu hủy',
+      cancelled: 'Đã hủy',
+      maintained: 'Bảo trì',
     };
     return (
       <span
@@ -104,18 +108,18 @@ export default function HotelBookingsPage() {
           <div className="text-center">
             <div className="text-4xl mb-2">✅</div>
             <div className="text-3xl font-bold text-green-600">
-              {bookings.filter((b) => b.status === 'confirmed').length}
+              {bookings.filter((b) => b.status === 'accepted').length}
             </div>
             <div className="text-gray-600">Đã xác nhận</div>
           </div>
         </Card>
         <Card>
           <div className="text-center">
-            <div className="text-4xl mb-2">🎉</div>
-            <div className="text-3xl font-bold text-blue-600">
-              {bookings.filter((b) => b.status === 'completed').length}
+            <div className="text-4xl mb-2">🔧</div>
+            <div className="text-3xl font-bold text-gray-600">
+              {bookings.filter((b) => b.status === 'maintained').length}
             </div>
-            <div className="text-gray-600">Hoàn thành</div>
+            <div className="text-gray-600">Bảo trì</div>
           </div>
         </Card>
         <Card>
@@ -140,20 +144,20 @@ export default function HotelBookingsPage() {
             Tất cả ({bookings.length})
           </Button>
           <Button
-            variant={filter === 'confirmed' ? 'primary' : 'outline'}
+            variant={filter === 'accepted' ? 'primary' : 'outline'}
             size="sm"
-            onClick={() => setFilter('confirmed')}
+            onClick={() => setFilter('accepted')}
           >
             Đã xác nhận (
-            {bookings.filter((b) => b.status === 'confirmed').length})
+            {bookings.filter((b) => b.status === 'accepted').length})
           </Button>
           <Button
-            variant={filter === 'completed' ? 'primary' : 'outline'}
+            variant={filter === 'pending' ? 'primary' : 'outline'}
             size="sm"
-            onClick={() => setFilter('completed')}
+            onClick={() => setFilter('pending')}
           >
-            Hoàn thành (
-            {bookings.filter((b) => b.status === 'completed').length})
+            Chờ xác nhận (
+            {bookings.filter((b) => b.status === 'pending').length})
           </Button>
           <Button
             variant={filter === 'cancelled' ? 'primary' : 'outline'}
@@ -174,7 +178,7 @@ export default function HotelBookingsPage() {
       ) : (
         <div className="space-y-4">
           {filteredBookings.map((booking) => (
-            <Card key={booking.id} hover>
+            <Card key={booking.booking_id} hover>
               <div className="flex flex-col md:flex-row gap-4">
                 {/* Hotel Image */}
                 <div
@@ -194,7 +198,7 @@ export default function HotelBookingsPage() {
                       </div>
                       <p className="text-gray-600">{booking.roomType}</p>
                       <p className="text-sm text-gray-500 mt-1">
-                        Mã đơn: {booking.id}
+                        Mã đơn: {booking.booking_id}
                       </p>
                     </div>
                   </div>
@@ -203,25 +207,25 @@ export default function HotelBookingsPage() {
                     <div>
                       <p className="text-sm text-gray-600">Nhận phòng</p>
                       <p className="font-semibold text-gray-900">
-                        {formatDate(booking.checkIn, 'long')}
+                        {formatDate(booking.check_in_date, 'long')}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Trả phòng</p>
                       <p className="font-semibold text-gray-900">
-                        {formatDate(booking.checkOut, 'long')}
+                        {formatDate(booking.check_out_date, 'long')}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Số đêm</p>
                       <p className="font-semibold text-gray-900">
-                        {booking.nights} đêm
+                        {booking.nights || 'N/A'} đêm
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Số khách</p>
                       <p className="font-semibold text-gray-900">
-                        {booking.guests} người
+                        {booking.people || 'N/A'} người
                       </p>
                     </div>
                   </div>
@@ -231,26 +235,26 @@ export default function HotelBookingsPage() {
                       <p className="text-sm text-gray-600 mb-1">Thanh toán</p>
                       <div className="flex items-center space-x-3">
                         <p className="text-2xl font-bold text-[#0071c2]">
-                          {formatCurrency(booking.totalPrice)}
+                          {formatCurrency(booking.total_price || 0)}
                         </p>
-                        {getPaymentBadge(booking.paymentStatus)}
+                        {booking.paymentStatus && getPaymentBadge(booking.paymentStatus)}
                       </div>
                     </div>
                     <div className="flex space-x-2 mt-3 md:mt-0">
                       <Button variant="outline" size="sm">
                         📄 Chi tiết
                       </Button>
-                      {booking.status === 'confirmed' && (
+                      {booking.status === 'pending' && (
                         <>
                           <Button variant="primary" size="sm">
                             ✓ Xác nhận
                           </Button>
                           <Button variant="danger" size="sm">
-                            ✕ Hủy
+                            ✕ Từ chối
                           </Button>
                         </>
                       )}
-                      {booking.status === 'completed' && (
+                      {booking.status === 'accepted' && (
                         <Button variant="outline" size="sm">
                           💬 Nhắn tin
                         </Button>
