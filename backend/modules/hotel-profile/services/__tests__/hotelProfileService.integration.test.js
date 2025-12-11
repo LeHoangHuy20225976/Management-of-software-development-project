@@ -365,9 +365,13 @@ describe('hotelProfileService - Integration Tests', () => {
 
     await hotelProfileService.updateFacilityForHotel(payload, ownerId, 30);
 
-    // service deletes existing facilities inside loop, so only last facility persists
-    expect(db.__data.facilities).toHaveLength(1);
-    expect(db.__data.facilities[0]).toMatchObject({ facility_id: 3, hotel_id: 30, description: 'Gym' });
+    expect(db.__data.facilities).toHaveLength(2);
+    expect(db.__data.facilities).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ facility_id: 2, hotel_id: 30, description: 'Pool' }),
+        expect.objectContaining({ facility_id: 3, hotel_id: 30, description: 'Gym' })
+      ])
+    );
   });
 
   it('updates price for room type end-to-end', async () => {

@@ -57,7 +57,7 @@ services:
       REDIS_URL: redis://redis:6379
       APP_PASS: ${APP_PASS}
       GMAIL_USER: ${GMAIL_USER}
-      RESET_PASSWORD_URL: ${RESET_PASSWORD_URL}
+      RESET_PASSWORD_URL: http://localhost:3000/reset-password?token=
     ports:
       - "4000:4000"
     depends_on:
