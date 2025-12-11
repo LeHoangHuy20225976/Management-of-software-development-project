@@ -94,8 +94,8 @@ const authService = {
         if (storedToken !== token) {
             throw new Error("Token mismatch.");
         }
-        const hashed_password = await bcrypt.hash(newPassword, 10);
-        user.hashed_password = hashed_password;
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
         await redis.del(email);
         await user.save();
         return { message: "Password reset successfully." };
