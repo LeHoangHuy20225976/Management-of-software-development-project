@@ -4,42 +4,25 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
-import { formatCurrency } from '@/lib/utils/format';
 import { hotelManagerApi } from '@/lib/api/services';
 import type { RoomType } from '@/types';
 
 type DisplayRoom = {
   id: string;
-  name: string;
-  price: number;
-  size: string;
-  beds: string;
+  type: string;
+  description: string;
   maxGuests: number;
-  available: number;
-  total: number;
-  amenities: string[];
-  status: 'active' | 'inactive';
-  image: string;
+  availability: boolean;
+  quantity: number;
 };
 
-const convertRoomType = (
-  roomType: RoomType,
-  availableCount: number,
-  total: number
-): DisplayRoom => ({
+const convertRoomType = (roomType: RoomType): DisplayRoom => ({
   id: String(roomType.type_id),
-  name: roomType.type,
-  price: roomType.basePrice || 0,
-  size: `${roomType.size || 0}m²`,
-  beds: roomType.beds || '',
+  type: roomType.type,
+  description: roomType.description ?? '',
   maxGuests: roomType.max_guests,
-  available: availableCount,
-  total,
-  amenities: roomType.amenities || [],
-  status: roomType.availability ? 'active' : 'inactive',
-  image:
-    (roomType.images && roomType.images[0]) ||
-    'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400',
+  availability: Boolean(roomType.availability),
+  quantity: roomType.quantity ?? 0,
 });
 
 export default function HotelRoomsPage() {
@@ -56,9 +39,7 @@ export default function HotelRoomsPage() {
       const hotelId = 'h1';
       const roomTypes = await hotelManagerApi.getRooms(hotelId);
 
-      const displayRooms = roomTypes.map((rt, index) =>
-        convertRoomType(rt, 5 + index, 10)
-      );
+      const displayRooms = roomTypes.map((rt) => convertRoomType(rt));
 
       setRooms(displayRooms);
     } catch (error) {
@@ -102,12 +83,15 @@ export default function HotelRoomsPage() {
     filter === 'all'
       ? rooms
       : filter === 'available'
-      ? rooms.filter((r) => r.available > 0)
-      : rooms.filter((r) => r.available === 0);
+      ? rooms.filter((r) => r.availability)
+      : rooms.filter((r) => !r.availability);
 
-  const totalRooms = rooms.reduce((sum, r) => sum + r.total, 0);
-  const availableRooms = rooms.reduce((sum, r) => sum + r.available, 0);
-  const occupiedRooms = totalRooms - availableRooms;
+  const totalRooms = rooms.reduce((sum, r) => sum + (r.quantity || 0), 0);
+  const availableRooms = rooms.reduce(
+    (sum, r) => sum + (r.availability ? r.quantity || 0 : 0),
+    0
+  );
+  const occupiedRooms = Math.max(totalRooms - availableRooms, 0);
   const occupancyRate =
     totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
@@ -178,7 +162,7 @@ export default function HotelRoomsPage() {
             filter === 'available' ? 'bg-green-600 text-white' : 'text-gray-800'
           }
         >
-          Phòng trống ({rooms.filter((r) => r.available > 0).length})
+          Đang mở ({rooms.filter((r) => r.availability).length})
         </Button>
         <Button
           variant={filter === 'full' ? 'primary' : 'outline'}
@@ -187,7 +171,7 @@ export default function HotelRoomsPage() {
             filter === 'full' ? 'bg-red-600 text-white' : 'text-gray-800'
           }
         >
-          Hết phòng ({rooms.filter((r) => r.available === 0).length})
+          Tạm ngưng ({rooms.filter((r) => !r.availability).length})
         </Button>
       </div>
 
@@ -197,63 +181,27 @@ export default function HotelRoomsPage() {
           {filteredRooms.map((room) => (
             <Card key={room.id}>
               <div className="flex gap-4">
-                <img
-                  src={room.image}
-                  alt={room.name}
-                  className="w-32 h-32 object-cover rounded-lg"
-                />
                 <div className="flex-1">
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <h3 className="text-xl font-bold text-gray-900">
-                        {room.name}
+                        {room.type}
                       </h3>
                     </div>
                     <span
                       className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        room.status === 'active'
+                        room.availability
                           ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
                       }`}
                     >
-                      {room.status === 'active' ? 'Hoạt động' : 'Tạm ngưng'}
+                      {room.availability ? 'Đang mở' : 'Tạm ngưng'}
                     </span>
                   </div>
 
                   <div className="space-y-1 text-sm text-gray-800 mb-3">
-                    <p>
-                      📏 {room.size} • 🛏️ {room.beds} • 👥 {room.maxGuests}{' '}
-                      khách
-                    </p>
-                    <p className="font-semibold text-[#0071c2] text-lg">
-                      {formatCurrency(room.price)}/đêm
-                    </p>
-                    <p>
-                      Trống:{' '}
-                      <span
-                        className={`font-semibold ${
-                          room.available > 0 ? 'text-green-600' : 'text-red-600'
-                        }`}
-                      >
-                        {room.available}/{room.total}
-                      </span>
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {room.amenities.slice(0, 3).map((amenity: string) => (
-                      <span
-                        key={amenity}
-                        className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium"
-                      >
-                        {amenity}
-                      </span>
-                    ))}
-                    {room.amenities.length > 3 && (
-                      <span className="text-xs text-gray-600">
-                        +{room.amenities.length - 3} khác
-                      </span>
-                    )}
+                    <p>👥 Tối đa {room.maxGuests} khách</p>
+                    <p>Số lượng: {room.quantity ?? 0}</p>
                   </div>
 
                   <div className="flex gap-2">
@@ -265,7 +213,7 @@ export default function HotelRoomsPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDeleteRoom(room.id, room.name)}
+                      onClick={() => handleDeleteRoom(room.id, room.type)}
                       className="text-red-600 border-red-200 hover:bg-red-50"
                     >
                       🗑️ Xóa

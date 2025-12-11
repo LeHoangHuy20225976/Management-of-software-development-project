@@ -119,7 +119,7 @@ export default function HomePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {featuredHotels.map((hotel) => (
-                <Link key={hotel.hotel_id} href={`/hotel/${hotel.slug}`}>
+                <Link key={hotel.hotel_id} href={`/hotel/${hotel.hotel_id}`}>
                   <div className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden hover:border-[#0071c2] hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
                     <div className="relative h-56 overflow-hidden">
                       <div
@@ -133,28 +133,19 @@ export default function HomePage() {
                           {hotel.name}
                         </h3>
                         <div className="flex items-center gap-1 bg-[#003580] text-white px-2 py-1 rounded text-sm font-semibold">
-                          <span>{hotel.rating}</span>
+                          <span>⭐ {hotel.rating}</span>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 mb-2 line-clamp-1">
-                        {hotel.address}
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-1">
+                        📍 {hotel.address}
                       </p>
-                      <div className="flex items-center gap-1 text-sm text-gray-500 mb-3">
-                        <span>
-                          {hotel.stars !== undefined
-                            ? formatStars(hotel.stars)
-                            : null}
-                        </span>
-                        <span>•</span>
-                        <span>{hotel.reviewCount} đánh giá</span>
-                      </div>
                       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                         <span className="text-sm font-medium text-gray-500">
-                          Giá mỗi đêm từ
+                          Liên hệ
                         </span>
                         <div className="text-right">
-                          <div className="text-2xl font-bold text-[#0071c2] group-hover:scale-110 transition-transform">
-                            {formatCurrency(hotel.basePrice ?? 0)}
+                          <div className="text-sm font-semibold text-[#0071c2]">
+                            {hotel.contact_phone}
                           </div>
                         </div>
                       </div>
@@ -187,7 +178,7 @@ export default function HomePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {popularDestinations.map((spot) => (
-                <Link key={spot.destination_id} href={`/tourism/${spot.slug}`}>
+                <Link key={spot.destination_id} href={`/tourism/${spot.destination_id}`}>
                   <div className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden hover:border-[#0071c2] hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
                     <div className="relative h-64 overflow-hidden">
                       <div

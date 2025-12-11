@@ -8,8 +8,6 @@ import { Button } from '@/components/common/Button';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { hotelsApi } from '@/lib/api/services';
-import { amenitiesList } from '@/lib/mock/data';
-import { formatCurrency, formatStars } from '@/lib/utils/format';
 import type { Hotel, SearchFilters } from '@/types';
 
 const MapView = dynamic(() => import('@/components/search/MapView'), {
@@ -24,8 +22,6 @@ export default function SearchPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [filters, setFilters] = useState<SearchFilters>({
     location: '',
-    stars: [],
-    amenities: [],
     sortBy: 'popularity',
   });
 
@@ -44,20 +40,6 @@ export default function SearchPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const toggleStar = (star: number) => {
-    const newStars = filters.stars?.includes(star)
-      ? filters.stars.filter((s) => s !== star)
-      : [...(filters.stars || []), star];
-    setFilters({ ...filters, stars: newStars });
-  };
-
-  const toggleAmenity = (amenity: string) => {
-    const newAmenities = filters.amenities?.includes(amenity)
-      ? filters.amenities.filter((a) => a !== amenity)
-      : [...(filters.amenities || []), amenity];
-    setFilters({ ...filters, amenities: newAmenities });
   };
 
   return (
@@ -182,55 +164,6 @@ export default function SearchPage() {
                   </div>
                 </div>
 
-                {/* Star Rating */}
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">
-                    Hạng sao
-                  </label>
-                  <div className="space-y-2">
-                    {[5, 4, 3, 2, 1].map((star) => (
-                      <label
-                        key={star}
-                        className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={filters.stars?.includes(star)}
-                          onChange={() => toggleStar(star)}
-                          className="w-4 h-4 text-[#0071c2] rounded focus:ring-2 focus:ring-[#0071c2]"
-                        />
-                        <span className="ml-2 text-sm font-medium text-gray-900">
-                          {formatStars(star)}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Amenities */}
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-900 mb-3">
-                    Tiện ích
-                  </label>
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {amenitiesList.slice(0, 10).map((amenity) => (
-                      <label
-                        key={amenity.id}
-                        className="flex items-center cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={filters.amenities?.includes(amenity.id)}
-                          onChange={() => toggleAmenity(amenity.id)}
-                          className="w-4 h-4 text-[#0071c2] rounded focus:ring-2 focus:ring-[#0071c2]"
-                        />
-                        <span className="ml-2 text-sm font-medium text-gray-900">
-                          {amenity.icon} {amenity.name}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
 
                 <Button
                   variant="outline"
@@ -291,7 +224,7 @@ export default function SearchPage() {
               ) : (
                 <div className="grid grid-cols-1 gap-6">
                   {hotels.map((hotel) => (
-                    <Link key={hotel.hotel_id} href={`/hotel/${hotel.slug}`}>
+                    <Link key={hotel.hotel_id} href={`/hotel/${hotel.hotel_id}`}>
                       <Card
                         hover
                         padding="none"
@@ -305,11 +238,6 @@ export default function SearchPage() {
                                 backgroundImage: `url('${hotel.thumbnail}')`,
                               }}
                             />
-                            <div className="absolute top-4 left-4 bg-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
-                              {hotel.stars !== undefined
-                                ? formatStars(hotel.stars)
-                                : null}
-                            </div>
                           </div>
                           <div className="md:w-2/3 p-6">
                             <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
@@ -322,42 +250,24 @@ export default function SearchPage() {
                               {hotel.description}
                             </p>
 
-                            <div className="flex flex-wrap gap-2 mb-4">
-                              {hotel.amenities?.slice(0, 5).map((amenity) => {
-                                const amenityData = amenitiesList.find(
-                                  (a) => a.id === amenity
-                                );
-                                return amenityData ? (
-                                  <span
-                                    key={amenity}
-                                    className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full"
-                                  >
-                                    {amenityData.icon} {amenityData.name}
-                                  </span>
-                                ) : null;
-                              })}
-                            </div>
-
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between mt-4">
                               <div className="flex items-center space-x-2">
                                 <span className="text-2xl">⭐</span>
                                 <span className="font-bold text-xl text-gray-900">
                                   {hotel.rating}
                                 </span>
                                 <span className="text-sm font-medium text-gray-700">
-                                  ({hotel.reviewCount} đánh giá)
+                                  / 5
                                 </span>
                               </div>
                               <div className="text-right">
-                                <div className="text-sm font-medium text-gray-600">
-                                  Từ
+                                <div className="text-sm text-gray-600 mb-1">
+                                  Giá chỉ từ
                                 </div>
-                                <div className="text-3xl font-bold text-[#0071c2]">
-                                  {hotel.basePrice !== undefined
-                                    ? formatCurrency(hotel.basePrice)
-                                    : '—'}
+                                <div className="text-2xl font-bold text-[#0071c2]">
+                                  500.000₫
                                 </div>
-                                <div className="text-sm font-medium text-gray-600">
+                                <div className="text-xs text-gray-600">
                                   / đêm
                                 </div>
                               </div>

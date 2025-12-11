@@ -7,7 +7,37 @@ import type { User, Booking, Review, Hotel, RoomType, TourismSpot, Coupon } from
 import { mockTourismSpots, mockRoomTypes } from '../mock/data';
 
 // Increment this to force refresh seeded mock data in localStorage
-const MOCK_DATA_VERSION = '3';
+const MOCK_DATA_VERSION = '4';
+
+const normalizeHotel = (hotel: any, index: number): Hotel => ({
+  hotel_id: hotel.hotel_id ?? Number((hotel.id ?? index + 1).toString().replace(/\D/g, '') || index + 1),
+  hotel_owner: hotel.hotel_owner ?? 1,
+  name: hotel.name ?? 'Khách sạn chưa đặt tên',
+  address: hotel.address ?? [hotel.city, hotel.district].filter(Boolean).join(', ') ?? '',
+  status: typeof hotel.status === 'number' ? hotel.status : 1,
+  rating: typeof hotel.rating === 'number' ? hotel.rating : 0,
+  longitude: typeof hotel.longitude === 'number' ? hotel.longitude : 0,
+  latitude: typeof hotel.latitude === 'number' ? hotel.latitude : 0,
+  description: hotel.description ?? '',
+  contact_phone: hotel.contact_phone ?? hotel.phone ?? '0123 456 789',
+  thumbnail: hotel.thumbnail ?? hotel.images?.[0] ?? '',
+  ...hotel,
+});
+
+const normalizeTourismSpot = (spot: any, index: number): TourismSpot => ({
+  destination_id: spot.destination_id ?? Number((spot.id ?? index + 1).toString().replace(/\D/g, '') || index + 1),
+  name: spot.name ?? 'Điểm đến chưa đặt tên',
+  rating: typeof spot.rating === 'number' ? spot.rating : 0,
+  location: spot.location ?? '',
+  transportation: spot.transportation ?? 'Tự túc',
+  entry_fee: typeof spot.entry_fee === 'number' ? spot.entry_fee : 0,
+  description: spot.description ?? spot.fullDescription ?? '',
+  latitude: typeof spot.latitude === 'number' ? spot.latitude : 0,
+  longitude: typeof spot.longitude === 'number' ? spot.longitude : 0,
+  type: spot.type ?? spot.category ?? 'Đang cập nhật',
+  thumbnail: spot.thumbnail ?? spot.images?.[0] ?? '',
+  ...spot,
+});
 
 // Force reinitialize (useful when updating mock data structure)
 export const forceReinitializeMockData = () => {
@@ -61,7 +91,7 @@ export const initializeMockData = () => {
     localStorage.setItem('currentUser', JSON.stringify(mockUser));
 
     // Hotels - Diverse data across Vietnam
-    const mockHotels: Hotel[] = [
+    const mockHotels = [
       {
         id: 'h1',
         name: 'Grand Hotel Saigon',
@@ -325,7 +355,7 @@ export const initializeMockData = () => {
           cancellation: 'Miễn phí hủy trước 24 giờ',
         },
       },
-    ];
+    ].map((hotel, index) => normalizeHotel(hotel, index));
     localStorage.setItem('hotels', JSON.stringify(mockHotels));
 
     // Bookings with diverse statuses
@@ -561,7 +591,7 @@ export const initializeMockData = () => {
   }
 
   if (!localStorage.getItem('tourismSpots')) {
-    setMockTourismSpots(mockTourismSpots);
+    setMockTourismSpots(mockTourismSpots.map((spot, index) => normalizeTourismSpot(spot, index)));
   }
 
   if (!localStorage.getItem('roomTypes')) {
@@ -628,7 +658,8 @@ export const addMockReview = (review: Review) => {
 
 export const getMockHotels = (): Hotel[] => {
   const data = localStorage.getItem('hotels');
-  return data ? JSON.parse(data) : [];
+  const hotels = data ? JSON.parse(data) : [];
+  return hotels.map((hotel: Hotel, index: number) => normalizeHotel(hotel, index));
 };
 
 export const getMockCoupons = (): Coupon[] => {
@@ -638,7 +669,8 @@ export const getMockCoupons = (): Coupon[] => {
 
 export const getMockTourismSpots = (): TourismSpot[] => {
   const data = localStorage.getItem('tourismSpots');
-  return data ? JSON.parse(data) : mockTourismSpots;
+  const spots = data ? JSON.parse(data) : mockTourismSpots;
+  return spots.map((spot: TourismSpot, index: number) => normalizeTourismSpot(spot, index));
 };
 
 export const setMockTourismSpots = (spots: TourismSpot[]) => {

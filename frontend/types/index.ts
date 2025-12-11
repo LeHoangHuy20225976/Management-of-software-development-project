@@ -17,20 +17,6 @@ export interface Hotel {
   description: string;
   contact_phone: string;
   thumbnail: string;
-  // Optional frontend fields
-  slug?: string;
-  stars?: number;
-  city?: string;
-  district?: string;
-  images?: string[];
-  basePrice?: number;
-  amenities?: string[];
-  reviewCount?: number;
-  policies?: {
-    checkIn: string;
-    checkOut: string;
-    cancellation: string;
-  };
 }
 
 export interface RoomType {
@@ -41,12 +27,6 @@ export interface RoomType {
   max_guests: number;
   description: string;
   quantity: number;
-  // Optional frontend fields
-  size?: number;
-  beds?: string;
-  basePrice?: number;
-  images?: string[];
-  amenities?: string[];
 }
 
 export interface Room {
@@ -75,13 +55,6 @@ export interface Destination {
   longitude: number;
   type: string;
   thumbnail: string;
-  // Optional frontend fields
-  slug?: string;
-  category?: string;
-  fullDescription?: string;
-  images?: string[];
-  visitCount?: number;
-  tags?: string[];
 }
 
 // Keep old name as alias for backward compatibility
@@ -96,13 +69,6 @@ export interface Review {
   rating: number; // 1-5
   comment: string;
   date_created: string;
-  // Optional frontend fields
-  userName?: string;
-  userAvatar?: string;
-  title?: string;
-  images?: string[];
-  helpful?: number;
-  verified?: boolean;
 }
 
 export interface Booking {
@@ -115,26 +81,21 @@ export interface Booking {
   check_out_date: string;
   created_at: string;
   people: number | null;
-  // Optional frontend fields
-  hotelName?: string;
-  hotelImage?: string;
-  roomType?: string;
-  nights?: number;
-  paymentStatus?: 'pending' | 'paid' | 'refunded';
-  paymentMethod?: string;
 }
 
 export interface User {
-  id: string;
-  email: string;
-  name: string;
-  phone: string;
-  avatar: string;
-  memberSince: string;
-  totalBookings: number;
-  points: number;
+  user_id: number;
+  name: string | null;
+  email: string | null;
+  phone_number: string | null;
+  gender: string | null;
+  date_of_birth: string | null;
+  role: string | null;
+  password: string;
+  profile_image: string | null;
 }
 
+// Frontend-only utility types
 export interface SearchFilters {
   location?: string;
   checkIn?: string;
@@ -142,15 +103,8 @@ export interface SearchFilters {
   guests?: number;
   minPrice?: number;
   maxPrice?: number;
-  stars?: number[];
-  amenities?: string[];
+  minRating?: number;
   sortBy?: 'price' | 'rating' | 'popularity';
-}
-
-export interface Amenity {
-  id: string;
-  name: string;
-  icon: string;
 }
 
 export interface ApiResponse<T> {
@@ -166,15 +120,6 @@ export interface PaginatedResponse<T> {
   page: number;
   pageSize: number;
   totalPages: number;
-}
-
-export interface Coupon {
-  id: string;
-  hotelId: string;
-  hotelName: string;
-  discount: number;
-  expiryDate: string;
-  code: string;
 }
 
 // New types based on database schema

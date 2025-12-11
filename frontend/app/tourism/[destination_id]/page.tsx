@@ -12,7 +12,7 @@ import type { TourismSpot } from '@/types';
 export default function TourismDetailPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ destination_id: string }>;
 }) {
   const resolvedParams = use(params);
   const [destination, setDestination] = useState<TourismSpot | null>(null);
@@ -23,12 +23,14 @@ export default function TourismDetailPage({
     const loadData = async () => {
       try {
         const [spot, allSpots] = await Promise.all([
-          tourismApi.getBySlug(resolvedParams.slug),
+          tourismApi.getById(String(resolvedParams.destination_id)),
           tourismApi.getAll(),
         ]);
         setDestination(spot);
         setRelatedSpots(
-          allSpots.filter((s) => s.slug !== spot?.slug).slice(0, 3)
+          allSpots
+            .filter((s) => s.destination_id !== spot?.destination_id)
+            .slice(0, 3)
         );
       } catch (error) {
         console.error('Error loading tourism spot:', error);
@@ -37,7 +39,7 @@ export default function TourismDetailPage({
       }
     };
     loadData();
-  }, [resolvedParams.slug]);
+  }, [resolvedParams.destination_id]);
 
   if (loading) {
     return (
@@ -123,11 +125,6 @@ export default function TourismDetailPage({
                 <span className="flex items-center gap-2">
                   ⭐ {destination.rating} / 5.0
                 </span>
-                {typeof destination.visitCount === 'number' && (
-                  <span className="flex items-center gap-2">
-                    👁️ {destination.visitCount.toLocaleString()} lượt xem
-                  </span>
-                )}
               </div>
             </div>
           </div>
@@ -256,17 +253,21 @@ export default function TourismDetailPage({
                     <div className="flex justify-between py-2 border-b border-gray-200">
                       <span className="text-gray-600">Phí tham quan</span>
                       <span className="font-semibold text-gray-900">
-                        Miễn phí
+                        {destination.entry_fee
+                          ? `${destination.entry_fee.toLocaleString('vi-VN')} ₫`
+                          : 'Đang cập nhật'}
                       </span>
                     </div>
                     <div className="flex justify-between py-2 border-b border-gray-200">
-                      <span className="text-gray-600">Thời gian mở cửa</span>
-                      <span className="font-semibold text-gray-900">24/7</span>
+                      <span className="text-gray-600">Phương tiện</span>
+                      <span className="font-semibold text-gray-900">
+                        {destination.transportation || 'Đang cập nhật'}
+                      </span>
                     </div>
                     <div className="flex justify-between py-2">
-                      <span className="text-gray-600">Thời gian tham quan</span>
+                      <span className="text-gray-600">Loại hình</span>
                       <span className="font-semibold text-gray-900">
-                        2-3 giờ
+                        {destination.type || 'Đang cập nhật'}
                       </span>
                     </div>
                   </div>
@@ -311,7 +312,10 @@ export default function TourismDetailPage({
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {relatedSpots.map((spot) => (
-                <Link key={spot.slug} href={`/tourism/${spot.slug}`}>
+                <Link
+                  key={spot.destination_id}
+                  href={`/tourism/${spot.destination_id}`}
+                >
                   <div className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden hover:border-[#0071c2] hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
                     <div className="relative h-48 overflow-hidden">
                       <div

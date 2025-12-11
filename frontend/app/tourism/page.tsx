@@ -146,7 +146,10 @@ export default function TourismPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredSpots.map((spot) => (
-                  <Link key={spot.slug} href={`/tourism/${spot.slug}`}>
+                  <Link
+                    key={spot.destination_id}
+                    href={`/tourism/${spot.destination_id}`}
+                  >
                     <div className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden hover:border-[#0071c2] hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
                       <div className="relative h-64 overflow-hidden">
                         <div
@@ -175,9 +178,9 @@ export default function TourismPage() {
                             <span>{spot.rating}</span>
                           </div>
                           <span className="text-gray-600">
-                            {typeof spot.visitCount === 'number'
-                              ? `${spot.visitCount.toLocaleString()} lượt xem`
-                              : 'Chưa có lượt xem'}
+                            {spot.type
+                              ? `Loại hình: ${spot.type}`
+                              : 'Đang cập nhật'}
                           </span>
                         </div>
                       </div>
