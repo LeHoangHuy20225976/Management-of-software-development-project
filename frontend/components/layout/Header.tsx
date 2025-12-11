@@ -1,8 +1,3 @@
-/**
- * Header Component - Premium navigation header with logo
- * FE1: Core Site & Discovery
- */
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -26,7 +21,10 @@ export const Header = () => {
 
     // Close dropdown when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
-      if (showUserMenu && !(event.target as Element).closest('.user-menu-container')) {
+      if (
+        showUserMenu &&
+        !(event.target as Element).closest('.user-menu-container')
+      ) {
         setShowUserMenu(false);
       }
     };
@@ -57,28 +55,28 @@ export const Header = () => {
               href="/"
               className="relative text-gray-700 hover:text-[#003580] font-medium transition-colors px-4 py-2 group"
             >
-              Trang chủ
+              Home
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0071c2] group-hover:w-full transition-all duration-300"></span>
             </Link>
             <Link
               href="/search"
               className="relative text-gray-700 hover:text-[#003580] font-medium transition-colors px-4 py-2 group"
             >
-              Khách sạn
+              Hotel
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0071c2] group-hover:w-full transition-all duration-300"></span>
             </Link>
             <Link
               href="/tourism"
               className="relative text-gray-700 hover:text-[#003580] font-medium transition-colors px-4 py-2 group"
             >
-              Du lịch
+              Tourism
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0071c2] group-hover:w-full transition-all duration-300"></span>
             </Link>
             <Link
               href="/about"
               className="relative text-gray-700 hover:text-[#003580] font-medium transition-colors px-4 py-2 group"
             >
-              Về chúng tôi
+              About us
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-[#0071c2] group-hover:w-full transition-all duration-300"></span>
             </Link>
           </nav>
@@ -90,7 +88,7 @@ export const Header = () => {
               href="/hotel-manager/login"
               className="text-sm font-medium text-gray-700 hover:text-[#003580] transition-colors"
             >
-              Dành cho khách sạn
+              For Hotel owners
             </Link>
 
             {/* User is logged in */}
@@ -103,9 +101,23 @@ export const Header = () => {
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#0071c2] to-[#005999] flex items-center justify-center text-white text-sm font-bold">
                     {user.name.charAt(0)}
                   </div>
-                  <span className="text-sm font-medium text-gray-900">{user.name}</span>
-                  <svg className={`w-4 h-4 text-gray-600 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  <span className="text-sm font-medium text-gray-900">
+                    {user.name}
+                  </span>
+                  <svg
+                    className={`w-4 h-4 text-gray-600 transition-transform ${
+                      showUserMenu ? 'rotate-180' : ''
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
                   </svg>
                 </button>
 
@@ -118,7 +130,7 @@ export const Header = () => {
                       onClick={() => setShowUserMenu(false)}
                     >
                       <span className="mr-3">📊</span>
-                      Tổng quan
+                      Overview
                     </Link>
                     <Link
                       href="/user/dashboard/bookings"
@@ -126,7 +138,7 @@ export const Header = () => {
                       onClick={() => setShowUserMenu(false)}
                     >
                       <span className="mr-3">📋</span>
-                      Đơn đặt phòng
+                      Booking history
                     </Link>
                     <Link
                       href="/user/reviews"
@@ -134,7 +146,7 @@ export const Header = () => {
                       onClick={() => setShowUserMenu(false)}
                     >
                       <span className="mr-3">⭐</span>
-                      Đánh giá của tôi
+                      My review
                     </Link>
                     <Link
                       href="/user/my-vouchers"
@@ -142,7 +154,7 @@ export const Header = () => {
                       onClick={() => setShowUserMenu(false)}
                     >
                       <span className="mr-3">🎟️</span>
-                      Mã giảm giá của tôi
+                      My discount coupon
                     </Link>
                     <Link
                       href="/user/dashboard/profile"
@@ -150,7 +162,7 @@ export const Header = () => {
                       onClick={() => setShowUserMenu(false)}
                     >
                       <span className="mr-3">👤</span>
-                      Thông tin cá nhân
+                      My profile
                     </Link>
                     <hr className="my-2 border-gray-200" />
                     <button
@@ -158,7 +170,7 @@ export const Header = () => {
                       className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >
                       <span className="mr-3">🚪</span>
-                      Đăng xuất
+                      Sign out
                     </button>
                   </div>
                 )}
@@ -168,12 +180,12 @@ export const Header = () => {
               <>
                 <Link href="/login">
                   <button className="px-4 py-2 text-sm font-medium text-[#003580] hover:bg-blue-50 rounded transition-colors">
-                    Đăng nhập
+                    Login
                   </button>
                 </Link>
                 <Link href="/register">
                   <button className="px-4 py-2 text-sm font-medium text-white bg-[#003580] hover:bg-[#00224f] rounded transition-colors">
-                    Đăng ký
+                    Register
                   </button>
                 </Link>
               </>
@@ -185,11 +197,26 @@ export const Header = () => {
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="md:hidden p-2 text-gray-700 hover:bg-gray-100 rounded transition-colors"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               {isMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               )}
             </svg>
           </button>
@@ -203,32 +230,32 @@ export const Header = () => {
                 href="/"
                 className="text-gray-700 hover:bg-gray-100 font-medium px-4 py-3 rounded transition-colors"
               >
-                Trang chủ
+                Home
               </Link>
               <Link
                 href="/search"
                 className="text-gray-700 hover:bg-gray-100 font-medium px-4 py-3 rounded transition-colors"
               >
-                Khách sạn
+                Hotels
               </Link>
               <Link
                 href="/tourism"
                 className="text-gray-700 hover:bg-gray-100 font-medium px-4 py-3 rounded transition-colors"
               >
-                Du lịch
+                Tourism
               </Link>
               <Link
                 href="/about"
                 className="text-gray-700 hover:bg-gray-100 font-medium px-4 py-3 rounded transition-colors"
               >
-                Về chúng tôi
+                About us
               </Link>
               <hr className="border-gray-200 my-2" />
               <Link
                 href="/hotel-manager/login"
                 className="text-gray-600 hover:bg-gray-100 px-4 py-3 rounded transition-colors"
               >
-                Dành cho khách sạn
+                For hotel owners
               </Link>
 
               {user ? (
@@ -243,36 +270,51 @@ export const Header = () => {
                       <p className="text-xs text-gray-600">{user.email}</p>
                     </div>
                   </div>
-                  <Link href="/user/dashboard" onClick={() => setIsMenuOpen(false)}>
+                  <Link
+                    href="/user/dashboard"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
                     <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
-                      📊 Tổng quan
+                      📊 Overview
                     </button>
                   </Link>
-                  <Link href="/user/dashboard/bookings" onClick={() => setIsMenuOpen(false)}>
+                  <Link
+                    href="/user/dashboard/bookings"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
                     <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
-                      📋 Đơn đặt phòng
+                      📋 Booking History
                     </button>
                   </Link>
-                  <Link href="/user/reviews" onClick={() => setIsMenuOpen(false)}>
+                  <Link
+                    href="/user/reviews"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
                     <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
-                      ⭐ Đánh giá của tôi
+                      ⭐ My review
                     </button>
                   </Link>
-                  <Link href="/user/my-vouchers" onClick={() => setIsMenuOpen(false)}>
+                  <Link
+                    href="/user/my-vouchers"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
                     <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
-                      🎟️ Mã giảm giá của tôi
+                      🎟️ My discount coupon
                     </button>
                   </Link>
-                  <Link href="/user/dashboard/profile" onClick={() => setIsMenuOpen(false)}>
+                  <Link
+                    href="/user/dashboard/profile"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
                     <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
-                      👤 Thông tin cá nhân
+                      👤 My profile
                     </button>
                   </Link>
                   <button
                     onClick={handleLogout}
                     className="w-full px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded transition-colors text-left"
                   >
-                    🚪 Đăng xuất
+                    🚪 Log out
                   </button>
                 </div>
               ) : (
@@ -280,12 +322,12 @@ export const Header = () => {
                 <div className="flex flex-col space-y-2 pt-2 px-4">
                   <Link href="/login">
                     <button className="w-full px-4 py-2 text-sm font-medium text-[#003580] hover:bg-blue-50 rounded transition-colors border border-[#003580]">
-                      Đăng nhập
+                      Login
                     </button>
                   </Link>
                   <Link href="/register">
                     <button className="w-full px-4 py-2 text-sm font-medium text-white bg-[#003580] hover:bg-[#00224f] rounded transition-colors">
-                      Đăng ký
+                      Register
                     </button>
                   </Link>
                 </div>
