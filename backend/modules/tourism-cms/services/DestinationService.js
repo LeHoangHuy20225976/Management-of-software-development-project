@@ -171,6 +171,59 @@ const DestinationService = {
     });
     return destinations;
   },
+
+  /**
+   * Add multiple images to destination
+   */
+  async addDestinationImages(destinationId, imageUrls) {
+    const images = await Promise.all(
+      imageUrls.map((url) =>
+        db.Image.create({
+          destination_id: destinationId,
+          url: url,
+        })
+      )
+    );
+    return images;
+  },
+
+  /**
+   * Get all images for a destination
+   */
+  async getDestinationImages(destinationId) {
+    const images = await db.Image.findAll({
+      where: {
+        destination_id: destinationId,
+      },
+      order: [["image_id", "ASC"]],
+    });
+    return images;
+  },
+
+  /**
+   * Get destination image by ID
+   */
+  async getDestinationImage(destinationId, imageId) {
+    const image = await db.Image.findOne({
+      where: {
+        image_id: imageId,
+        destination_id: destinationId,
+      },
+    });
+    if (!image) {
+      throw new Error("Image not found");
+    }
+    return image;
+  },
+
+  /**
+   * Delete destination image
+   */
+  async deleteDestinationImage(destinationId, imageId) {
+    const image = await this.getDestinationImage(destinationId, imageId);
+    await image.destroy();
+    return { message: "Image deleted successfully" };
+  },
 };
 
 module.exports = DestinationService;

@@ -1,5 +1,6 @@
 const responseUtils = require("../../../utils/responseUtils");
 const DestinationService = require("../services/DestinationService");
+const minioUtils = require("../../../utils/minioUtils");
 
 const DestinationController = {
   /**
@@ -41,7 +42,9 @@ const DestinationController = {
   createDestination: async (req, res) => {
     try {
       const destinationData = req.body;
-      const newDestination = await DestinationService.createDestination(destinationData);
+      const newDestination = await DestinationService.createDestination(
+        destinationData
+      );
       return responseUtils.ok(res, newDestination);
     } catch (error) {
       console.error("Create destination error:", error);
@@ -57,7 +60,10 @@ const DestinationController = {
     try {
       const { id } = req.params;
       const destinationData = req.body;
-      const updatedDestination = await DestinationService.updateDestination(id, destinationData);
+      const updatedDestination = await DestinationService.updateDestination(
+        id,
+        destinationData
+      );
       return responseUtils.ok(res, updatedDestination);
     } catch (error) {
       console.error("Update destination error:", error);
@@ -117,6 +123,222 @@ const DestinationController = {
       return responseUtils.ok(res, destinations);
     } catch (error) {
       console.error("Get destinations by type error:", error);
+      return responseUtils.error(res, error.message);
+    }
+  },
+
+  /**
+   * Upload thumbnail image for destination
+   * POST /destinations/:id/thumbnail
+   * Requires: multer middleware
+   *
+   * Example route:
+   * router.post('/:id/thumbnail', upload.single('thumbnail'), DestinationController.uploadThumbnail);
+   */
+  uploadThumbnail: async (req, res) => {
+    try {
+      if (!req.file) {
+        return responseUtils.error(res, "No thumbnail image provided");
+      }
+
+      const { id } = req.params;
+      const { buffer, originalname, mimetype } = req.file;
+
+      // Validate file type
+      if (!mimetype.startsWith("image/")) {
+        return responseUtils.error(res, "Only image files are allowed");
+      }
+
+      // Upload to MinIO
+      const result = await minioUtils.uploadFile(
+        minioUtils.buckets.DESTINATION_IMAGES,
+        buffer,
+        originalname,
+        { "Content-Type": mimetype }
+      );
+
+      // Update destination thumbnail URL
+      await DestinationService.updateDestination(id, {
+        thumbnail: result.url,
+      });
+
+      return responseUtils.ok(res, {
+        message: "Thumbnail uploaded successfully",
+        thumbnail: result.url,
+      });
+    } catch (error) {
+      console.error("Upload thumbnail error:", error);
+      if (error.message === "Destination not found") {
+        return responseUtils.notFound(res);
+      }
+      return responseUtils.error(res, error.message);
+    }
+  },
+
+  /**
+   * Upload a single image for destination
+   * POST /destinations/:id/images
+   * Requires: multer middleware
+   *
+   * Example route:
+   * router.post('/:id/images', upload.single('image'), DestinationController.uploadImage);
+   */
+  uploadImage: async (req, res) => {
+    try {
+      if (!req.file) {
+        return responseUtils.error(res, "No image provided");
+      }
+
+      const { id } = req.params;
+      const { buffer, originalname, mimetype } = req.file;
+
+      // Verify destination exists
+      await DestinationService.getDestinationById(id);
+
+      // Validate file type
+      if (!mimetype.startsWith("image/")) {
+        return responseUtils.error(res, "Only image files are allowed");
+      }
+
+      // Upload to MinIO
+      const result = await minioUtils.uploadFile(
+        minioUtils.buckets.DESTINATION_IMAGES,
+        buffer,
+        originalname,
+        { "Content-Type": mimetype }
+      );
+
+      // Save image URL to Image table
+      const image = await DestinationService.addDestinationImages(id, [
+        result.url,
+      ]);
+
+      return responseUtils.ok(res, {
+        message: "Image uploaded successfully",
+        image: image[0],
+      });
+    } catch (error) {
+      console.error("Upload image error:", error);
+      if (error.message === "Destination not found") {
+        return responseUtils.notFound(res);
+      }
+      return responseUtils.error(res, error.message);
+    }
+  },
+
+  /**
+   * Get all images for a destination
+   * GET /destinations/:id/images
+   */
+  getDestinationImages: async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // Verify destination exists
+      await DestinationService.getDestinationById(id);
+
+      // Get all images
+      const images = await DestinationService.getDestinationImages(id);
+
+      return responseUtils.ok(res, images);
+    } catch (error) {
+      console.error("Get destination images error:", error);
+      if (error.message === "Destination not found") {
+        return responseUtils.notFound(res);
+      }
+      return responseUtils.error(res, error.message);
+    }
+  },
+
+  /**
+   * Delete destination thumbnail
+   * DELETE /destinations/:id/thumbnail
+   */
+  deleteThumbnail: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const destination = await DestinationService.getDestinationById(id);
+
+      if (!destination.thumbnail) {
+        return responseUtils.error(res, "No thumbnail to delete");
+      }
+
+      // Extract filename from URL
+      const url = new URL(destination.thumbnail);
+      const pathParts = url.pathname.split("/");
+      const fileName = pathParts[pathParts.length - 1];
+
+      // Delete from MinIO
+      const exists = await minioUtils.fileExists(
+        minioUtils.buckets.DESTINATION_IMAGES,
+        fileName
+      );
+
+      if (exists) {
+        await minioUtils.deleteFile(
+          minioUtils.buckets.DESTINATION_IMAGES,
+          fileName
+        );
+      }
+
+      // Update destination to remove thumbnail URL
+      await DestinationService.updateDestination(id, { thumbnail: null });
+
+      return responseUtils.ok(res, {
+        message: "Thumbnail deleted successfully",
+      });
+    } catch (error) {
+      console.error("Delete thumbnail error:", error);
+      if (error.message === "Destination not found") {
+        return responseUtils.notFound(res);
+      }
+      return responseUtils.error(res, error.message);
+    }
+  },
+
+  /**
+   * Delete a destination image
+   * DELETE /destinations/:id/images/:imageId
+   */
+  deleteDestinationImage: async (req, res) => {
+    try {
+      const { id, imageId } = req.params;
+
+      // Get image details
+      const image = await DestinationService.getDestinationImage(id, imageId);
+
+      // Extract filename from URL
+      const url = new URL(image.url);
+      const pathParts = url.pathname.split("/");
+      const fileName = pathParts[pathParts.length - 1];
+
+      // Delete from MinIO
+      const exists = await minioUtils.fileExists(
+        minioUtils.buckets.DESTINATION_IMAGES,
+        fileName
+      );
+
+      if (exists) {
+        await minioUtils.deleteFile(
+          minioUtils.buckets.DESTINATION_IMAGES,
+          fileName
+        );
+      }
+
+      // Delete from database
+      await DestinationService.deleteDestinationImage(id, imageId);
+
+      return responseUtils.ok(res, {
+        message: "Image deleted successfully",
+      });
+    } catch (error) {
+      console.error("Delete image error:", error);
+      if (
+        error.message === "Destination not found" ||
+        error.message === "Image not found"
+      ) {
+        return responseUtils.notFound(res);
+      }
       return responseUtils.error(res, error.message);
     }
   },
