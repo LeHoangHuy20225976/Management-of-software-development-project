@@ -42,6 +42,56 @@ const authController = {
             }
             return responseUtils.error(res, error.message);
         }
-    }
+    },
+    logout: async (req, res) => {
+        try {
+            res.clearCookie("accessToken");
+            res.clearCookie("refreshToken");
+            return responseUtils.ok(res, { message: "Logged out successfully" });
+        } catch (error) {
+            return responseUtils.error(res, error.message);
+        }
+    },
+    resetPassword: async (req, res) => {
+        try {
+            userId = req.user.user_id;
+            const {currentPassword, newPassword, confirmNewPassword} = req.body;
+            const data = await authService.resetPassword(userId, currentPassword, newPassword, confirmNewPassword);
+            return responseUtils.ok(res, data);
+        } catch (error) {
+            return responseUtils.error(res, error.message);
+        }
+    },
+    verifyResetForgetPassword: async (req, res) => {
+        try {
+            const { email } = req.body;
+            if (!email) {
+                return responseUtils.error(res, { message: "Email is required" });
+            }
+            // console.log("It is called");
+            const data = await authService.verifyForgetPassword(email);
+            return responseUtils.ok(res, {  message: data.message });
+            } catch (error) {
+            console.error("Verify Reset Password error:", error);
+            return responseUtils.unauthorized(res, error.message);
+        }
+    },
+    async resetForgetPassword(req, res) {
+        try {
+            const {email, newPassword, newPasswordConfirm, token} = req.body;
+            if(!email || !newPassword || !newPasswordConfirm || !token) {
+                return responseUtils.error(res, { message: "Email, new password, confirm new password and token are required" });
+            }
+            if(newPassword !== newPasswordConfirm) {
+                return responseUtils.error(res, { message: "New password and confirm new password do not match" });
+            }
+            await authService.resetForgetPassword(email, newPassword, token);
+            return responseUtils.ok(res, { message: "Password reset successfully" });
+        } catch (error) {
+            console.error("Reset Password error:", error);
+            return responseUtils.unauthorized(res, error.message);
+        }
+    },
+
 };
 module.exports = authController;

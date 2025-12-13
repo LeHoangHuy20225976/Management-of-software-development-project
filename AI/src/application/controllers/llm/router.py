@@ -4,7 +4,6 @@ LLM Service API Router
 
 from fastapi import APIRouter, HTTPException
 from src.application.dtos.llm.chat_dto import ChatRequest, ChatResponse
-from src.application.services.llm.graph import chat_graph
 from langchain_core.messages import HumanMessage
 import uuid
 
@@ -36,9 +35,15 @@ async def chat(request: ChatRequest):
     """
 
     try:
+        # Lazy import to catch initialization errors
+        from src.application.services.llm.graph import chat_graph
+        import asyncio
+        
         conversation_id = request.conversation_id or str(uuid.uuid4())
 
-        result = await chat_graph.ainvoke(
+        # PostgresSaver doesn't support async, use sync invoke in thread
+        result = await asyncio.to_thread(
+            chat_graph.invoke,
             {
                 "messages": [HumanMessage(content=request.message)],
                 "conversation_id": conversation_id

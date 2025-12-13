@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 03082004
     ports:
-      - "5432:5432"
+      - "55432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -18,13 +18,31 @@ services:
     networks:
       - hotel_network
 
+  redis:
+    image: redis:7-alpine
+    container_name: hotel_redis
+    ports:
+      - "56379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hotel_network
+    command: redis-server --appendonly yes
+
   backend:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: hotel_backend
+    env_file:
+      - .env
     environment:
-      PORT: 3000
+      PORT: 4000
       DATABASE_ENV: development
       DATABASE_NAME: hotel_dev_db
       DATABASE_USERNAME: postgres
@@ -34,10 +52,18 @@ services:
       JWT_SECRET: lehoanghuynoob
       DB_LOGGING: false
       NODE_ENV: development
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_URL: redis://redis:6379
+      APP_PASS: ${APP_PASS}
+      GMAIL_USER: ${GMAIL_USER}
+      RESET_PASSWORD_URL: http://localhost:3000/reset-password?token=
     ports:
-      - "3000:3000"
+      - "4000:4000"
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     volumes:
       - .:/app
@@ -49,6 +75,7 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   hotel_network:

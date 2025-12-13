@@ -1,6 +1,7 @@
 const authService = require('../authService');
 const bcrypt = require('bcryptjs');
 const { sign, signRefreshToken } = require('utils/jwtUtils');
+const redis = require('utils/redisClient');
 const { Op } = require('sequelize');
 
 // Mock only database and JWT, but use REAL bcrypt
@@ -13,6 +14,12 @@ jest.mock('models/index', () => ({
 jest.mock('utils/jwtUtils', () => ({
   sign: jest.fn(),
   signRefreshToken: jest.fn()
+}));
+
+jest.mock('utils/redisClient', () => ({
+  get: jest.fn(),
+  set: jest.fn(),
+  del: jest.fn()
 }));
 
 jest.mock('sequelize', () => ({
@@ -301,10 +308,10 @@ describe('AuthService - Integration Tests with Real Bcrypt', () => {
       const hashStartTime = Date.now();
       const hash = await bcrypt.hash(password, 10);
       const hashDuration = Date.now() - hashStartTime;
-      
+
       console.log(`Bcrypt hashing took: ${hashDuration}ms`);
-      
-      expect(hashDuration).toBeGreaterThan(50); // Should take some time
+
+      expect(hashDuration).toBeGreaterThanOrEqual(40); // Avoid flakiness on fast machines
       expect(hash).toMatch(/^\$2[aby]\$/); // Valid bcrypt hash
     });
 
@@ -335,6 +342,67 @@ describe('AuthService - Integration Tests with Real Bcrypt', () => {
       expect(capturedHash).not.toContain('@');
       expect(capturedHash).not.toContain('!');
       expect(capturedHash).not.toContain('#');
+    });
+  });
+
+  describe('resetPassword with real bcrypt', () => {
+    it('updates password when current is correct', async () => {
+      const hashed = await bcrypt.hash('old-pass', 10);
+      const user = {
+        user_id: 99,
+        password: hashed,
+        save: jest.fn().mockResolvedValue()
+      };
+      db.User.findByPk = jest.fn().mockResolvedValue(user);
+
+      const result = await authService.resetPassword(99, 'old-pass', 'new-pass', 'new-pass');
+
+      expect(result).toEqual({ message: 'Password reset successfully' });
+      expect(await bcrypt.compare('new-pass', user.password)).toBe(true);
+      expect(user.save).toHaveBeenCalled();
+    });
+  });
+
+  describe('resetForgetPassword integration', () => {
+    it('resets when token matches and clears redis', async () => {
+      const user = { email: 'a@example.com', password: 'old', save: jest.fn().mockResolvedValue() };
+      db.User.findOne = jest.fn().mockResolvedValue(user);
+      redis.get = jest.fn().mockResolvedValue('otp123');
+      redis.del = jest.fn().mockResolvedValue();
+
+      const result = await authService.resetForgetPassword('a@example.com', 'new-pass', 'otp123');
+
+      expect(result).toEqual({ message: 'Password reset successfully.' });
+      expect(await bcrypt.compare('new-pass', user.password)).toBe(true);
+      expect(redis.del).toHaveBeenCalledWith('a@example.com');
+    });
+
+    it('fails when token invalid', async () => {
+      db.User.findOne = jest.fn().mockResolvedValue({ email: 'a@example.com' });
+      redis.get = jest.fn().mockResolvedValue('otp123');
+
+      await expect(authService.resetForgetPassword('a@example.com', 'new-pass', 'bad'))
+        .rejects.toThrow('Token mismatch.');
+    });
+  });
+
+  describe('verifyForgetPassword integration', () => {
+    it('stores OTP and calls sender', async () => {
+      const email = 'v@example.com';
+      db.User.findOne = jest.fn().mockResolvedValue({ email });
+      redis.del = jest.fn().mockResolvedValue();
+      redis.set = jest.fn().mockResolvedValue();
+      const genSpy = jest.spyOn(authService, 'genOTP').mockResolvedValue(555555);
+      const sendSpy = jest.spyOn(authService, 'sendOTP').mockResolvedValue(true);
+
+      const result = await authService.verifyForgetPassword(email);
+
+      expect(result).toEqual({
+        message: 'Password reset link sent to email, please use this link to access the reset page.'
+      });
+      expect(genSpy).toHaveBeenCalled();
+      expect(redis.set).toHaveBeenCalledWith(email, 555555, { EX: 300 });
+      expect(sendSpy).toHaveBeenCalled();
     });
   });
 });

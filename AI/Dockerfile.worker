@@ -1,41 +1,52 @@
 # ==============================================================================
-# Prefect Worker with uv package manager
+# Prefect Worker - DEPRECATED
+# Please use deployments/Dockerfile.worker instead for optimized builds
+# ==============================================================================
+# This file is kept for backward compatibility
+# For production, use: docker build -f deployments/Dockerfile.worker .
 # ==============================================================================
 
-FROM prefecthq/prefect:3-python3.11
+FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install uv and curl for health checks
-RUN pip install --no-cache-dir uv && \
-    apt-get update && \
-    apt-get install -y curl && \
-    rm -rf /var/lib/apt/lists/*
+# Install system dependencies (minimal)
+RUN apt-get update && apt-get install -y \
+    curl \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy pyproject.toml and other config files
+# Install uv package manager
+RUN pip install --no-cache-dir uv
+
+# Copy dependency files
 COPY pyproject.toml .
-COPY .python-version .
 COPY README.md .
+COPY .python-version* ./
 
-# Sync dependencies with uv
-RUN uv sync
+# Sync dependencies with uv (only worker dependencies)
+RUN uv sync --no-dev --extra worker
 
-# Copy entire src directory (including flows)
-COPY src/ /app/src/
+# Copy flows and required application code
+COPY src/flow/ /app/src/flow/
+COPY src/__init__.py /app/src/
+COPY src/application/__init__.py /app/src/application/
+COPY src/application/services/__init__.py /app/src/application/services/
+COPY src/application/services/llm/ /app/src/application/services/llm/
 
 # Copy prefect configuration
 COPY prefect.yaml /app/prefect.yaml
 
-# NOTE: .env file should be mounted at runtime via docker-compose volumes
-# DO NOT copy .env into image (security risk)
+# Copy email templates
+COPY templates/ /app/templates/
 
 # Set Python path
 ENV PYTHONPATH=/app:${PYTHONPATH}
 
 # Healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD python -c "import prefect; print('OK')" || exit 1
 
 # Start prefect worker
-CMD ["prefect", "worker", "start", "--pool", "local-pool"]
+CMD ["uv", "run", "prefect", "worker", "start", "--pool", "local-pool"]

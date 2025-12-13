@@ -1,0 +1,50 @@
+# ==============================================================================
+# Prefect Worker - Workflow Orchestration
+# Lightweight worker with only essential dependencies for running flows
+# ==============================================================================
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies (minimal)
+RUN apt-get update && apt-get install -y \
+    curl \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv package manager
+RUN pip install --no-cache-dir uv
+
+# Copy dependency files
+COPY pyproject.toml .
+COPY README.md .
+COPY .python-version* ./
+
+# Sync dependencies with uv (only worker dependencies)
+# This installs: prefect, prefect-redis, and core dependencies
+RUN uv sync --no-dev --extra worker
+
+# Copy flows and required application code
+COPY src/flow/ /app/src/flow/
+COPY src/__init__.py /app/src/
+COPY src/application/__init__.py /app/src/application/
+COPY src/application/services/__init__.py /app/src/application/services/
+COPY src/application/services/llm/ /app/src/application/services/llm/
+
+# Copy prefect configuration
+COPY prefect.yaml /app/prefect.yaml
+
+# Copy email templates (if flows need them)
+COPY templates/ /app/templates/
+
+# Set Python path
+ENV PYTHONPATH=/app:${PYTHONPATH}
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD python -c "import prefect; print('OK')" || exit 1
+
+# Start prefect worker
+CMD ["uv", "run", "prefect", "worker", "start", "--pool", "local-pool"]
