@@ -114,7 +114,7 @@ const hotelProfileController = {
     },
     getAllHotels: async(req, res) => {
         try {
-            const hotels = await hotelProfileService.getAllHotels();
+            const hotels = await hotelProfileService.getAllHotel();
             return responseUtils.ok(res, hotels);
         } catch(error) {
             return responseUtils.error(res, error.message);
