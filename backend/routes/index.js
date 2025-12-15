@@ -26,11 +26,6 @@ router.get("/health", (req, res) => {
 });
 
 // Auth routes
-router.group("/auth", (router) => {
-  router.post("/login", authController.login);
-  router.post("/register", authController.register);
-  router.post("/refresh-tokens", manageTokenController.refreshTokens);
-  router.post("/logout", authController.logout);
 router.group('/auth', (router) => {
   router.post('/login', validate([authValidation.login]), authController.login);
   router.post('/register', validate([authValidation.register]), authController.register);
@@ -40,7 +35,6 @@ router.group('/auth', (router) => {
   router.post('/reset-password', middlewares([authMiddleware]), validate([authValidation.resetPassword]), authController.resetPassword);
   router.post('/reset-forget-password', validate([authValidation.resetForgetPassword]), authController.resetForgetPassword);
 });
-
 // Hotel Profile routes
 router.group('/hotel-profile', (router) => {
   router.post('/add-hotel', middlewares([authMiddleware]), validate([hotelProfileValidation.addHotel]), hotelProfileController.addNewHotel);
