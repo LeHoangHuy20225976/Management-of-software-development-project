@@ -26,11 +26,6 @@ router.get("/health", (req, res) => {
 });
 
 // Auth routes
-router.group("/auth", (router) => {
-  router.post("/login", authController.login);
-  router.post("/register", authController.register);
-  router.post("/refresh-tokens", manageTokenController.refreshTokens);
-  router.post("/logout", authController.logout);
 router.group('/auth', (router) => {
   router.post('/login', validate([authValidation.login]), authController.login);
   router.post('/register', validate([authValidation.register]), authController.register);
