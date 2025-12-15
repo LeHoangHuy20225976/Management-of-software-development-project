@@ -18,6 +18,7 @@ const roomInventoryRoutes = require("../modules/room-inventory/routes/roomInvent
 const pricingEngineRoutes = require("../modules/pricing-engine/routes/pricingEngineRoutes");
 const synchronizationRoutes = require("../modules/synchronization/routes/synchronizationRoutes");
 const adminRoutes = require("../modules/super-admin/routes/adminRoutes");
+const paymentRoutes = require("../modules/payment-gateway/routes/paymentRoutes");
 
 
 // Health check endpoint
@@ -69,5 +70,8 @@ router.use('/pricing', pricingEngineRoutes);
 router.use('/sync', synchronizationRoutes);
 // Super Admin routes
 router.use('/admin', adminRoutes);
+
+// Payment Gateway routes
+router.use('/payments', paymentRoutes);
 
 module.exports = router;
