@@ -7,6 +7,7 @@ const manageTokenController = require("../modules/auth/controller/manageTokenCon
 const bookingRoutes = require("../modules/booking-engine/routes/bookingRoutes");
 const userProfileRoutes = require("../modules/user-profile/routes/UserProfileRoute");
 const destinationRoutes = require("../modules/tourism-cms/routes/DestinationRoutes");
+const notificationRoutes = require("../modules/notification/routes/notificationRoutes");
 
 // Health check endpoint
 router.get("/health", (req, res) => {
@@ -29,5 +30,8 @@ router.use("/users", userProfileRoutes);
 
 // Tourism CMS routes
 router.use("/destinations", destinationRoutes);
+
+// Notification routes
+router.use("/notifications", notificationRoutes);
 
 module.exports = router;
