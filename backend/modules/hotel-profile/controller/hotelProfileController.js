@@ -26,7 +26,7 @@ const hotelProfileController = {
         try {
             const userid = req.user.user_id;
             const { roomData } = req.body;
-            await hotelProfileService.addRoom(roomData, userid);
+            await hotelProfileService.addRoom(roomData, userid, req.files);
             return responseUtils.ok(res, {message: "Add room successfully"});        
         } catch (error) {
             return responseUtils.error(res, error.message);
@@ -116,6 +116,26 @@ const hotelProfileController = {
         try {
             const hotels = await hotelProfileService.getAllHotel();
             return responseUtils.ok(res, hotels);
+        } catch(error) {
+            return responseUtils.error(res, error.message);
+        }
+    },
+    uploadImagesForHotel: async(req, res) => {
+        try {
+            const hotelid = req.params.hotel_id;
+            const userid = req.user.user_id;
+            await hotelProfileService.uploadImagesForHotel(hotelid, userid, req.files);
+            return responseUtils.ok(res, {message: "Upload images successfully"});
+        } catch(error) {
+            return responseUtils.error(res, error.message);
+        }
+    },
+    uploadImagesForRoom: async(req, res) => {
+        try {
+            const roomid = req.params.room_id;
+            const userid = req.user.user_id;
+            await hotelProfileService.uploadImagesForRoom(roomid, userid, req.files);
+            return responseUtils.ok(res, {message: "Upload images successfully"});
         } catch(error) {
             return responseUtils.error(res, error.message);
         }

@@ -56,6 +56,8 @@ router.post(
 router.post(
   "/add-room",
   middlewares([authMiddleware, rbacMiddleware(["room:create"])]),
+  upload.array("images", 10),
+  parseJsonField("roomData"),
   validate([hotelProfileValidation.addRoom]),
   hotelProfileController.addRoom
 );
@@ -100,4 +102,16 @@ router.get(
 );
 router.get("/all-rooms", hotelProfileController.getAllRooms);
 router.get("/all-hotels", hotelProfileController.getAllHotels);
+router.post(
+  "/upload-images-for-hotel/:hotel_id",
+  middlewares([authMiddleware, rbacMiddleware(["hotel:update"])]),
+  upload.array("images", 10), // Max 10 images
+  hotelProfileController.uploadImagesForHotel
+);
+router.post(
+  "/upload-images-for-room/:room_id",
+  middlewares([authMiddleware, rbacMiddleware(["room:update"])]),
+  upload.array("images", 10), // Max 10 images
+  hotelProfileController.uploadImagesForRoom
+)
 module.exports = router;
