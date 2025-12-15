@@ -12,6 +12,8 @@ const authController = require("../modules/auth/controller/authController");
 const manageTokenController = require("../modules/auth/controller/manageTokenController");
 const hotelProfileController = require("../modules/hotel-profile/controller/hotelProfileController");
 const bookingRoutes = require("../modules/booking-engine/routes/bookingRoutes");
+const userProfileRoutes = require("../modules/user-profile/routes/UserProfileRoute");
+const destinationRoutes = require("../modules/tourism-cms/routes/DestinationRoutes");
 const roomInventoryRoutes = require("../modules/room-inventory/routes/roomInventoryRoutes");
 const pricingEngineRoutes = require("../modules/pricing-engine/routes/pricingEngineRoutes");
 const synchronizationRoutes = require("../modules/synchronization/routes/synchronizationRoutes");
@@ -19,11 +21,16 @@ const adminRoutes = require("../modules/super-admin/routes/adminRoutes");
 
 
 // Health check endpoint
-router.get('/health', (req, res) => {
-  res.status(200).send({ status: 'ok' });
+router.get("/health", (req, res) => {
+  res.status(200).send({ status: "ok" });
 });
 
 // Auth routes
+router.group("/auth", (router) => {
+  router.post("/login", authController.login);
+  router.post("/register", authController.register);
+  router.post("/refresh-tokens", manageTokenController.refreshTokens);
+  router.post("/logout", authController.logout);
 router.group('/auth', (router) => {
   router.post('/login', validate([authValidation.login]), authController.login);
   router.post('/register', validate([authValidation.register]), authController.register);
@@ -50,7 +57,13 @@ router.group('/hotel-profile', (router) => {
 });
 
 // Booking Engine routes
-router.use('/bookings', bookingRoutes);
+router.use("/bookings", bookingRoutes);
+
+// User Profile routes
+router.use("/users", userProfileRoutes);
+
+// Tourism CMS routes
+router.use("/destinations", destinationRoutes);
 
 // Room & Inventory routes
 router.use('/rooms', roomInventoryRoutes);
