@@ -6,7 +6,7 @@ const hotelProfileController = {
         try{    
             const userid = req.user.user_id;
             const { hotelData } = req.body;
-            const hotelName = await hotelProfileService.addNewHotel(hotelData, userid);
+            const hotelName = await hotelProfileService.addNewHotel(hotelData, userid, req.file);
             return responseUtils.ok(res, {message: `Add hotel ${hotelName.hotelName} successfully `});
         } catch(error) {
             return responseUtils.error(res, error.message);
@@ -108,6 +108,14 @@ const hotelProfileController = {
         try {
             const rooms = await hotelProfileService.getAllRooms();
             return responseUtils.ok(res, rooms);
+        } catch(error) {
+            return responseUtils.error(res, error.message);
+        }
+    },
+    getAllHotels: async(req, res) => {
+        try {
+            const hotels = await hotelProfileService.getAllHotels();
+            return responseUtils.ok(res, hotels);
         } catch(error) {
             return responseUtils.error(res, error.message);
         }

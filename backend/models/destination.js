@@ -30,7 +30,7 @@ module.exports = (sequelize, DataTypes) => {
     latitude: DataTypes.DOUBLE,
     longitude: DataTypes.DOUBLE,
     type: DataTypes.STRING,
-    thumbnail: DataTypes.STRING
+    thumbnail: DataTypes.TEXT
   }, {
     sequelize,
     modelName: 'Destination',

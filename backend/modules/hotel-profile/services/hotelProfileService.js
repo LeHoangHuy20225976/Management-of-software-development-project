@@ -1,9 +1,40 @@
-const express = require("express");
 const db = require("../../../models/index");
 const { Op, fn, col, where } = require('sequelize');
+const minioUtils = require("../../../utils/minioUtils");
+const { up } = require("../../../migrations/20251215110000-change-media-url-columns-to-text");
+
+const toPublicObjectUrl = (presignedUrl) => {
+    if (!presignedUrl) return null;
+
+    try {
+        const url = new URL(presignedUrl);
+
+        // Remove signature/query params to make it a plain object URL.
+        url.search = "";
+
+        // If you want a specific external host/port, set these env vars.
+        // Example (host machine): MINIO_PUBLIC_ENDPOINT=localhost, MINIO_PUBLIC_PORT=9002
+        const publicEndpoint = process.env.MINIO_PUBLIC_ENDPOINT;
+        const publicPort = process.env.MINIO_PUBLIC_PORT;
+
+        if (publicEndpoint) url.hostname = publicEndpoint;
+        if (publicPort) url.port = String(publicPort);
+
+        // Dev convenience: when running in Docker Compose, presigned URLs often use `minio:9000`
+        // which isn't reachable from the host browser. Map it to `localhost:9002` by default.
+        if (!publicEndpoint && !publicPort && url.hostname === "minio" && url.port === "9000") {
+            url.hostname = "localhost";
+            url.port = "9002";
+        }
+
+        return url.toString();
+    } catch {
+        return presignedUrl.split("?")[0];
+    }
+};
 
 const hotelProfileService = {
-    async addNewHotel(hotelData, userid) {
+    async addNewHotel(hotelData, userid, thumbnailFile) {
         // check for existed hotel based on address and name
         console.log("Hotel data: ", hotelData);
         const existedHotel = await db.Hotel.findOne({
@@ -17,24 +48,56 @@ const hotelProfileService = {
         if(existedHotel) {
             throw new Error("Hotel has been registered on our system");
         }
-        const newHotel = await db.Hotel.create({
-            name: hotelData.hotelName,
-            hotel_owner: userid,
-            address: hotelData.address,
-            status: 1,
-            rating: 5.0,
-            longitude: hotelData.longitude ? hotelData.longitude : null,
-            latitute: hotelData.latitute ? hotelData.latitute : null,
-            description: hotelData.description ? hotelData.description : 'No description provided',
-            contact_phone: hotelData.contact_phone,
-            thumbnail: hotelData.thumbnail ? hotelData.thumbnail : null
-        });
-        const user = await db.User.findByPk(userid);
-        user.role = 'hotel_manager';
-        await user.save();
-        return {
-            hotelName: newHotel.name
-        };
+        let uploadedThumbnail = null;
+        let thumbnailUrl = hotelData?.thumbnail ? hotelData.thumbnail : null;
+        try {
+            if (thumbnailFile?.buffer) {
+                if (!thumbnailFile.mimetype?.startsWith("image/")) {
+                    throw new Error("Only image files are allowed");
+                }
+                console.log("Uploading thumbnail to MinIO...", minioUtils.buckets.HOTEL_IMAGES);
+	                uploadedThumbnail = await minioUtils.uploadFile(
+	                    minioUtils.buckets.HOTEL_IMAGES,
+	                    thumbnailFile.buffer,
+	                    thumbnailFile.originalname,
+	                    { "Content-Type": thumbnailFile.mimetype }
+	                );
+	
+	                thumbnailUrl = uploadedThumbnail.fileName;
+	                console.log("Thumbnail uploaded:", thumbnailUrl);
+	            }
+
+            const newHotel = await db.Hotel.create({
+                name: hotelData.hotelName,
+                hotel_owner: userid,
+                address: hotelData.address,
+                status: 1,
+                rating: 5.0,
+                longitude: hotelData.longitude ? hotelData.longitude : null,
+                latitude: hotelData.latitude ?? hotelData.latitute ?? null,
+                description: hotelData.description ? hotelData.description : 'No description provided',
+                contact_phone: hotelData.contact_phone,
+                thumbnail: thumbnailUrl
+            });
+            const user = await db.User.findByPk(userid);
+            user.role = 'hotel_manager';
+            await user.save();
+            return {
+                hotelName: newHotel.name
+            };
+        } catch (error) {
+            if (uploadedThumbnail?.fileName) {
+                try {
+                    await minioUtils.deleteFile(
+                        minioUtils.buckets.HOTEL_IMAGES,
+                        uploadedThumbnail.fileName
+                    );
+                } catch (cleanupError) {
+                    console.error("Failed to cleanup uploaded thumbnail:", cleanupError);
+                }
+            }
+            throw error;
+        }
     },
     async addTypeForHotel(typeData, userid) {
         const hotel = await db.Hotel.findByPk(typeData.hotel_id);
@@ -103,6 +166,17 @@ const hotelProfileService = {
         if(!hotel) {
             throw new Error("Hotel not found");
         }
+        // get images for hotel
+        const imageUrl = hotel?.thumbnail ? hotel.thumbnail : null;
+        if(imageUrl) {
+            const presignedUrl = await minioUtils.getFileUrl(
+                minioUtils.buckets.HOTEL_IMAGES,
+                imageUrl
+            );
+            let publicUrl = toPublicObjectUrl(presignedUrl);
+            hotel.thumbnail = publicUrl; // just replace with presigned URL to return for client
+        }
+        console.log("Hotel profile data: ", hotel);
         return {
             hotelData: hotel
         }
@@ -121,7 +195,7 @@ const hotelProfileService = {
         hotel.address = hotelData.address ?? hotel.address;
         hotel.status = hotelData.status ?? hotel.status;
         hotel.longitude = hotelData.longitude ?? hotel.longitude;
-        hotel.latitute = hotelData.latitute ?? hotel.latitute;
+        hotel.latitude = (hotelData.latitude ?? hotelData.latitute) ?? hotel.latitude;
         hotel.description = hotelData.description ?? hotel.description;
         hotel.contact_phone = hotelData.contact_phone ?? hotel.contact_phone;
         hotel.thumbnail = hotelData.thumbnail ?? hotel.thumbnail;
@@ -346,6 +420,22 @@ const hotelProfileService = {
             });
         }
         return roomsWithPrices;
+    },
+    getAllHotel: async() => {
+        const hotels = await db.Hotel.findAll();
+        // for each hotel, get presigned url for thumbnail
+        for(const hotel of hotels) {
+            const imageUrl = hotel?.thumbnail ? hotel.thumbnail : null;
+            if(imageUrl) {
+                const presignedUrl = await minioUtils.getFileUrl(
+                    minioUtils.buckets.HOTEL_IMAGES,
+                    imageUrl
+                );
+                let publicUrl = toPublicObjectUrl(presignedUrl);
+                hotel.thumbnail = publicUrl; // just replace with presigned URL to return for client
+            }
+        }
+        return hotels;
     }
 };
 module.exports = hotelProfileService;

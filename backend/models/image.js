@@ -27,7 +27,7 @@ module.exports = (sequelize, DataTypes) => {
     destination_id: DataTypes.INTEGER,
     hotel_id: DataTypes.INTEGER,
     room_id: DataTypes.INTEGER,
-    image_url: DataTypes.STRING
+    image_url: DataTypes.TEXT
   }, {
     sequelize,
     modelName: 'Image',
