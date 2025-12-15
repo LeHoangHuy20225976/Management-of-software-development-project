@@ -94,8 +94,8 @@ const authService = {
         if (storedToken !== token) {
             throw new Error("Token mismatch.");
         }
-        const hashed_password = await bcrypt.hash(newPassword, 10);
-        user.hashed_password = hashed_password;
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
         await redis.del(email);
         await user.save();
         return { message: "Password reset successfully." };
@@ -127,7 +127,7 @@ const authService = {
         //     throw new Error("User not found or not authenticated.");
         // }
         await redis.del(email);
-        const base_url = process.env.RESET_PASSWORD_URL || 'http://localhost:4200/auth/reset-password?token=';
+        const base_url = process.env.RESET_PASSWORD_URL || 'http://localhost:3000/reset-password?token=';
         const otp = await this.genOTP();
         await redis.set(email, otp, { EX: 300 }); // 300s = 5 minutes
         const resetLink = `${base_url}${otp}`;

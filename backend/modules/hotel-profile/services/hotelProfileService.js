@@ -1,9 +1,40 @@
-const express = require("express");
 const db = require("../../../models/index");
 const { Op, fn, col, where } = require('sequelize');
+const minioUtils = require("../../../utils/minioUtils");
+const { up } = require("../../../migrations/20251215110000-change-media-url-columns-to-text");
+
+const toPublicObjectUrl = (presignedUrl) => {
+    if (!presignedUrl) return null;
+
+    try {
+        const url = new URL(presignedUrl);
+
+        // Remove signature/query params to make it a plain object URL.
+        url.search = "";
+
+        // If you want a specific external host/port, set these env vars.
+        // Example (host machine): MINIO_PUBLIC_ENDPOINT=localhost, MINIO_PUBLIC_PORT=9002
+        const publicEndpoint = process.env.MINIO_PUBLIC_ENDPOINT;
+        const publicPort = process.env.MINIO_PUBLIC_PORT;
+
+        if (publicEndpoint) url.hostname = publicEndpoint;
+        if (publicPort) url.port = String(publicPort);
+
+        // Dev convenience: when running in Docker Compose, presigned URLs often use `minio:9000`
+        // which isn't reachable from the host browser. Map it to `localhost:9002` by default.
+        if (!publicEndpoint && !publicPort && url.hostname === "minio" && url.port === "9000") {
+            url.hostname = "localhost";
+            url.port = "9002";
+        }
+
+        return url.toString();
+    } catch {
+        return presignedUrl.split("?")[0];
+    }
+};
 
 const hotelProfileService = {
-    async addNewHotel(hotelData, userid) {
+    async addNewHotel(hotelData, userid, thumbnailFile) {
         // check for existed hotel based on address and name
         console.log("Hotel data: ", hotelData);
         const existedHotel = await db.Hotel.findOne({
@@ -17,24 +48,56 @@ const hotelProfileService = {
         if(existedHotel) {
             throw new Error("Hotel has been registered on our system");
         }
-        const newHotel = await db.Hotel.create({
-            name: hotelData.hotelName,
-            hotel_owner: userid,
-            address: hotelData.address,
-            status: 1,
-            rating: 5.0,
-            longitude: hotelData.longitude ? hotelData.longitude : null,
-            latitute: hotelData.latitute ? hotelData.latitute : null,
-            description: hotelData.description ? hotelData.description : 'No description provided',
-            contact_phone: hotelData.contact_phone,
-            thumbnail: hotelData.thumbnail ? hotelData.thumbnail : null
-        });
-        const user = await db.User.findByPk(userid);
-        user.role = 'hotel_manager';
-        await user.save();
-        return {
-            hotelName: newHotel.name
-        };
+        let uploadedThumbnail = null;
+        let thumbnailUrl = hotelData?.thumbnail ? hotelData.thumbnail : null;
+        try {
+            if (thumbnailFile?.buffer) {
+                if (!thumbnailFile.mimetype?.startsWith("image/")) {
+                    throw new Error("Only image files are allowed");
+                }
+                console.log("Uploading thumbnail to MinIO...", minioUtils.buckets.HOTEL_IMAGES);
+	                uploadedThumbnail = await minioUtils.uploadFile(
+	                    minioUtils.buckets.HOTEL_IMAGES,
+	                    thumbnailFile.buffer,
+	                    thumbnailFile.originalname,
+	                    { "Content-Type": thumbnailFile.mimetype }
+	                );
+	
+	                thumbnailUrl = uploadedThumbnail.fileName;
+	                console.log("Thumbnail uploaded:", thumbnailUrl);
+	            }
+
+            const newHotel = await db.Hotel.create({
+                name: hotelData.hotelName,
+                hotel_owner: userid,
+                address: hotelData.address,
+                status: 1,
+                rating: 5.0,
+                longitude: hotelData.longitude ? hotelData.longitude : null,
+                latitude: hotelData.latitude ?? hotelData.latitute ?? null,
+                description: hotelData.description ? hotelData.description : 'No description provided',
+                contact_phone: hotelData.contact_phone,
+                thumbnail: thumbnailUrl
+            });
+            const user = await db.User.findByPk(userid);
+            user.role = 'hotel_manager';
+            await user.save();
+            return {
+                hotelName: newHotel.name
+            };
+        } catch (error) {
+            if (uploadedThumbnail?.fileName) {
+                try {
+                    await minioUtils.deleteFile(
+                        minioUtils.buckets.HOTEL_IMAGES,
+                        uploadedThumbnail.fileName
+                    );
+                } catch (cleanupError) {
+                    console.error("Failed to cleanup uploaded thumbnail:", cleanupError);
+                }
+            }
+            throw error;
+        }
     },
     async addTypeForHotel(typeData, userid) {
         const hotel = await db.Hotel.findByPk(typeData.hotel_id);
@@ -46,13 +109,25 @@ const hotelProfileService = {
         if(userid !== ownerid) {
             throw new Error("You are not the owner of this hotel");
         }
-        await db.RoomType.create({
+        const newRoomType = await db.RoomType.create({
             hotel_id: typeData.hotel_id,
             type: typeData.type,
             availability: typeData.availability ? typeData.availability : true,
             max_guests: typeData.max_guests ? typeData.max_guests: 2,
             description: typeData.description ? typeData.description : 'No description provided',
             quantity: 0
+        });
+        // get type_id from the roomtype be created to add price
+        const NOW = new Date();
+        const priceData = typeData.priceData;
+        await db.RoomPrice.create({
+            type_id: newRoomType.type_id,
+            start_date: NOW,
+            end_date: null,
+            special_price: priceData.special_price ? priceData.special_price : null,
+            event: priceData.event ? priceData.event : 'No event',
+            basic_price: priceData.basic_price,
+            discount: priceData.discount ? priceData.discount : 0.0
         });
     },
     async addRoom(roomData, userid) {
@@ -71,7 +146,7 @@ const hotelProfileService = {
             throw new Error("You are not the owner of this hotel");
         }
         await db.Room.create({
-            type_id: roomData.type_id,
+            type_id: roomType.type_id,
             name: roomData.name, 
             location: roomData.location,
             status: 1,
@@ -91,6 +166,17 @@ const hotelProfileService = {
         if(!hotel) {
             throw new Error("Hotel not found");
         }
+        // get images for hotel
+        const imageUrl = hotel?.thumbnail ? hotel.thumbnail : null;
+        if(imageUrl) {
+            const presignedUrl = await minioUtils.getFileUrl(
+                minioUtils.buckets.HOTEL_IMAGES,
+                imageUrl
+            );
+            let publicUrl = toPublicObjectUrl(presignedUrl);
+            hotel.thumbnail = publicUrl; // just replace with presigned URL to return for client
+        }
+        console.log("Hotel profile data: ", hotel);
         return {
             hotelData: hotel
         }
@@ -104,14 +190,15 @@ const hotelProfileService = {
         if(ownerid !== userid) {
             throw new Error("You are not the owner of this hotel");
         }
-        hotel.name = hotelData.hotelName ? hotelData.hotelName : hotel.name;
-        hotel.address = hotelData.address ? hotelData.address : hotel.address;
-        hotel.status = hotelData.status ? hotelData.status : hotel.status;
-        hotel.longitude = hotelData.longitude ? hotelData.longitude : hotel.longitude;
-        hotel.latitute = hotelData.latitute ? hotelData.latitute : hotel.latitute;
-        hotel.description = hotelData.description ? hotelData.description : hotel.description;
-        hotel.contact_phone = hotelData.contact_phone ? hotelData.contact_phone : hotel.contact_phone;
-        hotel.thumbnail = hotelData.thumbnail ? hotelData.thumbnail : hotel.thumbnail;
+        // Use nullish coalescing to allow falsy values like 0 or empty strings to be saved intentionally
+        hotel.name = hotelData.hotelName ?? hotel.name;
+        hotel.address = hotelData.address ?? hotel.address;
+        hotel.status = hotelData.status ?? hotel.status;
+        hotel.longitude = hotelData.longitude ?? hotel.longitude;
+        hotel.latitude = (hotelData.latitude ?? hotelData.latitute) ?? hotel.latitude;
+        hotel.description = hotelData.description ?? hotel.description;
+        hotel.contact_phone = hotelData.contact_phone ?? hotel.contact_phone;
+        hotel.thumbnail = hotelData.thumbnail ?? hotel.thumbnail;
         await hotel.save();
     },
     async disableHotel(hotelid, userid) {
@@ -153,6 +240,202 @@ const hotelProfileService = {
             await transaction.rollback(); 
             throw error;
         }
+    },
+    updateFacilityForHotel: async(facilityData, userid, hotelid) => {
+        const hotel = await db.Hotel.findByPk(hotelid);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+        // check for the verification of update 
+        const ownerid = hotel.hotel_owner;
+        if(ownerid !== userid) {
+            throw new Error("You are not the owner of hotel");
+        }
+        // add facility for hotel (must be initialized first)
+        const listFacilities = facilityData.facilities; // list of facilities and descriptions
+        await db.FacilitiesPossessing.destroy({
+            where: {
+                hotel_id: facilityData.hotel_id
+            }
+        });
+        for(const facility of listFacilities) {   
+            await db.FacilitiesPossessing.create({
+                facility_id: facility.facility_id,
+                hotel_id: facilityData.hotel_id,
+                description: facility.description ? facility.description : 'No description provided'
+            });
+        }
+    },
+    updatePriceForRoomType: async(priceData, userid) => {
+        const roomType = await db.RoomType.findByPk(priceData.type_id);
+        if(!roomType) {
+            throw new Error("Room type not found");
+        }
+        // update room price
+        const hotel = await db.Hotel.findByPk(roomType.hotel_id);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+        const ownerid = hotel.hotel_owner;
+        if(ownerid !== userid) {
+            throw new Error("You are not the owner of this hotel");
+        }
+        const roomPrice = await db.RoomPrice.findOne({
+            where: {
+                type_id: priceData.type_id}
+        });   
+        await db.RoomPrice.update({
+            start_date: priceData.start_date  ?? roomPrice.start_date,
+            end_date: priceData.end_date ?? roomPrice.end_date,
+            special_price: priceData.special_price ?? roomPrice.special_price,
+            event: priceData.event ?? roomPrice.event,
+            basic_price: priceData.basic_price ?? roomPrice.basic_price,
+            discount: priceData.discount ?? roomPrice.discount
+        }, {
+            where: {
+                type_id: priceData.type_id
+            }
+        });
+    },
+    getAllTypeForHotel: async(hotelid) => {
+        const hotel = await db.Hotel.findByPk(hotelid);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+        const roomTypes = await db.RoomType.findAll({
+            where: { hotel_id: hotelid}
+        })
+        return roomTypes;
+    },
+    getAllRoomsForHotel: async(hotelid) => {
+        const hotel = await db.Hotel.findByPk(hotelid);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+        // get all room types of hotel first
+        const roomTypes = await db.RoomType.findAll({
+            where: {hotel_id: hotelid}
+        });
+        const typeIds = roomTypes.map((roomType) => roomType.type_id);
+        const rooms = await db.Room.findAll({
+            where: {type_id: typeIds}
+        });
+        // check from bookings for each room to check availablity
+        // get bookings for rooms
+        const bookings = await db.Booking.findAll({
+            where: {
+                room_id: rooms.map((room) => room.room_id),
+                status: { [Op.ne]: 'cancelled' } // exclude cancelled bookings
+            }
+        });
+        // check for each room in current Date is between check-in and check-out date of booking
+        const currentDate = new Date();
+        for(const room of rooms) {
+            const roomBookings = bookings.filter((booking) => booking.room_id === room.room_id);
+            const isAvailable = !roomBookings.some(
+                b => currentDate >= b.check_in_date && currentDate <= b.check_out_date
+            );
+            room.setDataValue('isAvailable', isAvailable); // make it JSON-visible
+        }
+        // get price for each room based on type_id
+        const roomsWithPrices = [];
+        for(const room of rooms) {
+            const roomType = roomTypes.find((type) => type.type_id === room.type_id);
+            const roomPrice = await db.RoomPrice.findOne({
+                where: { type_id: room.type_id }
+            });
+            if(!roomPrice) {
+                roomsWithPrices.push({
+                    roomData: room,
+                    roomTypeData: roomType,
+                    priceData: null, // or set defaults
+                });
+                continue;
+            }
+            // check for special price and price, if existed special price, use it, else use basic price
+            const price = roomPrice?.special_price ?? roomPrice?.basic_price;
+            roomsWithPrices.push({
+                roomData: room.get({ plain: true }), // includes isAvailable
+                roomTypeData: roomType,
+                priceData: {
+                    price: price,
+                    discount: roomPrice.discount,
+                    start_date: roomPrice.start_date,
+                    end_date: roomPrice.end_date,
+                }
+            });
+        }
+        return roomsWithPrices;
+    },
+    getAllRooms: async() => {
+        const rooms = await db.Room.findAll();
+        // get all room types based on rooms
+        const typeIds = rooms.map((room) => room.type_id);
+        const roomTypes = await db.RoomType.findAll({
+            where: {type_id: typeIds}
+        });
+        // get bookings for rooms
+        const bookings = await db.Booking.findAll({
+            where: {
+                room_id: rooms.map((room) => room.room_id),
+                status: { [Op.ne]: 'cancelled' } // exclude cancelled bookings
+            }
+        });
+        // check for each room in current Date is between check-in and check-out date of booking
+        const currentDate = new Date();
+        for(const room of rooms) {
+            const roomBookings = bookings.filter((booking) => booking.room_id === room.room_id);
+            const isAvailable = !roomBookings.some(
+                b => currentDate >= b.check_in_date && currentDate <= b.check_out_date
+            );
+            room.setDataValue('isAvailable', isAvailable); // make it JSON-visible
+        }
+        // get price for each room based on type_id
+        const roomsWithPrices = [];
+        for(const room of rooms) {
+            const roomType = roomTypes.find((type) => type.type_id === room.type_id);
+            const roomPrice = await db.RoomPrice.findOne({
+                where: { type_id: room.type_id }
+            });
+            if(!roomPrice) {
+                roomsWithPrices.push({
+                    roomData: room,
+                    roomTypeData: roomType,
+                    priceData: null, // or set defaults
+                });
+                continue;
+            }
+            // check for special price and price, if existed special price, use it, else use basic price
+            const price = roomPrice?.special_price ?? roomPrice?.basic_price;
+
+            roomsWithPrices.push({
+                roomData: room.get({ plain: true }), // includes isAvailable
+                roomTypeData: roomType,
+                priceData: {
+                    price: price,
+                    discount: roomPrice.discount,
+                    start_date: roomPrice.start_date,
+                    end_date: roomPrice.end_date,
+                }
+            });
+        }
+        return roomsWithPrices;
+    },
+    getAllHotel: async() => {
+        const hotels = await db.Hotel.findAll();
+        // for each hotel, get presigned url for thumbnail
+        for(const hotel of hotels) {
+            const imageUrl = hotel?.thumbnail ? hotel.thumbnail : null;
+            if(imageUrl) {
+                const presignedUrl = await minioUtils.getFileUrl(
+                    minioUtils.buckets.HOTEL_IMAGES,
+                    imageUrl
+                );
+                let publicUrl = toPublicObjectUrl(presignedUrl);
+                hotel.thumbnail = publicUrl; // just replace with presigned URL to return for client
+            }
+        }
+        return hotels;
     }
 };
 module.exports = hotelProfileService;

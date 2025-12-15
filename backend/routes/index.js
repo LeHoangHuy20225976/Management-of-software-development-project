@@ -1,46 +1,50 @@
-require("express-router-group");
 const express = require("express");
 const router = express.Router({ mergeParams: true });
 
-const middlewares = require("../kernels/middlewares");
-const authMiddleware = require("../kernels/middlewares/authMiddleware");
-const rbacMiddleware = require("../kernels/middlewares/rbacMiddleware");
-const authController = require("../modules/auth/controller/authController");
-const manageTokenController = require("../modules/auth/controller/manageTokenController");
-const hotelProfileController = require("../modules/hotel-profile/controller/hotelProfileController");
+const authRoutes = require("../modules/auth/routes/authRoutes");
+const hotelProfileRoutes = require("../modules/hotel-profile/routes/hotelProfileRoutes");
 const bookingRoutes = require("../modules/booking-engine/routes/bookingRoutes");
+const userProfileRoutes = require("../modules/user-profile/routes/UserProfileRoute");
+const destinationRoutes = require("../modules/tourism-cms/routes/DestinationRoutes");
+const roomInventoryRoutes = require("../modules/room-inventory/routes/roomInventoryRoutes");
+const pricingEngineRoutes = require("../modules/pricing-engine/routes/pricingEngineRoutes");
+const synchronizationRoutes = require("../modules/synchronization/routes/synchronizationRoutes");
 const adminRoutes = require("../modules/super-admin/routes/adminRoutes");
+const paymentRoutes = require("../modules/payment-gateway/routes/paymentRoutes");
+
 
 // Health check endpoint
-router.get('/health', (req, res) => {
-  res.status(200).send({ status: 'ok' });
+router.get("/health", (req, res) => {
+  res.status(200).send({ status: "ok" });
 });
 
 // Auth routes
-router.group('/auth', (router) => {
-  router.post('/login', authController.login);
-  router.post('/register', authController.register);
-  router.post('/refresh-tokens', manageTokenController.refreshTokens);
-  router.post('/logout', middlewares([authMiddleware]),authController.logout);
-  router.post('/verify-forget-password', authController.verifyResetForgetPassword);
-  router.post('/reset-password', middlewares([authMiddleware]), authController.resetPassword);
-  router.post('/reset-forget-password', authController.resetForgetPassword);
-});
+router.use("/auth", authRoutes);
 
 // Hotel Profile routes
-router.group('/hotel-profile', (router) => {
-  router.post('/add-hotel', middlewares([authMiddleware]), hotelProfileController.addNewHotel);
-  router.post('/add-room-type', middlewares([authMiddleware, rbacMiddleware(['room:create'])]), hotelProfileController.addTypeForHotel);
-  router.post('/add-room', middlewares([authMiddleware, rbacMiddleware(['room:create'])]), hotelProfileController.addRoom);
-  router.get('/view-hotel/:hotel_id',  hotelProfileController.viewHotelProfile);
-  router.put('/update-hotel/:hotel_id', middlewares([authMiddleware, rbacMiddleware(['hotel:update'])]), hotelProfileController.updateHotelProfile);
-  router.delete('/delete-hotel/:hotel_id', middlewares([authMiddleware, rbacMiddleware(['hotel:update'])]), hotelProfileController.disableHotel);
-});
+router.use("/hotel-profile", hotelProfileRoutes);
 
 // Booking Engine routes
-router.use('/bookings', bookingRoutes);
+router.use("/bookings", bookingRoutes);
 
+// User Profile routes
+router.use("/users", userProfileRoutes);
+
+// Tourism CMS routes
+router.use("/destinations", destinationRoutes);
+
+// Room & Inventory routes
+router.use('/rooms', roomInventoryRoutes);
+
+// Pricing Engine routes
+router.use('/pricing', pricingEngineRoutes);
+
+// Synchronization routes
+router.use('/sync', synchronizationRoutes);
 // Super Admin routes
 router.use('/admin', adminRoutes);
+
+// Payment Gateway routes
+router.use('/payments', paymentRoutes);
 
 module.exports = router;

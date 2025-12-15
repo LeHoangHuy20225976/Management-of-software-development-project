@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 03082004
     ports:
-      - "5432:5432"
+      - "55432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
     image: redis:7-alpine
     container_name: hotel_redis
     ports:
-      - "6379:6379"
+      - "56379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -34,6 +34,26 @@ services:
       - hotel_network
     command: redis-server --appendonly yes
 
+  minio:
+    image: minio/minio:latest
+    container_name: hotel_minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9002:9000" # MinIO API
+      - "9003:9001" # MinIO Console (Web UI)
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hotel_network
+    command: server /data --console-address ":9001"
+
   backend:
     build:
       context: .
@@ -42,7 +62,7 @@ services:
     env_file:
       - .env
     environment:
-      PORT: 3000
+      PORT: 4000
       DATABASE_ENV: development
       DATABASE_NAME: hotel_dev_db
       DATABASE_USERNAME: postgres
@@ -55,15 +75,22 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_USE_SSL: false
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
       APP_PASS: ${APP_PASS}
       GMAIL_USER: ${GMAIL_USER}
-      RESET_PASSWORD_URL: ${RESET_PASSWORD_URL}
+      RESET_PASSWORD_URL: http://localhost:3000/reset-password?token=
     ports:
-      - "3000:3000"
+      - "4000:4000"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     volumes:
       - .:/app
@@ -76,6 +103,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  minio_data:
 
 networks:
   hotel_network:

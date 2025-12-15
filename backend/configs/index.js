@@ -29,7 +29,23 @@ const database = {
   dbLogging: process.env.DB_LOGGING === "true",
 };
 
-const config = { app, database, jwt, hashing };
+const minio = {
+  endPoint: process.env.MINIO_ENDPOINT || "localhost",
+  port: toInt(process.env.MINIO_PORT, 9000),
+  useSSL: process.env.MINIO_USE_SSL === "true",
+  accessKey: process.env.MINIO_ACCESS_KEY || "minioadmin",
+  secretKey: process.env.MINIO_SECRET_KEY || "minioadmin",
+  buckets: {
+    hotelImages: process.env.MINIO_BUCKET_HOTEL_IMAGES || "hotel-images",
+    roomImages: process.env.MINIO_BUCKET_ROOM_IMAGES || "room-images",
+    userProfiles: process.env.MINIO_BUCKET_USER_PROFILES || "user-profiles",
+    destinationImages:
+      process.env.MINIO_BUCKET_DESTINATION_IMAGES || "destination-images",
+    documents: process.env.MINIO_BUCKET_DOCUMENTS || "documents",
+  },
+};
+
+const config = { app, database, jwt, hashing, minio };
 
 module.exports = {
   PORT: app.port,
@@ -38,5 +54,6 @@ module.exports = {
   database,
   jwt,
   hashing,
+  minio,
   config,
 };
