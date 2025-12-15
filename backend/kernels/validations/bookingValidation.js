@@ -6,14 +6,9 @@ const { body, param, query } = require('express-validator');
 const bookingValidation = {
   /**
    * Validate create booking request
+   * Note: user_id comes from auth middleware (req.user), not from body
    */
   createBooking: [
-    body('user_id')
-      .notEmpty()
-      .withMessage('User ID is required')
-      .isInt({ min: 1 })
-      .withMessage('User ID must be a positive integer'),
-    
     body('room_id')
       .notEmpty()
       .withMessage('Room ID is required')

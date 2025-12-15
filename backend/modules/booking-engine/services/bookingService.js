@@ -271,7 +271,7 @@ class BookingService {
    * @returns {Promise<Array>} List of bookings
    */
   async getBookings(filters = {}) {
-    const { user_id, room_id, hotel_id, status, check_in_from, check_in_to, limit = 50, offset = 0 } = filters;
+    const { user_id, room_id, hotel_id, hotel_owner_id, status, check_in_from, check_in_to, limit = 50, offset = 0 } = filters;
 
     const whereClause = {};
     const includeClause = [
@@ -310,6 +310,16 @@ class BookingService {
     // Filter by hotel_id through room relationship
     if (hotel_id) {
       includeClause[1].include[0].where = { hotel_id };
+      includeClause[1].required = true;
+    }
+
+    // Filter by hotel_owner_id (for hotel managers to see their hotels' bookings)
+    if (hotel_owner_id) {
+      includeClause[1].include[0].include = [{ 
+        model: Hotel, 
+        where: { hotel_owner: hotel_owner_id } 
+      }];
+      includeClause[1].include[0].required = true;
       includeClause[1].required = true;
     }
 

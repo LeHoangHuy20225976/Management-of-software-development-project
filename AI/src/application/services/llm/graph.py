@@ -11,34 +11,48 @@ def create_chat_graph():
 
     graph = StateGraph(ChatState)
 
-    async def llm_node(state: ChatState) -> ChatState:
+    def llm_node(state: ChatState) -> ChatState:
         """
-        Node call API and get response
+        Node call API and get response (SYNCHRONOUS for PostgresSaver compatibility)
         """
+        try:
+            print(f"[LLM Node] Starting with state: {state}")
+            
+            messages = state["messages"]
+            user_message = messages[-1].content
+            
+            print(f"[LLM Node] User message: {user_message}")
 
-        messages = state["messages"]
+            history = []
+            for msg in messages[:-1]:
+                if isinstance(msg, HumanMessage):
+                    history.append({"role": "user", "content": msg.content})
+                elif isinstance(msg, AIMessage):
+                    history.append({"role": "assistant", "content": msg.content})
 
-        user_message = messages[-1].content
+            history = history if history else None
+            print(f"[LLM Node] History: {history}")
 
-        history = []
-        for msg in messages[:-1]:
-            if isinstance(msg, HumanMessage):
-                history.append({"role": "user", "content": msg.content})
-            elif isinstance(msg, AIMessage):
-                history.append({"role": "assistant", "content": msg.content})
+            # Sync client for sync node
+            client = get_gpt_client()
+            print(f"[LLM Node] Calling GPT client...")
+            
+            response = client.chat(
+                message=user_message,
+                history=history
+            )
+            
+            print(f"[LLM Node] Got response: {response}")
 
-        history = history if history else None
-
-        client = get_gpt_client()
-        response = client.chat(
-            message=user_message,
-            history=history
-        )
-
-        return {
-            "messages": [AIMessage(content=response)],
-            "conversation_id": state["conversation_id"]
-        }
+            return {
+                "messages": [AIMessage(content=response)],
+                "conversation_id": state["conversation_id"]
+            }
+        except Exception as e:
+            print(f"[LLM Node] ERROR: {type(e).__name__}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            raise
     
     graph.add_node("llm", llm_node)
 

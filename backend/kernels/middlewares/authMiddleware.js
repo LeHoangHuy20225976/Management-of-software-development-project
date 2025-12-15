@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
-const config = require('configs/index');
-const responseUtils = require('utils/responseUtils');
-const db = require('models/index');
+const config = require('../../configs/index');
+const responseUtils = require("../../utils/responseUtils");
+const db = require('../../models/index');
 // const manageTokenServices = require('modules/manage_token/services/manageTokenService');
 
 const authMiddleware = async (req, res, next) => {
