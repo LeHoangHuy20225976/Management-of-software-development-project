@@ -46,8 +46,17 @@ jest.mock('sequelize', () => ({
   where: jest.fn((lhs, rhs) => ({ lhs, rhs }))
 }));
 
+jest.mock('../../../../utils/minioUtils', () => ({
+  buckets: {
+    HOTEL_IMAGES: 'hotel-images'
+  },
+  uploadFile: jest.fn(),
+  deleteFile: jest.fn()
+}));
+
 const db = require('models/index');
 const { Op } = require('sequelize');
+const minioUtils = require('../../../../utils/minioUtils');
 
 describe('hotelProfileService - Unit Tests', () => {
   beforeEach(() => {
@@ -84,7 +93,7 @@ describe('hotelProfileService - Unit Tests', () => {
         status: 1,
         rating: 5.0,
         longitude: hotelData.longitude,
-        latitute: null,
+        latitude: null,
         description: 'No description provided',
         contact_phone: hotelData.contact_phone,
         thumbnail: null
@@ -100,6 +109,41 @@ describe('hotelProfileService - Unit Tests', () => {
       await expect(hotelProfileService.addNewHotel(hotelData, 1))
         .rejects
         .toThrow('Hotel has been registered on our system');
+    });
+
+    it('uploads thumbnail and stores returned URL when file is provided', async () => {
+      db.Hotel.findOne.mockResolvedValue(null);
+      const mockUser = { role: 'customer', save: jest.fn().mockResolvedValue() };
+      db.User.findByPk.mockResolvedValue(mockUser);
+
+      minioUtils.uploadFile.mockResolvedValue({
+        success: true,
+        fileName: 'thumb-123.png',
+        url: 'http://minio.local/hotel-images/thumb-123.png',
+        bucketName: 'hotel-images'
+      });
+
+      db.Hotel.create.mockResolvedValue({ name: hotelData.hotelName });
+
+      const thumbnailFile = {
+        buffer: Buffer.from('fake'),
+        originalname: 'thumb.png',
+        mimetype: 'image/png'
+      };
+
+      await hotelProfileService.addNewHotel(hotelData, 1, thumbnailFile);
+
+      expect(minioUtils.uploadFile).toHaveBeenCalledWith(
+        minioUtils.buckets.HOTEL_IMAGES,
+        thumbnailFile.buffer,
+        thumbnailFile.originalname,
+        { 'Content-Type': thumbnailFile.mimetype }
+      );
+      expect(db.Hotel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          thumbnail: 'http://minio.local/hotel-images/thumb-123.png'
+        })
+      );
     });
   });
 
@@ -223,18 +267,18 @@ describe('hotelProfileService - Unit Tests', () => {
   });
 
   describe('updateHotelProfile', () => {
-    const baseHotel = {
-      hotel_owner: 1,
-      name: 'Old Name',
-      address: 'Old Address',
-      status: 1,
-      longitude: 1,
-      latitute: 2,
-      description: 'Old',
-      contact_phone: '000',
-      thumbnail: 'old.png',
-      save: jest.fn().mockResolvedValue()
-    };
+	    const baseHotel = {
+	      hotel_owner: 1,
+	      name: 'Old Name',
+	      address: 'Old Address',
+	      status: 1,
+	      longitude: 1,
+	      latitude: 2,
+	      description: 'Old',
+	      contact_phone: '000',
+	      thumbnail: 'old.png',
+	      save: jest.fn().mockResolvedValue()
+	    };
 
     it('throws when hotel is not found', async () => {
       db.Hotel.findByPk.mockResolvedValue(null);

@@ -216,29 +216,29 @@ describe('hotelProfileService - Integration Tests', () => {
       save: jest.fn(async function () { return this; })
     });
 
-    const hotelPayload = {
-      hotelName: 'Sunrise',
-      address: '123 Beach Road',
-      longitude: 10.1,
-      latitute: 20.2,
-      contact_phone: '555-0000'
-    };
+	    const hotelPayload = {
+	      hotelName: 'Sunrise',
+	      address: '123 Beach Road',
+	      longitude: 10.1,
+	      latitute: 20.2,
+	      contact_phone: '555-0000'
+	    };
 
     const createdHotel = await hotelProfileService.addNewHotel(hotelPayload, userId);
     expect(createdHotel).toEqual({ hotelName: hotelPayload.hotelName });
 
     const hotel = db.__data.hotels[0];
-    expect(hotel).toMatchObject({
-      name: hotelPayload.hotelName,
-      address: hotelPayload.address,
-      status: 1,
-      rating: 5.0,
-      longitude: hotelPayload.longitude,
-      latitute: hotelPayload.latitute,
-      description: 'No description provided',
-      contact_phone: hotelPayload.contact_phone,
-      thumbnail: null
-    });
+	    expect(hotel).toMatchObject({
+	      name: hotelPayload.hotelName,
+	      address: hotelPayload.address,
+	      status: 1,
+	      rating: 5.0,
+	      longitude: hotelPayload.longitude,
+	      latitude: hotelPayload.latitute,
+	      description: 'No description provided',
+	      contact_phone: hotelPayload.contact_phone,
+	      thumbnail: null
+	    });
     expect(db.__data.users[0].role).toBe('hotel_manager');
 
     const typePayload = {

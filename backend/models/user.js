@@ -34,7 +34,7 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: 'customer',
     },
     password: DataTypes.STRING,
-    profile_image: DataTypes.STRING
+    profile_image: DataTypes.TEXT
   }, {
     sequelize,
     modelName: 'User',
