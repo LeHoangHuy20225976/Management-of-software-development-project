@@ -5,17 +5,21 @@ const DestinationService = {
    * Get all destinations
    */
   async getAllDestinations() {
-    const destinations = await db.Destination.findAll({
+    const destinations = await db.Destination.findAll();
+    console.log(destinations);
+    return destinations;
+  },
+  /* 
+  {
       include: [
         {
           model: db.Image,
-          attributes: ["image_id", "url"],
+          attributes: ["image_id", "image_url"],
         },
       ],
       order: [["destination_id", "ASC"]],
-    });
-    return destinations;
-  },
+    }
+  */
 
   /**
    * Get destination by ID
@@ -25,7 +29,7 @@ const DestinationService = {
       include: [
         {
           model: db.Image,
-          attributes: ["image_id", "url"],
+          attributes: ["image_id", "image_url"],
         },
         {
           model: db.Review,
@@ -147,7 +151,7 @@ const DestinationService = {
       include: [
         {
           model: db.Image,
-          attributes: ["image_id", "url"],
+          attributes: ["image_id", "image_url"],
         },
       ],
       order: [["rating", "DESC"]],
@@ -164,7 +168,7 @@ const DestinationService = {
       include: [
         {
           model: db.Image,
-          attributes: ["image_id", "url"],
+          attributes: ["image_id", "image_url"],
         },
       ],
       order: [["rating", "DESC"]],
@@ -180,7 +184,7 @@ const DestinationService = {
       imageUrls.map((url) =>
         db.Image.create({
           destination_id: destinationId,
-          url: url,
+          image_url: url,
         })
       )
     );

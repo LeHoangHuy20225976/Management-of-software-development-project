@@ -11,10 +11,10 @@ const nodemailer = require("nodemailer");
  */
 const createTransporter = () => {
   const config = {
-    service: process.env.EMAIL_SERVICE || "gmail",
+    service: "gmail",
     auth: {
-      user: process.env.EMAIL_USER || process.env.GMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD || process.env.APP_PASS,
+      user: process.env.GMAIL_USER,
+      pass: process.env.APP_PASS,
     },
   };
 
@@ -38,9 +38,8 @@ const transporter = createTransporter();
  * Email configuration options
  */
 const emailConfig = {
-  from:
-    process.env.EMAIL_FROM || process.env.EMAIL_USER || process.env.GMAIL_USER,
-  replyTo: process.env.EMAIL_REPLY_TO || process.env.EMAIL_USER,
+  from: process.env.GMAIL_USER,
+  replyTo: process.env.GMAIL_USER,
 };
 
 module.exports = {
