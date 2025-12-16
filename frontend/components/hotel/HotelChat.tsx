@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
+import { useAuth } from '@/lib/context/AuthContext';
 
 interface Message {
   id: string;
@@ -19,22 +20,16 @@ interface HotelChatProps {
 
 export function HotelChat({ hotelId, hotelName }: HotelChatProps) {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Check if user is logged in
-  useEffect(() => {
-    const currentUser = localStorage.getItem('currentUser');
-    setIsLoggedIn(!!currentUser);
-  }, []);
-
   const handleOpenChat = () => {
-    if (!isLoggedIn) {
+    if (!isAuthenticated) {
       setShowLoginPrompt(true);
       return;
     }
