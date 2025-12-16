@@ -33,7 +33,7 @@ const DestinationService = {
         },
         {
           model: db.Review,
-          attributes: ["review_id", "rating", "content", "created_at"],
+          attributes: ["review_id", "rating", "comment", "date_created"],
           include: [
             {
               model: db.User,

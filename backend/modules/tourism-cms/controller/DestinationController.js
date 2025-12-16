@@ -161,6 +161,7 @@ const DestinationController = {
       await DestinationService.updateDestination(id, {
         thumbnail: result.url,
       });
+      console.log(result.url);
 
       return responseUtils.ok(res, {
         message: "Thumbnail uploaded successfully",
@@ -308,7 +309,7 @@ const DestinationController = {
       const image = await DestinationService.getDestinationImage(id, imageId);
 
       // Extract filename from URL
-      const url = new URL(image.url);
+      const url = new URL(image.image_url);
       const pathParts = url.pathname.split("/");
       const fileName = pathParts[pathParts.length - 1];
 
