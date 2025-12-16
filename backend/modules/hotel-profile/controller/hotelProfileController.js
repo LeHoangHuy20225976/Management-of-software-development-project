@@ -47,7 +47,10 @@ const hotelProfileController = {
             const hotelid = req.params.hotel_id;
             const userid = req.user.user_id;
             const { hotelData} = req.body;
-            await hotelProfileService.updateHotelProfile(hotelid, userid, hotelData);
+            console.log(Object.keys(req.body), req.body.thumbnail);
+            console.log("content-type:", req.headers["content-type"]);
+            console.log("file:", !!req.file, req.file?.mimetype, req.file?.size);
+            await hotelProfileService.updateHotelProfile(hotelid, userid, hotelData, req.file);
             return responseUtils.ok(res, {message: "Update hotel profile successfully"});
         } catch(error) {
             return responseUtils.error(res, error.message);

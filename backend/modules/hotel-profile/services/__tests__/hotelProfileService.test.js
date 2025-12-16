@@ -388,6 +388,32 @@ describe('hotelProfileService - Unit Tests', () => {
       expect(hotel.contact_phone).toBe(baseHotel.contact_phone);
       expect(hotel.save).toHaveBeenCalled();
     });
+
+    it('uploads and updates thumbnail when a new file is provided', async () => {
+      const hotel = { ...baseHotel };
+      db.Hotel.findByPk.mockResolvedValue(hotel);
+
+      minioUtils.uploadFile.mockResolvedValue({ fileName: 'new-thumb.png' });
+      minioUtils.deleteFile.mockResolvedValue(true);
+
+      const thumbnailFile = {
+        buffer: Buffer.from('fake-image-bytes'),
+        originalname: 'thumb.png',
+        mimetype: 'image/png'
+      };
+
+      await hotelProfileService.updateHotelProfile(1, 1, {}, thumbnailFile);
+
+      expect(minioUtils.uploadFile).toHaveBeenCalledWith(
+        minioUtils.buckets.HOTEL_IMAGES,
+        thumbnailFile.buffer,
+        thumbnailFile.originalname,
+        { 'Content-Type': thumbnailFile.mimetype }
+      );
+      expect(hotel.thumbnail).toBe('new-thumb.png');
+      expect(minioUtils.deleteFile).toHaveBeenCalledWith(minioUtils.buckets.HOTEL_IMAGES, 'old.png');
+      expect(hotel.save).toHaveBeenCalled();
+    });
   });
 
   describe('disableHotel', () => {

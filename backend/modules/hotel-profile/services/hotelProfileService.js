@@ -33,6 +33,25 @@ const toPublicObjectUrl = (presignedUrl) => {
     }
 };
 
+const normalizeObjectName = (value) => {
+    if (value === null || value === undefined) return value;
+    if (typeof value !== "string") return value;
+
+    const trimmed = value.trim();
+    if (trimmed === "") return "";
+
+    const withoutQuery = trimmed.split("?")[0].split("#")[0];
+
+    try {
+        const url = new URL(withoutQuery);
+        const segments = url.pathname.split("/").filter(Boolean);
+        return segments.length ? segments[segments.length - 1] : trimmed;
+    } catch {
+        const segments = withoutQuery.split("/").filter(Boolean);
+        return segments.length ? segments[segments.length - 1] : withoutQuery;
+    }
+};
+
 const hotelProfileService = {
     async addNewHotel(hotelData, userid, thumbnailFile) {
         // check for existed hotel based on address and name
@@ -216,7 +235,7 @@ const hotelProfileService = {
             hotelData: hotel
         }
     },
-    async updateHotelProfile(hotelid, userid, hotelData) {
+    async updateHotelProfile(hotelid, userid, hotelData = {}, thumbnailFile) {
         const hotel = await db.Hotel.findByPk(hotelid);
         if(!hotel) {
             throw new Error("Hotel not found");
@@ -225,16 +244,69 @@ const hotelProfileService = {
         if(ownerid !== userid) {
             throw new Error("You are not the owner of this hotel");
         }
-        // Use nullish coalescing to allow falsy values like 0 or empty strings to be saved intentionally
-        hotel.name = hotelData.hotelName ?? hotel.name;
-        hotel.address = hotelData.address ?? hotel.address;
-        hotel.status = hotelData.status ?? hotel.status;
-        hotel.longitude = hotelData.longitude ?? hotel.longitude;
-        hotel.latitude = (hotelData.latitude ?? hotelData.latitute) ?? hotel.latitude;
-        hotel.description = hotelData.description ?? hotel.description;
-        hotel.contact_phone = hotelData.contact_phone ?? hotel.contact_phone;
-        hotel.thumbnail = hotelData.thumbnail ?? hotel.thumbnail;
-        await hotel.save();
+
+        const hasThumbnailField = Object.prototype.hasOwnProperty.call(hotelData, "thumbnail");
+        const previousThumbnail = hotel.thumbnail;
+        console.log("Previous thumbnail:", previousThumbnail);
+        let uploadedThumbnail = null;
+
+        try {
+            let nextThumbnail = previousThumbnail;
+
+            if (thumbnailFile?.buffer) {
+                console.log("Uploading new thumbnail to MinIO...", minioUtils.buckets.HOTEL_IMAGES);
+                if (!thumbnailFile.mimetype?.startsWith("image/")) {
+                    throw new Error("Only image files are allowed");
+                }
+
+                uploadedThumbnail = await minioUtils.uploadFile(
+                    minioUtils.buckets.HOTEL_IMAGES,
+                    thumbnailFile.buffer,
+                    thumbnailFile.originalname,
+                    { "Content-Type": thumbnailFile.mimetype }
+                );
+
+                nextThumbnail = uploadedThumbnail.fileName;
+                console.log("Uploaded new thumbnail:", nextThumbnail);
+            } else if (hasThumbnailField) {
+                nextThumbnail = normalizeObjectName(hotelData.thumbnail);
+            }
+
+            // Use nullish coalescing to allow falsy values like 0 or empty strings to be saved intentionally
+            hotel.name = hotelData.hotelName ?? hotel.name;
+            hotel.address = hotelData.address ?? hotel.address;
+            hotel.status = hotelData.status ?? hotel.status;
+            hotel.longitude = hotelData.longitude ?? hotel.longitude;
+            hotel.latitude = (hotelData.latitude ?? hotelData.latitute) ?? hotel.latitude;
+            hotel.description = hotelData.description ?? hotel.description;
+            hotel.contact_phone = hotelData.contact_phone ?? hotel.contact_phone;
+
+            if (nextThumbnail !== previousThumbnail) {
+                hotel.thumbnail = nextThumbnail;
+            }
+
+            await hotel.save();
+        } catch (error) {
+            if (uploadedThumbnail?.fileName) {
+                try {
+                    await minioUtils.deleteFile(
+                        minioUtils.buckets.HOTEL_IMAGES,
+                        uploadedThumbnail.fileName
+                    );
+                } catch (cleanupError) {
+                    console.error("Failed to cleanup uploaded thumbnail:", cleanupError);
+                }
+            }
+            throw error;
+        }
+
+        if (previousThumbnail && previousThumbnail !== hotel.thumbnail) {
+            try {
+                await minioUtils.deleteFile(minioUtils.buckets.HOTEL_IMAGES, previousThumbnail);
+            } catch (cleanupError) {
+                console.error("Failed to cleanup previous thumbnail:", cleanupError);
+            }
+        }
     },
     async disableHotel(hotelid, userid) {
         const hotel = await db.Hotel.findByPk(hotelid);

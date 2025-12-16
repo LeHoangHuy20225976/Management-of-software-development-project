@@ -69,6 +69,8 @@ router.get(
 router.put(
   "/update-hotel/:hotel_id",
   middlewares([authMiddleware, rbacMiddleware(["hotel:update"])]),
+  upload.single("thumbnail"),
+  parseJsonField("hotelData"),
   validate([hotelProfileValidation.updateHotel]),
   hotelProfileController.updateHotelProfile
 );
