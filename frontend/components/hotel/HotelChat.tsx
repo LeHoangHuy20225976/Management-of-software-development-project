@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 
@@ -17,11 +18,32 @@ interface HotelChatProps {
 }
 
 export function HotelChat({ hotelId, hotelName }: HotelChatProps) {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Check if user is logged in
+  useEffect(() => {
+    const currentUser = localStorage.getItem('currentUser');
+    setIsLoggedIn(!!currentUser);
+  }, []);
+
+  const handleOpenChat = () => {
+    if (!isLoggedIn) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    setIsOpen(true);
+  };
+
+  const handleLoginRedirect = () => {
+    router.push('/login');
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -79,7 +101,7 @@ export function HotelChat({ hotelId, hotelName }: HotelChatProps) {
     }, 1000 + Math.random() * 1000);
 
 
-    
+
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -107,11 +129,57 @@ export function HotelChat({ hotelId, hotelName }: HotelChatProps) {
     });
   };
 
+  // Login prompt modal
+  if (showLoginPrompt) {
+    return (
+      <>
+        <button
+          onClick={handleOpenChat}
+          className="fixed bottom-6 right-24 z-50 bg-[#0071c2] text-white rounded-full p-4 shadow-lg hover:bg-[#005999] transition-all duration-300 hover:scale-110 flex items-center gap-2 h-14"
+        >
+          <span className="text-2xl">💬</span>
+          <span className="font-semibold hidden sm:inline">Chat với khách sạn</span>
+        </button>
+        
+        {/* Login Prompt Modal */}
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+          <Card className="max-w-md w-full">
+            <div className="text-center p-6">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl">🔒</span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Yêu cầu đăng nhập
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Bạn cần đăng nhập để có thể chat với khách sạn
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setShowLoginPrompt(false)}
+                  className="flex-1 bg-gray-200 text-gray-800 hover:bg-gray-300"
+                >
+                  Hủy
+                </Button>
+                <Button
+                  onClick={handleLoginRedirect}
+                  className="flex-1"
+                >
+                  Đăng nhập
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </>
+    );
+  }
+
   if (!isOpen) {
     return (
       <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-24 z-50 bg-[#0071c2] text-white rounded-full p-4 shadow-lg hover:bg-[#005999] transition-all duration-300 hover:scale-110 flex items-center gap-2"
+        onClick={handleOpenChat}
+        className="fixed bottom-6 right-24 z-50 bg-[#0071c2] text-white rounded-full p-4 shadow-lg hover:bg-[#005999] transition-all duration-300 hover:scale-110 flex items-center gap-2 h-14"
       >
         <span className="text-2xl">💬</span>
         <span className="font-semibold hidden sm:inline">Chat với khách sạn</span>
