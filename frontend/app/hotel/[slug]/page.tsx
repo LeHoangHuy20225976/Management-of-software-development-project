@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
+import { HotelChat } from '@/components/hotel/HotelChat';
 import { amenitiesList } from '@/lib/mock/data';
 import { formatCurrency, formatStars } from '@/lib/utils/format';
 import { bookingsApi, hotelsApi } from '@/lib/api/services';
@@ -500,6 +501,7 @@ export default function HotelDetailPage({
           </div>
         </div>
       </div>
+      <HotelChat hotelId={hotel.id} hotelName={hotel.name} />
       <Footer />
     </>
   );
