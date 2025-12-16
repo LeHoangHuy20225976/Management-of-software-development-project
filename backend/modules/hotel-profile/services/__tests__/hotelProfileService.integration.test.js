@@ -315,6 +315,48 @@ describe('hotelProfileService - Integration Tests', () => {
     expect(roomType.quantity).toBe(1);
   });
 
+  it('updates hotel thumbnail end-to-end when a new file is provided', async () => {
+    const ownerId = 21;
+    db.__data.users.push({
+      user_id: ownerId,
+      role: 'hotel_manager',
+      save: jest.fn(async function () { return this; })
+    });
+
+    const hotel = {
+      hotel_id: 70,
+      hotel_owner: ownerId,
+      name: 'Hotel',
+      address: 'Addr',
+      status: 1,
+      longitude: 1,
+      latitude: 2,
+      description: 'Desc',
+      contact_phone: '000',
+      thumbnail: 'old.png',
+      save: jest.fn(async function () { return this; })
+    };
+    db.__data.hotels.push(hotel);
+
+    const thumbnailFile = {
+      buffer: Buffer.from('fake-image'),
+      originalname: 'thumb.png',
+      mimetype: 'image/png'
+    };
+
+    await hotelProfileService.updateHotelProfile(hotel.hotel_id, ownerId, {}, thumbnailFile);
+
+    expect(minioUtils.uploadFile).toHaveBeenCalledWith(
+      minioUtils.buckets.HOTEL_IMAGES,
+      thumbnailFile.buffer,
+      thumbnailFile.originalname,
+      { 'Content-Type': thumbnailFile.mimetype }
+    );
+    expect(hotel.thumbnail).toBe('uploaded-thumb.png');
+    expect(minioUtils.deleteFile).toHaveBeenCalledWith(minioUtils.buckets.HOTEL_IMAGES, 'old.png');
+    expect(hotel.save).toHaveBeenCalled();
+  });
+
   it('disables hotel and cascades availability/status updates', async () => {
     const ownerId = 5;
     db.__data.users.push({
