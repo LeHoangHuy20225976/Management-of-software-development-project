@@ -252,6 +252,45 @@ const DestinationController = {
   },
 
   /**
+   * Add a review for a destination
+   * POST /destinations/:id/reviews
+   * Body: { rating, comment }
+   * destination_id is taken from params; user_id from auth (req.user); hotel_id and room_id are null
+   */
+  addDestinationReview: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { rating, comment } = req.body;
+
+      if (rating === undefined) {
+        return responseUtils.invalidated(res, [
+          { field: "rating", message: "rating is required" },
+        ]);
+      }
+
+      const userId = req.user && req.user.user_id;
+
+      if (!userId) {
+        return responseUtils.unauthorized(res, "Authentication required");
+      }
+
+      const review = await DestinationService.addDestinationReview(id, {
+        user_id: userId,
+        rating,
+        comment,
+      });
+
+      return responseUtils.ok(res, review);
+    } catch (error) {
+      console.error("Add destination review error:", error);
+      if (error.message === "Destination not found") {
+        return responseUtils.notFound(res);
+      }
+      return responseUtils.error(res, error.message);
+    }
+  },
+
+  /**
    * Delete destination thumbnail
    * DELETE /destinations/:id/thumbnail
    */
