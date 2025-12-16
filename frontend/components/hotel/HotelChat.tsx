@@ -77,6 +77,9 @@ export function HotelChat({ hotelId, hotelName }: HotelChatProps) {
       setMessages((prev) => [...prev, hotelMessage]);
       setIsTyping(false);
     }, 1000 + Math.random() * 1000);
+
+
+    
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -108,9 +111,9 @@ export function HotelChat({ hotelId, hotelName }: HotelChatProps) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-24 z-50 bg-green-600 text-white rounded-full p-4 shadow-lg hover:bg-green-700 transition-all duration-300 hover:scale-110 flex items-center gap-2"
+        className="fixed bottom-6 right-24 z-50 bg-[#0071c2] text-white rounded-full p-4 shadow-lg hover:bg-[#005999] transition-all duration-300 hover:scale-110 flex items-center gap-2"
       >
-        <span className="text-2xl">🏨</span>
+        <span className="text-2xl">💬</span>
         <span className="font-semibold hidden sm:inline">Chat với khách sạn</span>
       </button>
     );
