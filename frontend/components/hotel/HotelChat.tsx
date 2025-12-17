@@ -16,9 +16,10 @@ interface Message {
 interface HotelChatProps {
   hotelId: string;
   hotelName: string;
+  hotelImage?: string;
 }
 
-export function HotelChat({ hotelId, hotelName }: HotelChatProps) {
+export function HotelChat({ hotelId, hotelName, hotelImage }: HotelChatProps) {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -27,6 +28,57 @@ export function HotelChat({ hotelId, hotelName }: HotelChatProps) {
   const [isTyping, setIsTyping] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Save chat to localStorage
+  const saveChatHistory = (updatedMessages: Message[]) => {
+    const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+    const sessionIndex = chatHistory.findIndex((s: any) => s.hotelId === hotelId);
+    
+    const session = {
+      id: hotelId,
+      hotelId,
+      hotelName,
+      hotelImage: hotelImage || '/placeholder-hotel.jpg',
+      lastMessage: updatedMessages[updatedMessages.length - 1]?.text || '',
+      lastMessageTime: new Date(),
+      unreadCount: 0,
+      messages: updatedMessages,
+    };
+
+    if (sessionIndex >= 0) {
+      chatHistory[sessionIndex] = session;
+    } else {
+      chatHistory.push(session);
+    }
+
+    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+  };
+
+  // Load chat history on mount
+  useEffect(() => {
+    if (isOpen && isAuthenticated) {
+      const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+      const session = chatHistory.find((s: any) => s.hotelId === hotelId);
+      if (session && session.messages.length > 0) {
+        const loadedMessages = session.messages.map((m: any) => ({
+          ...m,
+          timestamp: new Date(m.timestamp),
+        }));
+        setMessages(loadedMessages);
+        return;
+      }
+    }
+    
+    if (isOpen && messages.length === 0) {
+      const welcomeMessage: Message = {
+        id: '1',
+        sender: 'hotel',
+        text: `Xin chào! Chúng tôi là ${hotelName}. Chúng tôi có thể giúp gì cho bạn?`,
+        timestamp: new Date(),
+      };
+      setMessages([welcomeMessage]);
+    }
+  }, [isOpen, hotelName, hotelId, isAuthenticated]);
 
   const handleOpenChat = () => {
     if (!isAuthenticated) {
@@ -48,19 +100,6 @@ export function HotelChat({ hotelId, hotelName }: HotelChatProps) {
     scrollToBottom();
   }, [messages]);
 
-  useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      // Welcome message when first opening chat
-      const welcomeMessage: Message = {
-        id: '1',
-        sender: 'hotel',
-        text: `Xin chào! Chúng tôi là ${hotelName}. Chúng tôi có thể giúp gì cho bạn?`,
-        timestamp: new Date(),
-      };
-      setMessages([welcomeMessage]);
-    }
-  }, [isOpen, hotelName, messages.length]);
-
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
 
@@ -71,9 +110,13 @@ export function HotelChat({ hotelId, hotelName }: HotelChatProps) {
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setInputMessage('');
     setIsTyping(true);
+
+    // Save to history after user message
+    saveChatHistory(newMessages);
 
     // Simulate hotel response
     setTimeout(() => {
@@ -91,12 +134,13 @@ export function HotelChat({ hotelId, hotelName }: HotelChatProps) {
         timestamp: new Date(),
       };
 
-      setMessages((prev) => [...prev, hotelMessage]);
+      const updatedMessages = [...newMessages, hotelMessage];
+      setMessages(updatedMessages);
       setIsTyping(false);
+      
+      // Save to history after hotel response
+      saveChatHistory(updatedMessages);
     }, 1000 + Math.random() * 1000);
-
-
-
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

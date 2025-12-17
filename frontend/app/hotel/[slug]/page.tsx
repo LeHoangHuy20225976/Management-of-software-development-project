@@ -501,7 +501,7 @@ export default function HotelDetailPage({
           </div>
         </div>
       </div>
-      <HotelChat hotelId={hotel.id} hotelName={hotel.name} />
+      <HotelChat hotelId={hotel.id} hotelName={hotel.name} hotelImage={hotel.thumbnail} />
       <Footer />
     </>
   );

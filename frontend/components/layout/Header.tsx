@@ -188,6 +188,14 @@ export const Header = () => {
           Mã giảm giá của tôi
         </Link>
         <Link
+          href="/user/chat-history"
+          className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
+          onClick={() => setShowUserMenu(false)}
+        >
+          <span className="mr-3">💬</span>
+          Lịch sử chat
+        </Link>
+        <Link
           href="/user/dashboard/profile"
           className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
           onClick={() => setShowUserMenu(false)}
