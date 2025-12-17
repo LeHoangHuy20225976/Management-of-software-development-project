@@ -6,65 +6,93 @@
 name: hotel-ai-system
 
 # ==============================================================================
-# Deployments - Auto-discover flows from src/flow directory
+# Deployments
 # ==============================================================================
 
 deployments:
-  # Deploy hello flow
+  # Hello flow (for testing)
   - name: hello-deployment
     entrypoint: src/flow/hello_flow.py:hello_flow
     work_pool:
       name: local-pool
       work_queue_name: default
-
-    # Schedule (optional - can be set per flow)
-    # schedule:
-    #   cron: "0 * * * *"  # Run every hour
-
-    # Parameters (optional)
     parameters: {}
-
-    # Tags for filtering
     tags:
       - hotel
-      - production
+      - test
 
-  # Email Flows
-  - name: send-simple-email
-    entrypoint: src/flow/email_flow.py:send_simple_email_flow
+  # --------------------------------------------------------------------------
+  # FLOW 1: Booking Success Notification
+  # Notify customer when booking is confirmed
+  # --------------------------------------------------------------------------
+  - name: notify-booking-success
+    entrypoint: src/flow/email_flow.py:notify_booking_success_flow
     work_pool:
       name: local-pool
     tags:
       - hotel
       - email
-      - notification
+      - booking
+      - customer
 
-  - name: send-templated-email
-    entrypoint: src/flow/email_flow.py:send_templated_email_flow
+  # --------------------------------------------------------------------------
+  # FLOW 2: Check-in / Check-out Notification
+  # Notify customer for room ready or checkout reminder
+  # --------------------------------------------------------------------------
+  - name: notify-checkin-checkout
+    entrypoint: src/flow/email_flow.py:notify_checkin_checkout_flow
     work_pool:
       name: local-pool
     tags:
       - hotel
       - email
-      - template
+      - checkin
+      - checkout
+      - customer
 
-  - name: send-bulk-email-campaign
-    entrypoint: src/flow/email_flow.py:send_bulk_email_campaign_flow
+  # --------------------------------------------------------------------------
+  # FLOW 3: Staff Attendance Check
+  # Send attendance report to manager
+  # --------------------------------------------------------------------------
+  - name: notify-staff-attendance
+    entrypoint: src/flow/email_flow.py:notify_staff_attendance_flow
     work_pool:
       name: local-pool
     tags:
       - hotel
       - email
-      - bulk
+      - staff
+      - attendance
+      - hr
 
-  - name: send-notification-email
-    entrypoint: src/flow/email_flow.py:send_notification_email_flow
+  # --------------------------------------------------------------------------
+  # FLOW 4: ML Report Analysis
+  # Send analysis reports from ML service
+  # --------------------------------------------------------------------------
+  - name: send-ml-report
+    entrypoint: src/flow/email_flow.py:send_ml_report_flow
     work_pool:
       name: local-pool
     tags:
       - hotel
       - email
-      - notification
+      - ml
+      - analytics
+      - report
+
+  # --------------------------------------------------------------------------
+  # FLOW 5: Promotional Email
+  # Send promotional offers to customers
+  # --------------------------------------------------------------------------
+  - name: send-promotional-email
+    entrypoint: src/flow/email_flow.py:send_promotional_email_flow
+    work_pool:
+      name: local-pool
+    tags:
+      - hotel
+      - email
+      - marketing
+      - promotion
 
 # ==============================================================================
 # Pull step - How to get the code
@@ -73,19 +101,3 @@ deployments:
 pull:
   - prefect.deployments.steps.set_working_directory:
       directory: /app
-
-# ==============================================================================
-# Build step (optional)
-# ==============================================================================
-
-# build:
-#   - prefect.deployments.steps.run_shell_script:
-#       script: echo "Building..."
-
-# ==============================================================================
-# Push step (optional)
-# ==============================================================================
-
-# push:
-#   - prefect.deployments.steps.run_shell_script:
-#       script: echo "Pushing..."

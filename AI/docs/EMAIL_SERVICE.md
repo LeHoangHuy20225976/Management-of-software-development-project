@@ -4,11 +4,10 @@
 1. [Overview](#overview)
 2. [Architecture](#architecture)
 3. [Email Flows](#email-flows)
-4. [API Endpoints](#api-endpoints)
-5. [Email Templates](#email-templates)
-6. [Usage Examples](#usage-examples)
-7. [Configuration](#configuration)
-8. [Testing](#testing)
+4. [Email Templates](#email-templates)
+5. [Usage Examples](#usage-examples)
+6. [Configuration](#configuration)
+7. [Testing](#testing)
 
 ---
 
@@ -18,12 +17,13 @@ The Email Service provides comprehensive email functionality for the Hotel AI Sy
 
 ### Key Features
 
-- ✅ **Simple Email Sending** - Send plain text and HTML emails
-- ✅ **Template-based Emails** - Use Jinja2 templates for professional emails
-- ✅ **Bulk Email Campaigns** - Send personalized emails to multiple recipients
-- ✅ **Notification System** - Pre-configured notification types
-- ✅ **Retry Logic** - Automatic retry with exponential backoff
-- ⏳ **Audit Trail** - Database logging (disabled until DB is ready)
+- ✅ **Booking Notifications** - Automatic booking confirmation emails
+- ✅ **Check-in/Check-out Alerts** - Room ready and checkout reminders
+- ✅ **Staff Attendance Reports** - Daily HR attendance summaries
+- ✅ **ML Analysis Reports** - Analytics and insights delivery
+- ✅ **Promotional Campaigns** - Marketing email campaigns
+- ✅ **Template-based Emails** - Professional Jinja2 HTML templates
+- ✅ **Retry Logic** - Automatic retry with exponential backoff (10s, 30s, 60s)
 - ✅ **Async Processing** - Non-blocking email delivery
 
 ### Components
@@ -31,19 +31,18 @@ The Email Service provides comprehensive email functionality for the Hotel AI Sy
 ```
 src/
 ├── application/
-│   ├── services/llm/
-│   │   └── email_service.py          # Email service implementation
-│   ├── dtos/llm/
-│   │   └── email_dto.py               # Request/Response models
-│   └── controllers/llm/
-│       └── email_router.py            # API endpoints
+│   └── services/llm/
+│       └── email_service.py          # Email service implementation
 ├── flow/
-│   └── email_flow.py                  # Prefect flows
+│   └── email_flow.py                  # Prefect flows (5 flows)
 └── templates/
     └── emails/
-        ├── booking_confirmation.html
-        ├── check_in_ready.html
-        └── promotional.html
+        ├── booking_confirmation.html  # Booking success
+        ├── check_in_ready.html        # Room ready notification
+        ├── checkout_reminder.html     # Checkout reminder
+        ├── staff_attendance.html      # HR attendance report
+        ├── ml_report.html             # ML analytics report
+        └── promotional.html           # Marketing promotions
 ```
 
 ---
@@ -53,356 +52,271 @@ src/
 ### Email Flow Architecture
 
 ```
-┌─────────────────────────────────────────────────┐
-│              API Request (FastAPI)              │
-│         POST /api/email/send                    │
-└─────────────────┬───────────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────────┐
-│          Background Task (async)                │
-│    Triggers Prefect Email Flow                  │
-└─────────────────┬───────────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────────┐
-│           Prefect Flow Execution                │
-│  ┌──────────────────────────────────────┐      │
-│  │ 1. Validate email data               │      │
-│  └──────────────┬───────────────────────┘      │
-│                 ▼                               │
-│  ┌──────────────────────────────────────┐      │
-│  │ 2. Render template (if needed)       │      │
-│  └──────────────┬───────────────────────┘      │
-│                 ▼                               │
-│  ┌──────────────────────────────────────┐      │
-│  │ 3. Send email (with retry)           │      │
-│  └──────────────┬───────────────────────┘      │
-│                 ▼                               │
-│  ┌──────────────────────────────────────┐      │
-│  │ 4. Log to database (disabled)        │      │
-│  └──────────────────────────────────────┘      │
-└─────────────────┬───────────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────────┐
-│              SMTP Server                        │
-│         (Gmail, SendGrid, etc.)                 │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    Prefect UI / API Trigger                      │
+│                  http://localhost:4200                           │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   Prefect Worker (local-pool)                    │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │ 1. Load HTML template from templates/emails/              │  │
+│  └───────────────────────┬───────────────────────────────────┘  │
+│                          ▼                                       │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │ 2. Render template with Jinja2 context                    │  │
+│  └───────────────────────┬───────────────────────────────────┘  │
+│                          ▼                                       │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │ 3. Send email via SMTP (with retry: 3 attempts)           │  │
+│  │    Retry delays: 10s → 30s → 60s                          │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      SMTP Server (Gmail)                         │
+│                    smtp.gmail.com:587                            │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## 📧 Email Flows
 
-### 1. Simple Email Flow
+### Flow Summary
 
-**Flow Name:** `send-simple-email`
-
-**Purpose:** Send a single email with plain text and/or HTML body
-
-**Function:** `send_simple_email_flow(to, subject, body, html=None)`
-
-**Features:**
-- Email validation
-- Retry logic (3 attempts with delays: 10s, 30s, 60s)
-- Database logging (currently disabled - will be enabled when DB is ready)
-- Support for plain text and HTML
-
-**Example:**
-
-```python
-from src.flow.email_flow import send_simple_email_flow
-
-# Send simple email
-result = await send_simple_email_flow(
-    to="guest@hotel.com",
-    subject="Welcome to Our Hotel",
-    body="Thank you for choosing us!",
-    html="<h1>Welcome!</h1><p>Thank you for choosing us!</p>"
-)
-```
+| # | Flow Name | Template | Description |
+|---|-----------|----------|-------------|
+| 1 | `notify-booking-success` | `booking_confirmation.html` | Booking confirmed |
+| 2 | `notify-checkin-checkout` | `check_in_ready.html` / `checkout_reminder.html` | Room ready / Checkout |
+| 3 | `notify-staff-attendance` | `staff_attendance.html` | HR attendance report |
+| 4 | `send-ml-report` | `ml_report.html` | ML analytics report |
+| 5 | `send-promotional-email` | `promotional.html` | Marketing promotions |
 
 ---
 
-### 2. Templated Email Flow
+### 1. Booking Success Notification
 
-**Flow Name:** `send-templated-email`
+**Flow Name:** `notify-booking-success`
 
-**Purpose:** Send email using Jinja2 templates with dynamic content
+**Template:** `booking_confirmation.html`
 
-**Function:** `send_templated_email_flow(to, template_name, context, subject)`
+**Purpose:** Notify customer when booking is successfully confirmed
 
-**Features:**
-- Jinja2 template rendering
-- Context variable substitution
-- Fallback to default template if template not found
-- Auto-generate plain text version
+**Parameters:**
 
-**Example:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `customer_email` | string | ✅ | Customer's email address |
+| `customer_name` | string | ✅ | Customer's full name |
+| `booking_id` | string | ✅ | Unique booking ID |
+| `room_type` | string | ✅ | Type of room booked |
+| `check_in_date` | string | ✅ | Check-in date (YYYY-MM-DD) |
+| `check_out_date` | string | ✅ | Check-out date (YYYY-MM-DD) |
+| `total_price` | float | ✅ | Total booking price |
+| `special_requests` | string | ❌ | Special requests from customer |
 
-```python
-from src.flow.email_flow import send_templated_email_flow
-
-# Send booking confirmation
-result = await send_templated_email_flow(
-    to="guest@hotel.com",
-    template_name="booking_confirmation",
-    context={
-        "guest_name": "John Doe",
-        "booking_id": "BOOK123",
-        "check_in": "2025-02-01",
-        "check_out": "2025-02-03",
-        "room_number": "201",
-        "room_type": "Deluxe Suite",
-        "total_amount": 5000000
-    },
-    subject="Booking Confirmation"
-)
-```
-
----
-
-### 3. Bulk Email Campaign Flow
-
-**Flow Name:** `send-bulk-email-campaign`
-
-**Purpose:** Send personalized emails to multiple recipients in batches
-
-**Function:** `send_bulk_email_campaign_flow(recipients, subject, template_name, batch_size=10)`
-
-**Features:**
-- Batch processing (default 10 emails per batch)
-- Personalization per recipient
-- Progress tracking
-- Statistics reporting
-- Rate limiting between batches
-
-**Example:**
-
-```python
-from src.flow.email_flow import send_bulk_email_campaign_flow
-
-# Send promotional campaign
-recipients = [
-    {
-        "email": "guest1@hotel.com",
-        "context": {
-            "name": "John Doe",
-            "discount": "25%",
-            "promo_code": "JOHN25"
-        }
-    },
-    {
-        "email": "guest2@hotel.com",
-        "context": {
-            "name": "Jane Smith",
-            "discount": "30%",
-            "promo_code": "JANE30"
-        }
-    }
-]
-
-result = await send_bulk_email_campaign_flow(
-    recipients=recipients,
-    subject="Special Offer Just for You",
-    template_name="promotional",
-    batch_size=10
-)
-
-# Result: {
-#   "total": 2,
-#   "sent": 2,
-#   "failed": 0,
-#   "duration_seconds": 5.2,
-#   "timestamp": "2025-01-17T10:00:00Z"
-# }
-```
-
----
-
-### 4. Notification Email Flow
-
-**Flow Name:** `send-notification-email`
-
-**Purpose:** Send predefined notification types with appropriate templates
-
-**Function:** `send_notification_email_flow(recipient, notification_type, data)`
-
-**Supported Notification Types:**
-- `booking_confirmation` - Booking confirmation email
-- `check_in_ready` - Room ready notification
-- `payment_receipt` - Payment receipt
-- `special_offer` - Promotional offers
-- `late_checkout_reminder` - Check-out reminder
-
-**Example:**
-
-```python
-from src.flow.email_flow import send_notification_email_flow
-
-# Send check-in ready notification
-result = await send_notification_email_flow(
-    recipient="guest@hotel.com",
-    notification_type="check_in_ready",
-    data={
-        "guest_name": "John Doe",
-        "room_number": "201",
-        "check_in_time": "14:00"
-    }
-)
-```
-
----
-
-## 🔌 API Endpoints
-
-### 1. Send Simple Email
-
-**Endpoint:** `POST /api/email/send`
-
-**Request:**
+**Example (Prefect UI):**
 
 ```json
 {
-  "to": ["guest@hotel.com"],
-  "subject": "Welcome",
-  "body": "Thank you for choosing our hotel",
-  "html": "<h1>Welcome!</h1><p>Thank you!</p>",
-  "cc": ["manager@hotel.com"],
-  "bcc": ["admin@hotel.com"]
+  "customer_email": "guest@email.com",
+  "customer_name": "John Doe",
+  "booking_id": "BOOK-2025-001",
+  "room_type": "Deluxe Suite",
+  "check_in_date": "2025-02-01",
+  "check_out_date": "2025-02-03",
+  "total_price": 299.99,
+  "special_requests": "Late check-in requested"
 }
 ```
 
-**Response:**
-
-```json
-{
-  "status": "queued",
-  "message": "Email queued for sending",
-  "recipients": ["guest@hotel.com"],
-  "timestamp": "2025-01-17T10:00:00Z"
-}
-```
-
-**cURL Example:**
-
-```bash
-curl -X POST "http://localhost:8000/api/email/send" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "to": ["guest@hotel.com"],
-    "subject": "Welcome",
-    "body": "Thank you for choosing our hotel"
-  }'
-```
-
 ---
 
-### 2. Send Templated Email
+### 2. Check-in / Check-out Notification
 
-**Endpoint:** `POST /api/email/send-templated`
+**Flow Name:** `notify-checkin-checkout`
 
-**Request:**
+**Templates:** 
+- Check-in: `check_in_ready.html`
+- Check-out: `checkout_reminder.html`
+
+**Purpose:** Notify customer when room is ready or remind about checkout
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `customer_email` | string | ✅ | Customer's email address |
+| `customer_name` | string | ✅ | Customer's full name |
+| `booking_id` | string | ✅ | Booking ID |
+| `room_number` | string | ✅ | Room number assigned |
+| `notification_type` | string | ✅ | `"check_in"` or `"check_out"` |
+| `time` | string | ❌ | Check-in/out time |
+| `additional_info` | object | ❌ | Extra info (wifi_password, feedback_link) |
+
+**Example - Check-in:**
 
 ```json
 {
-  "to": ["guest@hotel.com"],
-  "template_name": "booking_confirmation",
-  "subject": "Booking Confirmation",
-  "context": {
-    "guest_name": "John Doe",
-    "booking_id": "BOOK123",
-    "check_in": "2025-02-01",
-    "check_out": "2025-02-03"
+  "customer_email": "guest@email.com",
+  "customer_name": "John Doe",
+  "booking_id": "BOOK-2025-001",
+  "room_number": "301",
+  "notification_type": "check_in",
+  "time": "14:00",
+  "additional_info": {
+    "wifi_password": "hotel2025",
+    "breakfast_time": "07:00 - 10:00"
   }
 }
 ```
 
-**Response:**
+**Example - Check-out:**
 
 ```json
 {
-  "status": "queued",
-  "message": "Templated email queued: booking_confirmation",
-  "recipients": ["guest@hotel.com"],
-  "timestamp": "2025-01-17T10:00:00Z"
-}
-```
-
----
-
-### 3. Send Bulk Email
-
-**Endpoint:** `POST /api/email/send-bulk`
-
-**Request:**
-
-```json
-{
-  "recipients": [
-    {
-      "email": "guest1@hotel.com",
-      "context": {"name": "John", "discount": "20%"}
-    },
-    {
-      "email": "guest2@hotel.com",
-      "context": {"name": "Jane", "discount": "25%"}
-    }
-  ],
-  "subject": "Special Offer",
-  "template_name": "promotional"
-}
-```
-
----
-
-### 4. Send Notification
-
-**Endpoint:** `POST /api/email/notification/{notification_type}`
-
-**Request:**
-
-```json
-{
-  "recipient": "guest@hotel.com",
-  "data": {
-    "guest_name": "John Doe",
-    "room_number": "201"
+  "customer_email": "guest@email.com",
+  "customer_name": "John Doe",
+  "booking_id": "BOOK-2025-001",
+  "room_number": "301",
+  "notification_type": "check_out",
+  "time": "11:00",
+  "additional_info": {
+    "feedback_link": "https://hotel.ai/feedback"
   }
 }
 ```
 
+---
+
+### 3. Staff Attendance Report
+
+**Flow Name:** `notify-staff-attendance`
+
+**Template:** `staff_attendance.html`
+
+**Purpose:** Send daily attendance report to manager/HR
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `manager_email` | string | ✅ | Manager's email address |
+| `report_date` | string | ✅ | Date of report (YYYY-MM-DD) |
+| `department` | string | ✅ | Department name |
+| `total_staff` | int | ✅ | Total number of staff |
+| `present_count` | int | ✅ | Number present |
+| `absent_count` | int | ✅ | Number absent |
+| `late_count` | int | ✅ | Number late |
+| `absent_staff` | array | ❌ | List of absent staff |
+| `late_staff` | array | ❌ | List of late staff |
+
 **Example:**
 
-```bash
-curl -X POST "http://localhost:8000/api/email/notification/check_in_ready?recipient=guest@hotel.com" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "data": {
-      "guest_name": "John Doe",
-      "room_number": "201",
-      "check_in_time": "14:00"
-    }
-  }'
+```json
+{
+  "manager_email": "manager@hotel.com",
+  "report_date": "2025-02-01",
+  "department": "Housekeeping",
+  "total_staff": 20,
+  "present_count": 17,
+  "absent_count": 2,
+  "late_count": 1,
+  "absent_staff": [
+    {"name": "John Smith", "id": "EMP001", "reason": "Sick leave"},
+    {"name": "Jane Doe", "id": "EMP002", "reason": "Personal leave"}
+  ],
+  "late_staff": [
+    {"name": "Bob Wilson", "id": "EMP003", "minutes_late": 15}
+  ]
+}
 ```
 
 ---
 
-### 5. List Templates
+### 4. ML Analysis Report
 
-**Endpoint:** `GET /api/email/templates`
+**Flow Name:** `send-ml-report`
 
-**Response:**
+**Template:** `ml_report.html`
+
+**Purpose:** Send ML/Analytics reports to stakeholders
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `recipient_emails` | array | ✅ | List of recipient emails |
+| `report_type` | string | ✅ | Type (occupancy, revenue, demand_forecast) |
+| `report_title` | string | ✅ | Report title |
+| `report_summary` | string | ✅ | Executive summary |
+| `metrics` | object | ✅ | Key metrics dictionary |
+| `insights` | array | ✅ | List of key insights |
+| `recommendations` | array | ✅ | List of recommendations |
+| `report_period` | string | ✅ | Period covered |
+
+**Example:**
 
 ```json
 {
-  "templates": [
-    "booking_confirmation",
-    "check_in_ready",
-    "promotional"
+  "recipient_emails": ["manager@hotel.com", "owner@hotel.com"],
+  "report_type": "occupancy",
+  "report_title": "Monthly Occupancy Analysis",
+  "report_summary": "Occupancy increased by 15% compared to last month, with weekend bookings showing the strongest growth.",
+  "metrics": {
+    "avg_occupancy": "78.5%",
+    "peak_day": "Saturday",
+    "total_revenue": "$125,000",
+    "avg_daily_rate": "$185"
+  },
+  "insights": [
+    "Weekend occupancy is 20% higher than weekdays",
+    "Suite rooms are the most popular category",
+    "Direct bookings increased by 10%"
   ],
-  "count": 3
+  "recommendations": [
+    "Consider implementing weekend premium pricing",
+    "Increase suite room inventory",
+    "Invest more in direct booking channels"
+  ],
+  "report_period": "January 2025"
+}
+```
+
+---
+
+### 5. Promotional Email
+
+**Flow Name:** `send-promotional-email`
+
+**Template:** `promotional.html`
+
+**Purpose:** Send marketing promotional emails to customers
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `recipient_emails` | array | ✅ | List of recipient emails |
+| `discount` | string | ✅ | Discount amount (e.g., "30%") |
+| `promo_code` | string | ✅ | Promotional code |
+| `offer_description` | string | ✅ | Description of the offer |
+| `valid_until` | string | ✅ | Offer expiry date |
+| `campaign_name` | string | ❌ | Campaign name for tracking |
+
+**Example:**
+
+```json
+{
+  "recipient_emails": ["guest1@email.com", "guest2@email.com", "guest3@email.com"],
+  "discount": "30%",
+  "promo_code": "SUMMER30",
+  "offer_description": "Summer special discount on all suite rooms",
+  "valid_until": "August 31, 2025",
+  "campaign_name": "Summer 2025 Campaign"
 }
 ```
 
@@ -410,166 +324,76 @@ curl -X POST "http://localhost:8000/api/email/notification/check_in_ready?recipi
 
 ## 📝 Email Templates
 
-### Template Structure
+### Template Location
 
-Templates are stored in `templates/emails/` and use Jinja2 syntax.
+All templates are stored in `templates/emails/` directory.
 
 ### Available Templates
 
-#### 1. Booking Confirmation (`booking_confirmation.html`)
+| Template | Used By | Description |
+|----------|---------|-------------|
+| `booking_confirmation.html` | notify-booking-success | Booking confirmation |
+| `check_in_ready.html` | notify-checkin-checkout | Room ready notification |
+| `checkout_reminder.html` | notify-checkin-checkout | Checkout reminder |
+| `staff_attendance.html` | notify-staff-attendance | HR attendance report |
+| `ml_report.html` | send-ml-report | ML analytics report |
+| `promotional.html` | send-promotional-email | Marketing promotions |
 
-**Variables:**
-- `guest_name` - Guest's name
-- `booking_id` - Booking ID
-- `check_in` - Check-in date
-- `check_out` - Check-out date
-- `room_number` - Room number (optional)
-- `room_type` - Room type (optional)
-- `total_amount` - Total amount (optional)
+### Template Variables
 
-#### 2. Check-in Ready (`check_in_ready.html`)
+Templates use **Jinja2** syntax for variable substitution:
 
-**Variables:**
-- `guest_name` - Guest's name
-- `room_number` - Room number
-- `check_in_time` - Check-in time (default: 14:00)
+```html
+<!-- Example -->
+<p>Dear {{ guest_name }},</p>
+<p>Your booking {{ booking_id }} is confirmed!</p>
 
-#### 3. Promotional (`promotional.html`)
+{% if special_requests %}
+<p>Special Requests: {{ special_requests }}</p>
+{% endif %}
 
-**Variables:**
-- `name` - Guest's name
-- `discount` - Discount percentage
-- `promo_code` - Promo code
-- `offer_description` - Offer description
-- `valid_until` - Offer expiry date
+{% for item in items %}
+<li>{{ item.name }}: {{ item.value }}</li>
+{% endfor %}
+```
 
 ### Creating New Templates
 
 1. Create HTML file in `templates/emails/`:
 
 ```html
-<!-- templates/emails/my_template.html -->
+<!-- templates/emails/my_custom_template.html -->
 <!DOCTYPE html>
 <html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .header { background: #667eea; color: white; padding: 20px; }
+    </style>
+</head>
 <body>
-    <h1>Hello {{ guest_name }}!</h1>
-    <p>{{ message }}</p>
+    <div class="container">
+        <div class="header">
+            <h1>{{ title }}</h1>
+        </div>
+        <div class="content">
+            <p>Hello {{ name }},</p>
+            <p>{{ message }}</p>
+        </div>
+    </div>
 </body>
 </html>
 ```
 
-2. Use in your flow:
+2. Use `load_email_template` task in your flow:
 
 ```python
-await send_templated_email_flow(
-    to="guest@hotel.com",
-    template_name="my_template",
-    context={
-        "guest_name": "John",
-        "message": "Welcome!"
-    },
-    subject="Custom Email"
-)
-```
-
----
-
-## 💡 Usage Examples
-
-### Example 1: Send Welcome Email on Booking
-
-```python
-from src.flow.email_flow import send_notification_email_flow
-
-@flow(name="process-new-booking")
-async def process_booking_flow(booking_data: dict):
-    """Process new booking and send confirmation"""
-    
-    # Save booking to database
-    booking = await save_booking(booking_data)
-    
-    # Send confirmation email
-    await send_notification_email_flow(
-        recipient=booking["guest_email"],
-        notification_type="booking_confirmation",
-        data={
-            "guest_name": booking["guest_name"],
-            "booking_id": booking["id"],
-            "check_in": booking["check_in_date"],
-            "check_out": booking["check_out_date"],
-            "room_number": booking["room_number"],
-            "room_type": booking["room_type"],
-            "total_amount": booking["total_amount"]
-        }
-    )
-    
-    return booking
-```
-
-### Example 2: Send Room Ready Notification
-
-```python
-from src.flow.email_flow import send_notification_email_flow
-
-@flow(name="room-cleaning-completed")
-async def room_cleaning_completed_flow(room_data: dict):
-    """Notify guest when room is ready"""
-    
-    # Update room status
-    await update_room_status(room_data["room_number"], "clean")
-    
-    # Check if guest is waiting
-    booking = await get_todays_booking(room_data["room_number"])
-    
-    if booking:
-        # Send notification
-        await send_notification_email_flow(
-            recipient=booking["guest_email"],
-            notification_type="check_in_ready",
-            data={
-                "guest_name": booking["guest_name"],
-                "room_number": room_data["room_number"],
-                "check_in_time": "14:00"
-            }
-        )
-```
-
-### Example 3: Monthly Promotional Campaign
-
-```python
-from src.flow.email_flow import send_bulk_email_campaign_flow
-
-@flow(name="monthly-promotion")
-async def monthly_promotion_flow():
-    """Send monthly promotional emails to all guests"""
-    
-    # Get active guests from database
-    guests = await get_active_guests()
-    
-    # Prepare recipients with personalization
-    recipients = []
-    for guest in guests:
-        recipients.append({
-            "email": guest["email"],
-            "context": {
-                "name": guest["name"],
-                "discount": calculate_discount(guest),
-                "promo_code": generate_promo_code(guest),
-                "offer_description": "Special discount on your next stay",
-                "valid_until": "2025-12-31"
-            }
-        })
-    
-    # Send bulk campaign
-    result = await send_bulk_email_campaign_flow(
-        recipients=recipients,
-        subject="Exclusive Offer Just for You!",
-        template_name="promotional",
-        batch_size=20
-    )
-    
-    print(f"Campaign sent: {result['sent']} emails, {result['failed']} failed")
-    return result
+html_body = load_email_template("my_custom_template", {
+    "title": "Welcome",
+    "name": "John",
+    "message": "Thank you for joining us!"
+})
 ```
 
 ---
@@ -581,176 +405,139 @@ async def monthly_promotion_flow():
 Add to `.env` file:
 
 ```bash
-# Email Configuration
+# SMTP Configuration (Gmail with App Password)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=hotel@example.com
-SMTP_PASSWORD=your-app-password
-FROM_EMAIL=noreply@hotel.com
-
-# Email Settings
-EMAIL_RETRY_ATTEMPTS=3
-EMAIL_RETRY_DELAYS=10,30,60
-EMAIL_BATCH_SIZE=10
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=xxxx xxxx xxxx xxxx  # Gmail App Password (16 characters)
+SMTP_FROM_EMAIL=your-email@gmail.com
 ```
 
-### Update Email Service
+### Gmail App Password Setup
 
-Update `src/application/services/llm/email_service.py`:
+1. **Enable 2-Step Verification:**
+   - Go to https://myaccount.google.com/security
+   - Enable 2-Step Verification
 
-```python
-from src.infrastructure.config import get_settings
+2. **Generate App Password:**
+   - Go to https://myaccount.google.com/apppasswords
+   - Select app: Mail
+   - Select device: Other (type "Hotel AI")
+   - Copy the 16-character password
 
-settings = get_settings()
-
-email_service = EmailService(
-    smtp_host=settings.smtp_host,
-    smtp_port=settings.smtp_port,
-    smtp_user=settings.smtp_user,
-    smtp_password=settings.smtp_password,
-    from_email=settings.from_email
-)
-```
+3. **Update `.env`:**
+   ```bash
+   SMTP_PASSWORD=your-16-char-app-password
+   ```
 
 ---
 
 ## 🧪 Testing
 
-### Test Flows Locally
-
-```bash
-# Test simple email
-python src/flow/email_flow.py
-
-# Or run specific flow
-python -c "
-from src.flow.email_flow import send_simple_email_flow
-import asyncio
-
-result = asyncio.run(
-    send_simple_email_flow(
-        to='test@example.com',
-        subject='Test',
-        body='Test email'
-    )
-)
-print(result)
-"
-```
-
-### Test via API
-
-```bash
-# Test simple email endpoint
-curl -X POST "http://localhost:8000/api/email/send" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "to": ["test@example.com"],
-    "subject": "Test Email",
-    "body": "This is a test"
-  }'
-
-# Test templated email
-curl -X POST "http://localhost:8000/api/email/send-templated" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "to": ["test@example.com"],
-    "template_name": "booking_confirmation",
-    "subject": "Test Booking",
-    "context": {
-      "guest_name": "Test User",
-      "booking_id": "TEST123"
-    }
-  }'
-```
-
 ### Test via Prefect UI
 
 1. Open Prefect UI: http://localhost:4200
-2. Go to Deployments
-3. Find "send-simple-email" deployment
-4. Click "Run" → "Custom Run"
-5. Enter parameters:
-   ```json
-   {
-     "to": "test@example.com",
-     "subject": "Test from Prefect",
-     "body": "Testing email flow"
-   }
-   ```
-6. Watch execution in real-time
+2. Go to **Deployments**
+3. Select a deployment (e.g., `notify-booking-success`)
+4. Click **Run** → **Custom Run**
+5. Enter parameters as JSON
+6. Click **Run**
+7. Monitor execution in **Runs** tab
+
+### Test via CLI
+
+```bash
+# Deploy all flows
+docker compose exec prefect-worker uv run prefect deploy --all
+
+# Run a specific deployment
+docker compose exec prefect-worker uv run prefect deployment run 'notify-booking-success/notify-booking-success'
+```
+
+### Test Email Service Directly
+
+```python
+# test_email.py
+import asyncio
+from src.application.services.llm.email_service import get_email_service
+
+async def test():
+    service = get_email_service()
+    result = await service.send_email(
+        to="test@example.com",
+        subject="Test Email",
+        body="This is a test",
+        html="<h1>Test</h1><p>This is a test</p>"
+    )
+    print(result)
+
+asyncio.run(test())
+```
 
 ---
 
 ## 📊 Monitoring
 
-### View Flow Runs
+### View Flow Runs in Prefect UI
+
+1. Open http://localhost:4200
+2. Click **Runs** in sidebar
+3. Filter by flow name or status
+4. Click on a run to see details and logs
+
+### Check Worker Status
 
 ```bash
-# List recent email flow runs
-prefect flow-run ls --flow-name send-simple-email
+# View worker logs
+docker compose logs prefect-worker --tail 50
 
-# Get flow run details
-prefect flow-run inspect <flow-run-id>
-
-# View logs
-prefect flow-run logs <flow-run-id>
+# Check worker status
+docker compose ps prefect-worker
 ```
 
-### Check Statistics
+### List Deployments
 
-> **Note:** Database logging is currently disabled. Once database is set up, email statistics will be logged.
-
-Future query example (when DB is ready):
-
-```sql
--- Email success rate
-SELECT
-    DATE(timestamp) as date,
-    COUNT(*) as total,
-    SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent,
-    SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
-    ROUND(SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END)::numeric / COUNT(*)::numeric * 100, 2) as success_rate
-FROM email_logs
-GROUP BY DATE(timestamp)
-ORDER BY date DESC
-LIMIT 30;
+```bash
+docker compose exec prefect-server prefect deployment ls
 ```
-
-For now, you can check email logs in Prefect UI or application logs.
 
 ---
 
 ## 🚀 Deployment
 
-The email flows are automatically deployed when the Prefect worker starts.
-
-### Manual Deployment
+### Start Services
 
 ```bash
-# Deploy all email flows
-docker exec hotel-prefect-worker prefect deploy --all
+# Start all Prefect services
+docker compose up -d prefect-server prefect-services prefect-worker
 
-# Deploy specific flow
-docker exec hotel-prefect-worker prefect deploy \
-  --name send-simple-email \
+# Restart worker to redeploy flows
+docker compose restart prefect-worker
+```
+
+### Deploy Specific Flow
+
+```bash
+docker compose exec prefect-worker uv run prefect deploy \
+  --name notify-booking-success \
   --pool local-pool
 ```
 
-### Schedule Email Flows
+### Schedule Flows (Optional)
 
-Add to `prefect.yaml`:
+Add schedule to `prefect.yaml`:
 
 ```yaml
-- name: daily-promotional-email
-  entrypoint: src/flow/my_email_campaign.py:daily_promo_flow
+- name: daily-attendance-report
+  entrypoint: src/flow/email_flow.py:notify_staff_attendance_flow
   work_pool:
     name: local-pool
   schedule:
-    cron: "0 9 * * *"  # Run daily at 9 AM
+    cron: "0 8 * * *"  # Run daily at 8 AM
   tags:
     - email
     - scheduled
+    - hr
 ```
 
 ---
@@ -764,6 +551,5 @@ Add to `prefect.yaml`:
 ---
 
 **Created:** 2025-01-17  
-**Last Updated:** 2025-01-17  
-**Version:** 1.0.0
-
+**Last Updated:** 2025-12-08  
+**Version:** 2.0.0

@@ -1,9 +1,8 @@
-require("express-router-group");
 const express = require("express");
 const router = express.Router({ mergeParams: true });
 
-const authController = require("../modules/auth/controller/authController");
-const manageTokenController = require("../modules/auth/controller/manageTokenController");
+const authRoutes = require("../modules/auth/routes/authRoutes");
+const hotelProfileRoutes = require("../modules/hotel-profile/routes/hotelProfileRoutes");
 const bookingRoutes = require("../modules/booking-engine/routes/bookingRoutes");
 const userProfileRoutes = require("../modules/user-profile/routes/UserProfileRoute");
 const destinationRoutes = require("../modules/tourism-cms/routes/DestinationRoutes");
@@ -15,12 +14,10 @@ router.get("/health", (req, res) => {
 });
 
 // Auth routes
-router.group("/auth", (router) => {
-  router.post("/login", authController.login);
-  router.post("/register", authController.register);
-  router.post("/refresh-tokens", manageTokenController.refreshTokens);
-  router.post("/logout", authController.logout);
-});
+router.use("/auth", authRoutes);
+
+// Hotel Profile routes
+router.use("/hotel-profile", hotelProfileRoutes);
 
 // Booking Engine routes
 router.use("/bookings", bookingRoutes);

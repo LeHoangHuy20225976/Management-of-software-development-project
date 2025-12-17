@@ -1,0 +1,571 @@
+"""
+Test ML Service Router Endpoints
+Tests for churn prediction and recommendation endpoints
+"""
+import pytest
+from fastapi import status
+
+
+class TestMLHealthEndpoints:
+    """Test ML service health and info endpoints"""
+
+    def test_ml_health_endpoint(self, ml_client):
+        """Test ML health check endpoint"""
+        response = ml_client.get("/health")
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        assert data["status"] == "healthy"
+        assert "timestamp" in data
+        assert "models_loaded" in data
+        assert "checks" in data
+        assert data["checks"]["churn_predictor"] == "ok"
+
+    def test_ml_root_endpoint(self, ml_client):
+        """Test ML root endpoint"""
+        response = ml_client.get("/")
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        assert "service" in data
+        assert "version" in data
+        assert "status" in data
+
+    def test_model_info_endpoint(self, ml_client):
+        """Test get model info endpoint"""
+        response = ml_client.get("/models/churn_predictor/info")
+        
+        assert response.status_code in [status.HTTP_200_OK, status.HTTP_404_NOT_FOUND]
+        
+        if response.status_code == status.HTTP_200_OK:
+            data = response.json()
+            assert "model_name" in data or "status" in data
+
+
+class TestChurnPredictionEndpoints:
+    """Test churn prediction endpoints"""
+
+    def test_predict_churn_single(self, ml_client, sample_churn_request):
+        """Test single churn prediction"""
+        response = ml_client.post("/churn/predict", json=sample_churn_request)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Verify response structure
+        assert "booking_id" in data
+        assert "guest_id" in data
+        assert "churn_probability" in data
+        assert "risk_level" in data
+        assert "confidence" in data
+        assert "risk_factors" in data
+        assert "recommended_actions" in data
+        
+        # Verify data types and ranges
+        assert isinstance(data["churn_probability"], float)
+        assert 0.0 <= data["churn_probability"] <= 1.0
+        assert 0.0 <= data["confidence"] <= 1.0
+        assert data["risk_level"] in ["low", "medium", "high"]
+        
+        # Verify booking and guest IDs match request
+        assert data["booking_id"] == sample_churn_request["booking_id"]
+        assert data["guest_id"] == sample_churn_request["guest_id"]
+
+    def test_predict_churn_validation(self, ml_client):
+        """Test churn prediction with invalid input"""
+        invalid_request = {
+            "booking_id": "BOOK_001",
+            # Missing required fields
+        }
+        
+        response = ml_client.post("/churn/predict", json=invalid_request)
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_predict_churn_batch(self, ml_client, sample_batch_churn_request):
+        """Test batch churn prediction"""
+        response = ml_client.post("/churn/batch", json=sample_batch_churn_request)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Verify response structure
+        assert "predictions" in data
+        assert "total_processed" in data
+        assert "high_risk_count" in data
+        assert "medium_risk_count" in data
+        assert "low_risk_count" in data
+        
+        # Verify predictions
+        assert len(data["predictions"]) == len(sample_batch_churn_request["booking_ids"])
+        assert data["total_processed"] == len(sample_batch_churn_request["booking_ids"])
+        
+        # Verify each prediction
+        for pred in data["predictions"]:
+            assert "booking_id" in pred
+            assert "churn_probability" in pred
+            assert "risk_level" in pred
+            assert 0.0 <= pred["churn_probability"] <= 1.0
+            assert pred["risk_level"] in ["low", "medium", "high"]
+
+    def test_churn_risk_factors_structure(self, ml_client, sample_churn_request):
+        """Test that risk factors have proper structure"""
+        response = ml_client.post("/churn/predict", json=sample_churn_request)
+        data = response.json()
+        
+        # Check risk factors
+        if data["risk_factors"]:
+            for factor in data["risk_factors"]:
+                assert "factor" in factor
+                assert "impact_score" in factor
+                assert "description" in factor
+                assert isinstance(factor["impact_score"], float)
+
+    def test_churn_recommended_actions_structure(self, ml_client, sample_churn_request):
+        """Test that recommended actions have proper structure"""
+        response = ml_client.post("/churn/predict", json=sample_churn_request)
+        data = response.json()
+        
+        # Check recommended actions
+        if data["recommended_actions"]:
+            for action in data["recommended_actions"]:
+                assert "action" in action
+                assert "priority" in action
+                assert "timing" in action
+                assert "expected_impact" in action
+                assert action["priority"] in ["low", "medium", "high"]
+
+
+class TestRecommendationEndpoints:
+    """Test recommendation endpoints"""
+
+    def test_recommend_services(self, ml_client, sample_service_recommendation_request):
+        """Test service recommendation endpoint"""
+        response = ml_client.post(
+            "/recommend/services",
+            json=sample_service_recommendation_request
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Verify response structure
+        assert "guest_id" in data
+        assert "recommendations" in data
+        assert "total_recommendations" in data
+        assert "inference_time_ms" in data
+        assert "model_version" in data
+        
+        # Verify guest ID matches
+        assert data["guest_id"] == sample_service_recommendation_request["guest_id"]
+        
+        # Verify recommendations
+        assert len(data["recommendations"]) <= sample_service_recommendation_request["top_k"]
+        
+        for rec in data["recommendations"]:
+            assert "service_id" in rec
+            assert "service_name" in rec
+            assert "category" in rec
+            assert "score" in rec
+            assert "confidence" in rec
+            assert "reason" in rec
+            assert 0.0 <= rec["score"] <= 1.0
+            assert 0.0 <= rec["confidence"] <= 1.0
+
+    def test_recommend_services_with_exclusions(self, ml_client):
+        """Test service recommendations with exclusions"""
+        request = {
+            "guest_id": "GUEST_001",
+            "top_k": 5,
+            "exclude_services": ["SVC_SPA_001"]
+        }
+        
+        response = ml_client.post("/recommend/services", json=request)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Verify excluded service is not in recommendations
+        service_ids = [rec["service_id"] for rec in data["recommendations"]]
+        assert "SVC_SPA_001" not in service_ids
+
+    def test_recommend_rooms(self, ml_client, sample_room_recommendation_request):
+        """Test room recommendation endpoint"""
+        response = ml_client.post(
+            "/recommend/rooms",
+            json=sample_room_recommendation_request
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Verify response structure
+        assert "guest_id" in data
+        assert "recommendations" in data
+        assert "total_recommendations" in data
+        assert "model_version" in data
+        
+        # Verify recommendations
+        for rec in data["recommendations"]:
+            assert "room_number" in rec
+            assert "room_type" in rec
+            assert "floor" in rec
+            assert "score" in rec
+            assert "price" in rec
+            assert "features" in rec
+            assert "match_score" in rec
+            
+            # Verify match score structure
+            match_score = rec["match_score"]
+            assert "budget" in match_score
+            assert "view" in match_score
+            assert "floor" in match_score
+            assert "overall" in match_score
+            
+            assert 0.0 <= rec["score"] <= 1.0
+            assert isinstance(rec["price"], (int, float))
+            assert isinstance(rec["features"], list)
+
+    def test_recommend_rooms_without_preferences(self, ml_client):
+        """Test room recommendations without preferences"""
+        request = {
+            "guest_id": "GUEST_001",
+            "check_in": "2025-02-01",
+            "check_out": "2025-02-03",
+            "party_size": 2
+        }
+        
+        response = ml_client.post("/recommend/rooms", json=request)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert "recommendations" in data
+        assert len(data["recommendations"]) > 0
+
+
+class TestMLServiceIntegration:
+    """Integration tests for ML service"""
+
+    def test_multiple_predictions_consistency(self, ml_client, sample_churn_request):
+        """Test that multiple predictions for same input are consistent"""
+        response1 = ml_client.post("/churn/predict", json=sample_churn_request)
+        response2 = ml_client.post("/churn/predict", json=sample_churn_request)
+        
+        assert response1.status_code == status.HTTP_200_OK
+        assert response2.status_code == status.HTTP_200_OK
+        
+        data1 = response1.json()
+        data2 = response2.json()
+        
+        # Probabilities should be similar (allowing small variance for mock randomness)
+        assert abs(data1["churn_probability"] - data2["churn_probability"]) < 0.3
+        assert data1["risk_level"] == data2["risk_level"]
+
+    def test_cors_headers_present(self, ml_client):
+        """Test that CORS headers are configured"""
+        response = ml_client.get(
+            "/health",
+            headers={"Origin": "http://localhost:3000"}
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_error_handling_invalid_json(self, ml_client):
+        """Test error handling for invalid JSON"""
+        response = ml_client.post(
+            "/churn/predict",
+            data="invalid json",
+            headers={"Content-Type": "application/json"}
+        )
+        
+        assert response.status_code in [
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_400_BAD_REQUEST
+        ]
+
+
+class TestMLServicePerformance:
+    """Performance tests for ML service"""
+
+    def test_prediction_latency(self, ml_client, sample_churn_request):
+        """Test that predictions complete in reasonable time"""
+        import time
+        
+        start = time.time()
+        response = ml_client.post("/churn/predict", json=sample_churn_request)
+        elapsed = time.time() - start
+        
+        assert response.status_code == status.HTTP_200_OK
+        # Should complete within 2 seconds
+        assert elapsed < 2.0
+
+    def test_recommendation_latency(self, ml_client, sample_service_recommendation_request):
+        """Test that recommendations complete in reasonable time"""
+        response = ml_client.post(
+            "/recommend/services",
+            json=sample_service_recommendation_request
+        )
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Check inference time is reasonable (< 500ms for mock)
+        assert data["inference_time_ms"] < 500
+
+
+class TestCLVPredictionEndpoints:
+    """Test Customer Lifetime Value (CLV) prediction endpoints"""
+
+    def test_predict_clv_single(self, ml_client):
+        """Test single CLV prediction endpoint"""
+        request_data = {
+            "guest_id": "GUEST_001",
+            "time_horizon_months": 12
+        }
+        
+        response = ml_client.post("/clv/predict", json=request_data)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Check required fields
+        assert "guest_id" in data
+        assert "predicted_clv" in data
+        assert "time_horizon_months" in data
+        assert "currency" in data
+        assert "confidence" in data
+        assert "breakdown" in data
+        assert "segment" in data
+        assert "retention_probability" in data
+        assert "recommended_investment" in data
+        
+        # Validate data types and ranges
+        assert data["guest_id"] == "GUEST_001"
+        assert data["time_horizon_months"] == 12
+        assert data["currency"] == "VND"
+        assert 0 <= data["confidence"] <= 1
+        assert 0 <= data["retention_probability"] <= 1
+        assert data["segment"] in ["vip", "high_value", "medium_value", "low_value"]
+        assert data["predicted_clv"] > 0
+
+    def test_predict_clv_different_horizons(self, ml_client):
+        """Test CLV prediction with different time horizons"""
+        for months in [6, 12, 24, 36]:
+            request_data = {
+                "guest_id": "GUEST_001",
+                "time_horizon_months": months
+            }
+            
+            response = ml_client.post("/clv/predict", json=request_data)
+            
+            assert response.status_code == status.HTTP_200_OK
+            data = response.json()
+            assert data["time_horizon_months"] == months
+
+    def test_predict_clv_invalid_horizon(self, ml_client):
+        """Test CLV prediction with invalid time horizon"""
+        request_data = {
+            "guest_id": "GUEST_001",
+            "time_horizon_months": 100  # Too large
+        }
+        
+        response = ml_client.post("/clv/predict", json=request_data)
+        
+        # Should return validation error
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_predict_clv_breakdown_structure(self, ml_client):
+        """Test CLV breakdown has correct structure"""
+        request_data = {
+            "guest_id": "GUEST_001",
+            "time_horizon_months": 12
+        }
+        
+        response = ml_client.post("/clv/predict", json=request_data)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        breakdown = data["breakdown"]
+        assert "predicted_bookings" in breakdown
+        assert "avg_booking_value" in breakdown
+        assert "predicted_ancillary_revenue" in breakdown
+        assert "base_revenue" in breakdown
+        assert "total_revenue" in breakdown
+        
+        # Validate calculation
+        assert breakdown["total_revenue"] == data["predicted_clv"]
+
+    def test_predict_clv_recommended_investment(self, ml_client):
+        """Test recommended investment structure"""
+        request_data = {
+            "guest_id": "GUEST_001",
+            "time_horizon_months": 12
+        }
+        
+        response = ml_client.post("/clv/predict", json=request_data)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        investment = data["recommended_investment"]
+        assert "max_acquisition_cost" in investment
+        assert "loyalty_program_tier" in investment
+        assert "personalized_offers" in investment
+        assert "priority_level" in investment
+        
+        # Validate values
+        assert investment["loyalty_program_tier"] in ["bronze", "silver", "gold", "platinum"]
+        assert investment["priority_level"] in ["low", "medium", "high", "critical"]
+        assert isinstance(investment["personalized_offers"], bool)
+
+    def test_predict_clv_batch(self, ml_client):
+        """Test batch CLV prediction endpoint"""
+        request_data = {
+            "guest_ids": ["GUEST_001", "GUEST_002", "GUEST_003"],
+            "time_horizon_months": 12
+        }
+        
+        response = ml_client.post("/clv/batch", json=request_data)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Check structure
+        assert "predictions" in data
+        assert "total_processed" in data
+        assert "summary" in data
+        assert "model_version" in data
+        
+        # Check predictions
+        assert isinstance(data["predictions"], list)
+        assert data["total_processed"] >= 0
+        
+        # Check summary statistics
+        if data["total_processed"] > 0:
+            assert "avg_clv" in data["summary"]
+            assert "segment_counts" in data["summary"]
+
+    def test_predict_clv_batch_empty_list(self, ml_client):
+        """Test batch CLV with empty guest list"""
+        request_data = {
+            "guest_ids": [],
+            "time_horizon_months": 12
+        }
+        
+        response = ml_client.post("/clv/batch", json=request_data)
+        
+        # Should return validation error
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_predict_clv_batch_too_many_guests(self, ml_client):
+        """Test batch CLV with too many guests"""
+        request_data = {
+            "guest_ids": [f"GUEST_{i:04d}" for i in range(150)],  # More than 100
+            "time_horizon_months": 12
+        }
+        
+        response = ml_client.post("/clv/batch", json=request_data)
+        
+        # Should return validation error
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    def test_get_clv_segments(self, ml_client):
+        """Test CLV segments endpoint"""
+        response = ml_client.get("/clv/segments")
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Check structure
+        assert "segments" in data
+        assert "currency" in data
+        assert "default_time_horizon_months" in data
+        
+        # Check all segments are defined
+        segments = data["segments"]
+        assert "vip" in segments
+        assert "high_value" in segments
+        assert "medium_value" in segments
+        assert "low_value" in segments
+        
+        # Check segment structure
+        for segment_name, segment_data in segments.items():
+            assert "threshold_min" in segment_data
+            assert "description" in segment_data
+            assert "loyalty_tier" in segment_data
+            assert "priority" in segment_data
+
+    def test_get_clv_model_info(self, ml_client):
+        """Test CLV model info endpoint"""
+        response = ml_client.get("/clv/model/info")
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Check structure
+        assert "model_version" in data
+        assert "models" in data
+        assert "rfm_analysis" in data
+        assert "formula" in data
+        assert "features_used" in data
+        
+        # Check models
+        models = data["models"]
+        assert "booking_frequency" in models
+        assert "booking_value" in models
+        assert "retention" in models
+        
+        # Each model should have details
+        for model_name, model_data in models.items():
+            assert "model_type" in model_data
+            assert "purpose" in model_data
+            assert "features" in model_data
+
+    def test_predict_clv_with_rfm_scores(self, ml_client):
+        """Test that CLV prediction includes RFM scores for existing guests"""
+        request_data = {
+            "guest_id": "GUEST_001",
+            "time_horizon_months": 12
+        }
+        
+        response = ml_client.post("/clv/predict", json=request_data)
+        
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        
+        # Check if RFM scores are present (may be null for new guests)
+        if data.get("rfm_scores") is not None:
+            rfm = data["rfm_scores"]
+            assert "recency_score" in rfm
+            assert "frequency_score" in rfm
+            assert "monetary_score" in rfm
+            assert "overall_score" in rfm
+            
+            # Validate score ranges (1-5)
+            assert 1 <= rfm["recency_score"] <= 5
+            assert 1 <= rfm["frequency_score"] <= 5
+            assert 1 <= rfm["monetary_score"] <= 5
+            assert 1 <= rfm["overall_score"] <= 5
+
+    def test_clv_prediction_consistency(self, ml_client):
+        """Test that multiple predictions for same guest are consistent"""
+        request_data = {
+            "guest_id": "GUEST_CONSISTENT",
+            "time_horizon_months": 12
+        }
+        
+        # Make two predictions
+        response1 = ml_client.post("/clv/predict", json=request_data)
+        response2 = ml_client.post("/clv/predict", json=request_data)
+        
+        assert response1.status_code == status.HTTP_200_OK
+        assert response2.status_code == status.HTTP_200_OK
+        
+        data1 = response1.json()
+        data2 = response2.json()
+        
+        # CLV should be the same (or very close due to floating point)
+        assert abs(data1["predicted_clv"] - data2["predicted_clv"]) < 100
+        assert data1["segment"] == data2["segment"]

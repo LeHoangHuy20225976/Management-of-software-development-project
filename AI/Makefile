@@ -52,6 +52,14 @@ test-cv-unit: ## Run CV unit tests only
 test-cv-integration: ## Run CV integration tests only
 	pytest test/cv/integration/ -v
 
+test-cv-manual: ## Run CV manual tests (interactive testing)
+	.venv/bin/python test/cv/manual/test_image_search_manual.py
+
+test-cv-benchmark: ## Run CV performance benchmarks
+	.venv/bin/python test/cv/performance/benchmark_image_search.py
+
+test-cv-all: test-cv-unit test-cv-integration test-cv-manual ## Run all CV tests (unit + integration + manual)
+
 test-watch: ## Run tests in watch mode (re-run on file changes)
 	pytest-watch test/ -v
 
