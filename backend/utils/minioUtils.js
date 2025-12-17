@@ -1,4 +1,4 @@
-const { minioClient, buckets } = require("../configs/minio");
+const { minioClient, buckets, minioConfig } = require("../configs/minio");
 const crypto = require("crypto");
 const path = require("path");
 
@@ -17,8 +17,22 @@ const minioUtils = {
     const timestamp = Date.now();
     const randomString = crypto.randomBytes(8).toString("hex");
     const ext = path.extname(originalName);
-    const baseName = path.basename(originalName, ext);
-    return `${baseName}-${timestamp}-${randomString}${ext}`;
+    const rawBaseName = path.basename(originalName, ext);
+
+    // Replace spaces with dashes and remove unsafe URL characters
+    let baseName = rawBaseName.trim().replace(/\s+/g, "-");
+    baseName = baseName.replace(/[^a-zA-Z0-9-_]/g, "");
+
+    // Fallback if name becomes empty after sanitization
+    if (!baseName) {
+      baseName = "file";
+    }
+
+    // Limit base name length to keep final URL safely under 255 chars in DB
+    const MAX_BASE_LENGTH = 50;
+    const safeBaseName = baseName.slice(0, MAX_BASE_LENGTH);
+
+    return `${safeBaseName}-${timestamp}-${randomString}${ext}`;
   },
 
   /**
@@ -41,7 +55,15 @@ const minioUtils = {
         metadata
       );
 
-      const url = await minioUtils.getFileUrl(bucketName, uniqueFileName);
+      // Build a stable, non-expiring public URL based on MinIO config
+      const protocol = minioConfig.useSSL ? "https" : "http";
+      const needsPort = !(
+        (!minioConfig.useSSL && minioConfig.port === 80) ||
+        (minioConfig.useSSL && minioConfig.port === 443)
+      );
+      const portPart = needsPort ? `:${minioConfig.port}` : "";
+      const baseUrl = `${protocol}://${minioConfig.endPoint}${portPart}`;
+      const url = `${baseUrl}/${bucketName}/${uniqueFileName}`;
 
       return {
         success: true,

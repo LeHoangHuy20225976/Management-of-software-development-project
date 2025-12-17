@@ -5,17 +5,21 @@ const DestinationService = {
    * Get all destinations
    */
   async getAllDestinations() {
-    const destinations = await db.Destination.findAll({
+    const destinations = await db.Destination.findAll();
+    console.log(destinations);
+    return destinations;
+  },
+  /* 
+  {
       include: [
         {
           model: db.Image,
-          attributes: ["image_id", "url"],
+          attributes: ["image_id", "image_url"],
         },
       ],
       order: [["destination_id", "ASC"]],
-    });
-    return destinations;
-  },
+    }
+  */
 
   /**
    * Get destination by ID
@@ -25,11 +29,11 @@ const DestinationService = {
       include: [
         {
           model: db.Image,
-          attributes: ["image_id", "url"],
+          attributes: ["image_id", "image_url"],
         },
         {
           model: db.Review,
-          attributes: ["review_id", "rating", "content", "created_at"],
+          attributes: ["review_id", "rating", "comment", "date_created"],
           include: [
             {
               model: db.User,
@@ -147,7 +151,7 @@ const DestinationService = {
       include: [
         {
           model: db.Image,
-          attributes: ["image_id", "url"],
+          attributes: ["image_id", "image_url"],
         },
       ],
       order: [["rating", "DESC"]],
@@ -164,7 +168,7 @@ const DestinationService = {
       include: [
         {
           model: db.Image,
-          attributes: ["image_id", "url"],
+          attributes: ["image_id", "image_url"],
         },
       ],
       order: [["rating", "DESC"]],
@@ -180,7 +184,7 @@ const DestinationService = {
       imageUrls.map((url) =>
         db.Image.create({
           destination_id: destinationId,
-          url: url,
+          image_url: url,
         })
       )
     );
@@ -223,6 +227,35 @@ const DestinationService = {
     const image = await this.getDestinationImage(destinationId, imageId);
     await image.destroy();
     return { message: "Image deleted successfully" };
+  },
+
+  /**
+   * Add a review for a destination
+   * destination_id is set, hotel_id and room_id are null
+   */
+  async addDestinationReview(destinationId, reviewData) {
+    const destination = await db.Destination.findByPk(destinationId);
+    if (!destination) {
+      throw new Error("Destination not found");
+    }
+
+    const { user_id, rating, comment } = reviewData;
+
+    if (!user_id || rating === undefined) {
+      throw new Error("user_id and rating are required");
+    }
+
+    const review = await db.Review.create({
+      user_id,
+      destination_id: destinationId,
+      hotel_id: null,
+      room_id: null,
+      rating,
+      comment,
+      date_created: new Date(),
+    });
+
+    return review;
   },
 };
 
