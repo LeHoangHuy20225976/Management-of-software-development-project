@@ -42,6 +42,9 @@ class ApiClient {
   ): Promise<T> {
     const url = getApiUrl(endpoint, params);
 
+    // Debug log
+    console.log('🌐 API Request:', { endpoint, url, method: options.method || 'GET' });
+
     const defaultHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       ...options.headers as Record<string, string>,
@@ -84,11 +87,22 @@ class ApiClient {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('❌ API Error:', { url, status: response.status, statusText: response.statusText, errorData });
         throw new Error(errorData.message || `API Error: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json();
-      return data;
+      const responseData = await response.json();
+      
+      // Backend returns { success, data, status, message }
+      // Unwrap the 'data' field if it exists
+      if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+        console.log('✅ API Response (unwrapped):', { endpoint, data: responseData.data });
+        return responseData.data as T;
+      }
+      
+      // If response is already in the expected format, return as-is
+      console.log('✅ API Response (direct):', { endpoint, data: responseData });
+      return responseData as T;
     } catch (error) {
       console.error('API Request Error:', error);
       throw error;
