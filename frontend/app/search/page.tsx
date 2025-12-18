@@ -43,9 +43,10 @@ export default function SearchPage() {
     setLoading(true);
     try {
       const data = await hotelsApi.getAll(filters);
-      setHotels(data);
+      setHotels(data || []); // Ensure always array
     } catch (error) {
       console.error('Error loading hotels:', error);
+      setHotels([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -251,7 +252,7 @@ export default function SearchPage() {
               <Card className="h-[600px]">
                 <MapView hotels={hotels} />
               </Card>
-            ) : hotels.length === 0 ? (
+            ) : !hotels || hotels.length === 0 ? (
               <Card className="text-center py-12">
                 <div className="text-6xl mb-4">🔍</div>
                 <h3 className="text-xl font-bold mb-2">Không tìm thấy khách sạn</h3>
