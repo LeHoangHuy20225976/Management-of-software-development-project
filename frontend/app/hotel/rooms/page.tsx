@@ -230,7 +230,7 @@ export default function HotelRoomsPage() {
                     Tiện nghi:
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {room.amenities.map((amenity) => (
+                    {(room.amenities || []).map((amenity) => (
                       <span
                         key={amenity}
                         className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full"

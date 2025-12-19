@@ -33,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
       modelName: "Image",
       tableName: "Image",
       freezeTableName: true,
-      timestamps: false,
+      timestamps: true,
     }
   );
   return Image;

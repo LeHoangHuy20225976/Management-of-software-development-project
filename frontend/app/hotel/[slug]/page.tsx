@@ -253,7 +253,7 @@ export default function HotelDetailPage({
                   Tiện ích
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {hotel.amenities.map((amenityId) => {
+                  {(hotel.amenities || []).map((amenityId) => {
                     const amenity = amenitiesList.find(
                       (a) => a.id === amenityId
                     );

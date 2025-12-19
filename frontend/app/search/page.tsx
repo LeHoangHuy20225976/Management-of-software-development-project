@@ -285,7 +285,7 @@ export default function SearchPage() {
                           </p>
 
                           <div className="flex flex-wrap gap-2 mb-4">
-                            {hotel.amenities.slice(0, 5).map((amenity) => {
+                            {(hotel.amenities || []).slice(0, 5).map((amenity) => {
                               const amenityData = amenitiesList.find(a => a.id === amenity);
                               return amenityData ? (
                                 <span
