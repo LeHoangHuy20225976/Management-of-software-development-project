@@ -220,7 +220,7 @@ export default function HotelRoomsPage() {
                   </div>
 
                   <div className="flex flex-wrap gap-2 mb-3">
-                    {room.amenities.slice(0, 3).map((amenity: string) => (
+                    {(room.amenities || []).slice(0, 3).map((amenity: string) => (
                       <span
                         key={amenity}
                         className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium"
@@ -228,9 +228,9 @@ export default function HotelRoomsPage() {
                         {amenity}
                       </span>
                     ))}
-                    {room.amenities.length > 3 && (
+                    {(room.amenities || []).length > 3 && (
                       <span className="text-xs text-gray-600">
-                        +{room.amenities.length - 3} khác
+                        +{(room.amenities || []).length - 3} khác
                       </span>
                     )}
                   </div>
