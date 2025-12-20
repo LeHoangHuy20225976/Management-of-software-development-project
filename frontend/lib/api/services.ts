@@ -74,8 +74,9 @@ export const hotelsApi = {
       return hotels;
     }
 
-    // Real API call
-    return apiClient.get<Hotel[]>(API_CONFIG.ENDPOINTS.HOTELS);
+    // Real API call - Backend doesn't have /hotels endpoint yet
+    // Using mock data until backend implements this
+    return apiClient.get<Hotel[]>(API_CONFIG.ENDPOINTS.ALL_ROOMS);
   },
 
   async getById(id: string): Promise<Hotel | null> {
@@ -91,7 +92,7 @@ export const hotelsApi = {
       );
     }
 
-    return apiClient.get<Hotel>(API_CONFIG.ENDPOINTS.HOTEL_DETAILS, { id });
+    return apiClient.get<Hotel>(API_CONFIG.ENDPOINTS.VIEW_HOTEL, { hotel_id: id });
   },
 
   async getBySlug(slug: string): Promise<Hotel | null> {
@@ -113,7 +114,7 @@ export const hotelsApi = {
       return getMockRoomTypesByHotel(hotelId);
     }
 
-    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.HOTEL_ROOMS, { id: hotelId });
+    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ALL_ROOMS, { hotel_id: hotelId });
   },
 
   async getReviews(hotelId: string): Promise<Review[]> {
@@ -126,7 +127,7 @@ export const hotelsApi = {
       );
     }
 
-    return apiClient.get<Review[]>(API_CONFIG.ENDPOINTS.HOTEL_REVIEWS, { id: hotelId });
+    return apiClient.get<Review[]>(API_CONFIG.ENDPOINTS.ALL_REVIEWS, { hotel_id: hotelId });
   },
 };
 
@@ -139,7 +140,7 @@ export const tourismApi = {
       return getMockTourismSpots();
     }
 
-    return apiClient.get<TourismSpot[]>(API_CONFIG.ENDPOINTS.TOURISM_SPOTS);
+    return apiClient.get<TourismSpot[]>(API_CONFIG.ENDPOINTS.ALL_DESTINATIONS);
   },
 
   async getById(id: string): Promise<TourismSpot | null> {
@@ -155,7 +156,7 @@ export const tourismApi = {
       );
     }
 
-    return apiClient.get<TourismSpot>(API_CONFIG.ENDPOINTS.TOURISM_DETAILS, { id });
+    return apiClient.get<TourismSpot>(API_CONFIG.ENDPOINTS.VIEW_DESTINATION, { destination_id: id });
   },
 
   async getBySlug(slug: string): Promise<TourismSpot | null> {
@@ -180,7 +181,7 @@ export const bookingsApi = {
       return getMockBookings();
     }
 
-    return apiClient.get<Booking[]>(API_CONFIG.ENDPOINTS.USER_BOOKINGS);
+    return apiClient.get<Booking[]>(API_CONFIG.ENDPOINTS.BOOKING_HISTORY);
   },
 
   async getById(id: string): Promise<Booking | null> {
@@ -226,7 +227,7 @@ export const bookingsApi = {
       return newBooking;
     }
 
-    return apiClient.post<Booking>(API_CONFIG.ENDPOINTS.CREATE_BOOKING, bookingData);
+    return apiClient.post<Booking>(API_CONFIG.ENDPOINTS.ADD_BOOKING, bookingData);
   },
 
   async cancel(id: string): Promise<boolean> {
@@ -238,7 +239,7 @@ export const bookingsApi = {
       return true;
     }
 
-    return apiClient.delete<boolean>(API_CONFIG.ENDPOINTS.CANCEL_BOOKING, { id });
+    return apiClient.delete<boolean>(API_CONFIG.ENDPOINTS.DELETE_BOOKING, { id });
   },
 };
 
@@ -253,7 +254,7 @@ export const userApi = {
       return user || defaultMockUser;
     }
 
-    return apiClient.get<User>(API_CONFIG.ENDPOINTS.USER_PROFILE);
+    return apiClient.get<User>(API_CONFIG.ENDPOINTS.VIEW_PROFILE);
   },
 
   async updateProfile(data: Partial<User>): Promise<User> {
@@ -266,7 +267,7 @@ export const userApi = {
       return user || defaultMockUser;
     }
 
-    return apiClient.put<User>(API_CONFIG.ENDPOINTS.USER_PROFILE, data);
+    return apiClient.put<User>(API_CONFIG.ENDPOINTS.UPDATE_PROFILE, data);
   },
 };
 
@@ -298,7 +299,7 @@ export const reviewsApi = {
       return newReview;
     }
 
-    return apiClient.post<Review>(API_CONFIG.ENDPOINTS.USER_REVIEWS, reviewData);
+    return apiClient.post<Review>(API_CONFIG.ENDPOINTS.ADD_REVIEW, reviewData);
   },
 
   async update(id: string, reviewData: Partial<Review>): Promise<Review> {
@@ -318,7 +319,7 @@ export const reviewsApi = {
       return updatedReview;
     }
 
-    return apiClient.put<Review>(`${API_CONFIG.ENDPOINTS.USER_REVIEWS}/${id}`, reviewData);
+    return apiClient.put<Review>(API_CONFIG.ENDPOINTS.UPDATE_REVIEW, { review_id: id, ...reviewData });
   },
 
   async delete(id: string): Promise<boolean> {
@@ -334,7 +335,7 @@ export const reviewsApi = {
       return true;
     }
 
-    return apiClient.delete<boolean>(`${API_CONFIG.ENDPOINTS.USER_REVIEWS}/${id}`);
+    return apiClient.delete<boolean>(API_CONFIG.ENDPOINTS.DELETE_REVIEW, { review_id: id });
   },
 };
 
@@ -349,7 +350,8 @@ export const searchApi = {
       return hotelsApi.getAll(filters);
     }
 
-    return apiClient.post<Hotel[]>(API_CONFIG.ENDPOINTS.SEARCH_HOTELS, { query, ...filters });
+    // Backend doesn't have search endpoint yet, use ALL_ROOMS with filters
+    return apiClient.get<Hotel[]>(API_CONFIG.ENDPOINTS.ALL_ROOMS);
   },
 
   async suggestions(query: string): Promise<string[]> {
@@ -363,7 +365,9 @@ export const searchApi = {
       return suggestions;
     }
 
-    return apiClient.get<string[]>(`${API_CONFIG.ENDPOINTS.SEARCH_SUGGESTIONS}?q=${query}`);
+    // Backend doesn't have search suggestions endpoint yet
+    // Temporary: return empty array or implement client-side search
+    return [];
   },
 };
 
@@ -376,7 +380,7 @@ export const hotelManagerApi = {
       await mockDelay();
       return getMockRoomTypesByHotel(hotelId);
     }
-    return apiClient.get<RoomType[]>(`/hotel-manager/rooms`);
+    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ALL_ROOMS, { hotel_id: hotelId });
   },
 
   async createRoom(hotelId: string, roomData: Partial<RoomType>): Promise<RoomType> {
@@ -421,7 +425,7 @@ export const hotelManagerApi = {
 
       return roomWithExtras;
     }
-    return apiClient.post<RoomType>(`/hotel-manager/rooms`, roomData);
+    return apiClient.post<RoomType>(API_CONFIG.ENDPOINTS.ADD_ROOM, { roomData });
   },
 
   async updateRoom(roomId: string, updates: Partial<RoomType>): Promise<RoomType> {
@@ -450,7 +454,7 @@ export const hotelManagerApi = {
       }
       throw new Error('Room not found');
     }
-    return apiClient.put<RoomType>(`/hotel-manager/rooms/${roomId}`, updates);
+    return apiClient.put<RoomType>(API_CONFIG.ENDPOINTS.ROOM_INVENTORY_UPDATE, { room_id: roomId, ...updates });
   },
 
   async deleteRoom(roomId: string): Promise<void> {
@@ -472,7 +476,7 @@ export const hotelManagerApi = {
       }
       throw new Error('Room not found');
     }
-    return apiClient.delete(`/hotel-manager/rooms/${roomId}`);
+    return apiClient.delete(API_CONFIG.ENDPOINTS.ROOM_INVENTORY_DELETE, { room_id: roomId });
   },
 
   // Pricing Management
@@ -498,7 +502,9 @@ export const hotelManagerApi = {
       localStorage.setItem(`hotelPricing_${hotelId}`, JSON.stringify(defaultPricing));
       return defaultPricing;
     }
-    return apiClient.get<Record<string, unknown>>(`/hotel-manager/pricing`);
+    // Backend requires type_id, not hotel_id. This needs to be refactored.
+    // Temporary: return mock data or fetch all room types first
+    return apiClient.get<any>(API_CONFIG.ENDPOINTS.VIEW_ROOM_TYPES, { hotel_id: hotelId });
   },
 
   async updatePricing(hotelId: string, pricing: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -508,7 +514,7 @@ export const hotelManagerApi = {
       localStorage.setItem(`hotelPricing_${hotelId}`, JSON.stringify(pricing));
       return pricing;
     }
-    return apiClient.put<Record<string, unknown>>(`/hotel-manager/pricing`, pricing);
+    return apiClient.put<any>(API_CONFIG.ENDPOINTS.UPDATE_PRICE, { priceData: pricing });
   },
 
   // Reviews Management
@@ -531,7 +537,7 @@ export const hotelManagerApi = {
       setMockReviews(reviews);
       return review;
     }
-    return apiClient.post<Review>(`/hotel-manager/reviews/${reviewId}/reply`, { reply });
+    return apiClient.post<any>(API_CONFIG.ENDPOINTS.REPLY_REVIEW, { review_id: reviewId, reply });
   },
 
   // Hotel Info Management
@@ -561,7 +567,7 @@ export const hotelManagerApi = {
         },
       };
     }
-    return apiClient.get<Hotel & { settings?: Record<string, unknown> }>(`/hotel-manager/info`);
+    return apiClient.get<any>(API_CONFIG.ENDPOINTS.VIEW_HOTEL, { hotel_id: hotelId });
   },
 
   async updateHotelInfo(hotelId: string, updates: Partial<Hotel> & { phone?: string; email?: string; settings?: Record<string, unknown> }): Promise<{ success: boolean }> {
@@ -584,6 +590,6 @@ export const hotelManagerApi = {
 
       return { success: true };
     }
-    return apiClient.put<{ success: boolean }>(`/hotel-manager/info`, updates);
+    return apiClient.put<any>(API_CONFIG.ENDPOINTS.UPDATE_HOTEL, { hotel_id: hotelId, hotelData: updates });
   },
 };

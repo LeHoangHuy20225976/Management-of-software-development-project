@@ -1,9 +1,59 @@
-const express = require("express");
 const db = require("../../../models/index");
 const { Op, fn, col, where } = require('sequelize');
+const minioUtils = require("../../../utils/minioUtils");
+const { up } = require("../../../migrations/20251215110000-change-media-url-columns-to-text");
+
+const toPublicObjectUrl = (presignedUrl) => {
+    if (!presignedUrl) return null;
+
+    try {
+        const url = new URL(presignedUrl);
+
+        // Remove signature/query params to make it a plain object URL.
+        url.search = "";
+
+        // If you want a specific external host/port, set these env vars.
+        // Example (host machine): MINIO_PUBLIC_ENDPOINT=localhost, MINIO_PUBLIC_PORT=9002
+        const publicEndpoint = process.env.MINIO_PUBLIC_ENDPOINT;
+        const publicPort = process.env.MINIO_PUBLIC_PORT;
+
+        if (publicEndpoint) url.hostname = publicEndpoint;
+        if (publicPort) url.port = String(publicPort);
+
+        // Dev convenience: when running in Docker Compose, presigned URLs often use `minio:9000`
+        // which isn't reachable from the host browser. Map it to `localhost:9002` by default.
+        if (!publicEndpoint && !publicPort && url.hostname === "minio" && url.port === "9000") {
+            url.hostname = "localhost";
+            url.port = "9002";
+        }
+
+        return url.toString();
+    } catch {
+        return presignedUrl.split("?")[0];
+    }
+};
+
+const normalizeObjectName = (value) => {
+    if (value === null || value === undefined) return value;
+    if (typeof value !== "string") return value;
+
+    const trimmed = value.trim();
+    if (trimmed === "") return "";
+
+    const withoutQuery = trimmed.split("?")[0].split("#")[0];
+
+    try {
+        const url = new URL(withoutQuery);
+        const segments = url.pathname.split("/").filter(Boolean);
+        return segments.length ? segments[segments.length - 1] : trimmed;
+    } catch {
+        const segments = withoutQuery.split("/").filter(Boolean);
+        return segments.length ? segments[segments.length - 1] : withoutQuery;
+    }
+};
 
 const hotelProfileService = {
-    async addNewHotel(hotelData, userid) {
+    async addNewHotel(hotelData, userid, thumbnailFile) {
         // check for existed hotel based on address and name
         console.log("Hotel data: ", hotelData);
         const existedHotel = await db.Hotel.findOne({
@@ -17,24 +67,56 @@ const hotelProfileService = {
         if(existedHotel) {
             throw new Error("Hotel has been registered on our system");
         }
-        const newHotel = await db.Hotel.create({
-            name: hotelData.hotelName,
-            hotel_owner: userid,
-            address: hotelData.address,
-            status: 1,
-            rating: 5.0,
-            longitude: hotelData.longitude ? hotelData.longitude : null,
-            latitute: hotelData.latitute ? hotelData.latitute : null,
-            description: hotelData.description ? hotelData.description : 'No description provided',
-            contact_phone: hotelData.contact_phone,
-            thumbnail: hotelData.thumbnail ? hotelData.thumbnail : null
-        });
-        const user = await db.User.findByPk(userid);
-        user.role = 'hotel_manager';
-        await user.save();
-        return {
-            hotelName: newHotel.name
-        };
+        let uploadedThumbnail = null;
+        let thumbnailUrl = hotelData?.thumbnail ? hotelData.thumbnail : null;
+        try {
+            if (thumbnailFile?.buffer) {
+                if (!thumbnailFile.mimetype?.startsWith("image/")) {
+                    throw new Error("Only image files are allowed");
+                }
+                console.log("Uploading thumbnail to MinIO...", minioUtils.buckets.HOTEL_IMAGES);
+	                uploadedThumbnail = await minioUtils.uploadFile(
+	                    minioUtils.buckets.HOTEL_IMAGES,
+	                    thumbnailFile.buffer,
+	                    thumbnailFile.originalname,
+	                    { "Content-Type": thumbnailFile.mimetype }
+	                );
+	
+	                thumbnailUrl = uploadedThumbnail.fileName;
+	                console.log("Thumbnail uploaded:", thumbnailUrl);
+	            }
+
+            const newHotel = await db.Hotel.create({
+                name: hotelData.hotelName,
+                hotel_owner: userid,
+                address: hotelData.address,
+                status: 1,
+                rating: 5.0,
+                longitude: hotelData.longitude ? hotelData.longitude : null,
+                latitude: hotelData.latitude ?? hotelData.latitute ?? null,
+                description: hotelData.description ? hotelData.description : 'No description provided',
+                contact_phone: hotelData.contact_phone,
+                thumbnail: thumbnailUrl
+            });
+            const user = await db.User.findByPk(userid);
+            user.role = 'hotel_manager';
+            await user.save();
+            return {
+                hotelName: newHotel.name
+            };
+        } catch (error) {
+            if (uploadedThumbnail?.fileName) {
+                try {
+                    await minioUtils.deleteFile(
+                        minioUtils.buckets.HOTEL_IMAGES,
+                        uploadedThumbnail.fileName
+                    );
+                } catch (cleanupError) {
+                    console.error("Failed to cleanup uploaded thumbnail:", cleanupError);
+                }
+            }
+            throw error;
+        }
     },
     async addTypeForHotel(typeData, userid) {
         const hotel = await db.Hotel.findByPk(typeData.hotel_id);
@@ -67,7 +149,7 @@ const hotelProfileService = {
             discount: priceData.discount ? priceData.discount : 0.0
         });
     },
-    async addRoom(roomData, userid) {
+    async addRoom(roomData, userid, imageFiles) {
         const typeId = roomData.type_id;
         // check for type
         const roomType = await db.RoomType.findByPk(typeId);
@@ -82,7 +164,7 @@ const hotelProfileService = {
         if(ownerid !== userid) {
             throw new Error("You are not the owner of this hotel");
         }
-        await db.Room.create({
+        const newRoom = await db.Room.create({
             type_id: roomType.type_id,
             name: roomData.name, 
             location: roomData.location,
@@ -94,20 +176,66 @@ const hotelProfileService = {
             room_size: roomData.room_size ? roomData.room_size: 0.0,
             notes: roomData.notes ? roomData.notes: 'No notes'
         });
+
         // update quantity of room type
         roomType.quantity += 1;
         await roomType.save();
+
+        // Handle image files for the room
+        if (imageFiles && imageFiles.length > 0) {
+            for (const file of imageFiles) {
+                if (!file.mimetype?.startsWith("image/")) {
+                    throw new Error("Only image files are allowed");
+                }
+
+                const uploadedImage = await minioUtils.uploadFile(
+                    minioUtils.buckets.ROOM_IMAGES,
+                    file.buffer,
+                    file.originalname,
+                    { "Content-Type": file.mimetype }
+                );
+
+                await db.Image.create({
+                    room_id: newRoom.room_id,
+                    image_url: uploadedImage.fileName
+                });
+            }
+        }
     },
     async viewHotelProfile(hotelid) {
         const hotel = await db.Hotel.findByPk(hotelid);
         if(!hotel) {
             throw new Error("Hotel not found");
         }
+        // get images for hotel
+        const imageUrl = hotel?.thumbnail ? hotel.thumbnail : null;
+        if(imageUrl) {
+            const presignedUrl = await minioUtils.getFileUrl(
+                minioUtils.buckets.HOTEL_IMAGES,
+                imageUrl
+            );
+            let publicUrl = toPublicObjectUrl(presignedUrl);
+            hotel.thumbnail = publicUrl; // just replace with presigned URL to return for client
+        }
+        const imageList = await db.Image.findAll({
+            where: { hotel_id: hotel.hotel_id }
+        });
+        const publicImageUrls = [];
+        for(const image of imageList) {
+            const presignedUrl = await minioUtils.getFileUrl(
+                minioUtils.buckets.HOTEL_IMAGES,
+                image.image_url
+            );
+            let publicUrl = toPublicObjectUrl(presignedUrl);
+            publicImageUrls.push(publicUrl);
+        }
+        hotel.setDataValue('imageUrls', publicImageUrls); // make it JSON-visible
+        console.log("Hotel profile data: ", hotel);
         return {
             hotelData: hotel
         }
     },
-    async updateHotelProfile(hotelid, userid, hotelData) {
+    async updateHotelProfile(hotelid, userid, hotelData = {}, thumbnailFile) {
         const hotel = await db.Hotel.findByPk(hotelid);
         if(!hotel) {
             throw new Error("Hotel not found");
@@ -116,16 +244,69 @@ const hotelProfileService = {
         if(ownerid !== userid) {
             throw new Error("You are not the owner of this hotel");
         }
-        // Use nullish coalescing to allow falsy values like 0 or empty strings to be saved intentionally
-        hotel.name = hotelData.hotelName ?? hotel.name;
-        hotel.address = hotelData.address ?? hotel.address;
-        hotel.status = hotelData.status ?? hotel.status;
-        hotel.longitude = hotelData.longitude ?? hotel.longitude;
-        hotel.latitute = hotelData.latitute ?? hotel.latitute;
-        hotel.description = hotelData.description ?? hotel.description;
-        hotel.contact_phone = hotelData.contact_phone ?? hotel.contact_phone;
-        hotel.thumbnail = hotelData.thumbnail ?? hotel.thumbnail;
-        await hotel.save();
+
+        const hasThumbnailField = Object.prototype.hasOwnProperty.call(hotelData, "thumbnail");
+        const previousThumbnail = hotel.thumbnail;
+        console.log("Previous thumbnail:", previousThumbnail);
+        let uploadedThumbnail = null;
+
+        try {
+            let nextThumbnail = previousThumbnail;
+
+            if (thumbnailFile?.buffer) {
+                console.log("Uploading new thumbnail to MinIO...", minioUtils.buckets.HOTEL_IMAGES);
+                if (!thumbnailFile.mimetype?.startsWith("image/")) {
+                    throw new Error("Only image files are allowed");
+                }
+
+                uploadedThumbnail = await minioUtils.uploadFile(
+                    minioUtils.buckets.HOTEL_IMAGES,
+                    thumbnailFile.buffer,
+                    thumbnailFile.originalname,
+                    { "Content-Type": thumbnailFile.mimetype }
+                );
+
+                nextThumbnail = uploadedThumbnail.fileName;
+                console.log("Uploaded new thumbnail:", nextThumbnail);
+            } else if (hasThumbnailField) {
+                nextThumbnail = normalizeObjectName(hotelData.thumbnail);
+            }
+
+            // Use nullish coalescing to allow falsy values like 0 or empty strings to be saved intentionally
+            hotel.name = hotelData.hotelName ?? hotel.name;
+            hotel.address = hotelData.address ?? hotel.address;
+            hotel.status = hotelData.status ?? hotel.status;
+            hotel.longitude = hotelData.longitude ?? hotel.longitude;
+            hotel.latitude = (hotelData.latitude ?? hotelData.latitute) ?? hotel.latitude;
+            hotel.description = hotelData.description ?? hotel.description;
+            hotel.contact_phone = hotelData.contact_phone ?? hotel.contact_phone;
+
+            if (nextThumbnail !== previousThumbnail) {
+                hotel.thumbnail = nextThumbnail;
+            }
+
+            await hotel.save();
+        } catch (error) {
+            if (uploadedThumbnail?.fileName) {
+                try {
+                    await minioUtils.deleteFile(
+                        minioUtils.buckets.HOTEL_IMAGES,
+                        uploadedThumbnail.fileName
+                    );
+                } catch (cleanupError) {
+                    console.error("Failed to cleanup uploaded thumbnail:", cleanupError);
+                }
+            }
+            throw error;
+        }
+
+        if (previousThumbnail && previousThumbnail !== hotel.thumbnail) {
+            try {
+                await minioUtils.deleteFile(minioUtils.buckets.HOTEL_IMAGES, previousThumbnail);
+            } catch (cleanupError) {
+                console.error("Failed to cleanup previous thumbnail:", cleanupError);
+            }
+        }
     },
     async disableHotel(hotelid, userid) {
         const hotel = await db.Hotel.findByPk(hotelid);
@@ -278,6 +459,20 @@ const hotelProfileService = {
                 });
                 continue;
             }
+            // get images
+            const listImages = await db.Image.findAll({
+                where: { room_id: room.room_id }
+            });
+            const publicImageUrls = [];
+            for(const image of listImages) {
+                const presignedUrl = await minioUtils.getFileUrl(
+                    minioUtils.buckets.HOTEL_IMAGES,
+                    image.image_url
+                );
+                let publicUrl = toPublicObjectUrl(presignedUrl);
+                publicImageUrls.push(publicUrl);
+            }
+            room.setDataValue('imageUrls', publicImageUrls); // make it JSON-visible
             // check for special price and price, if existed special price, use it, else use basic price
             const price = roomPrice?.special_price ?? roomPrice?.basic_price;
             roomsWithPrices.push({
@@ -315,6 +510,19 @@ const hotelProfileService = {
                 b => currentDate >= b.check_in_date && currentDate <= b.check_out_date
             );
             room.setDataValue('isAvailable', isAvailable); // make it JSON-visible
+            const listImages = await db.Image.findAll({
+                where: { room_id: room.room_id }
+            })
+            const publicImageUrls = [];
+            for(const image of listImages) {
+                const presignedUrl = await minioUtils.getFileUrl(
+                    minioUtils.buckets.HOTEL_IMAGES,
+                    image.image_url
+                );
+                let publicUrl = toPublicObjectUrl(presignedUrl);
+                publicImageUrls.push(publicUrl);
+            }
+            room.setDataValue('imageUrls', publicImageUrls); // make it JSON-visible
         }
         // get price for each room based on type_id
         const roomsWithPrices = [];
@@ -346,6 +554,95 @@ const hotelProfileService = {
             });
         }
         return roomsWithPrices;
+    },
+    getAllHotel: async() => {
+        const hotels = await db.Hotel.findAll();
+        // for each hotel, get presigned url for thumbnail
+        for(const hotel of hotels) {
+            const imageUrl = hotel?.thumbnail ? hotel.thumbnail : null;
+            if(imageUrl) {
+                const presignedUrl = await minioUtils.getFileUrl(
+                    minioUtils.buckets.HOTEL_IMAGES,
+                    imageUrl
+                );
+                let publicUrl = toPublicObjectUrl(presignedUrl);
+                hotel.thumbnail = publicUrl; // just replace with presigned URL to return for client
+            }
+            const imageList = await db.Image.findAll({
+                where: { hotel_id: hotel.hotel_id }
+            });
+            const publicImageUrls = [];
+            for(const image of imageList) {
+                const presignedUrl = await minioUtils.getFileUrl(
+                    minioUtils.buckets.HOTEL_IMAGES,
+                    image.image_url
+                );
+                let publicUrl = toPublicObjectUrl(presignedUrl);
+                publicImageUrls.push(publicUrl);
+            }
+            hotel.setDataValue('imageUrls', publicImageUrls); // make it JSON-visible
+        }
+        return hotels;
+    },
+    uploadImagesForHotel: async(hotelid, userid, imageFiles) => {
+        const hotel = await db.Hotel.findByPk(hotelid);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+        const ownerid = hotel.hotel_owner;
+        if(ownerid !== userid) {
+            throw new Error("You are not the owner of this hotel");
+        }
+        for(const imageFile of imageFiles) {
+            if (!imageFile.mimetype?.startsWith("image/")) {
+                throw new Error("Only image files are allowed");
+            }
+            uploadedThumbnail = await minioUtils.uploadFile(
+                minioUtils.buckets.HOTEL_IMAGES,
+                imageFile.buffer,
+                imageFile.originalname,
+                { "Content-Type": imageFile.mimetype }
+            );
+            const imageUrl = uploadedThumbnail.fileName;
+            await db.Image.create({
+                hotel_id: hotelid,
+                image_url: imageUrl
+            });
+        }
+    },
+    uploadImagesForRoom: async (roomid, userid, imageFiles) => {
+        const room = await db.Room.findByPk(roomid);
+        if(!room) {
+            throw new Error("Room not found");
+        }
+        const roomType = await db.RoomType.findByPk(room.type_id);
+        if(!roomType) {
+            throw new Error("Room type not found");
+        }
+        const hotel = await db.Hotel.findByPk(roomType.hotel_id);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+        const ownerid = hotel.hotel_owner;
+        if(ownerid !== userid) {
+            throw new Error("You are not the owner of this hotel");
+        }
+        for(const imageFile of imageFiles) {
+            if (!imageFile.mimetype?.startsWith("image/")) {
+                throw new Error("Only image files are allowed");
+            }
+            uploadedThumbnail = await minioUtils.uploadFile(
+                minioUtils.buckets.HOTEL_IMAGES,
+                imageFile.buffer,
+                imageFile.originalname,
+                { "Content-Type": imageFile.mimetype }
+            );
+            const imageUrl = uploadedThumbnail.fileName;
+            await db.Image.create({
+                room_id: roomid,
+                image_url: imageUrl
+            });
+        }
     }
 };
 module.exports = hotelProfileService;

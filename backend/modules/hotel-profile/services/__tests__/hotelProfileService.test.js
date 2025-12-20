@@ -4,7 +4,8 @@ jest.mock('models/index', () => ({
   Hotel: {
     findOne: jest.fn(),
     create: jest.fn(),
-    findByPk: jest.fn()
+    findByPk: jest.fn(),
+    findAll: jest.fn()
   },
   User: {
     findByPk: jest.fn()
@@ -18,12 +19,17 @@ jest.mock('models/index', () => ({
   Room: {
     create: jest.fn(),
     update: jest.fn(),
+    findByPk: jest.fn(),
     findAll: jest.fn()
   },
   RoomPrice: {
     create: jest.fn(),
     findOne: jest.fn(),
     update: jest.fn()
+  },
+  Image: {
+    findAll: jest.fn(),
+    create: jest.fn()
   },
   FacilitiesPossessing: {
     destroy: jest.fn(),
@@ -39,15 +45,27 @@ jest.mock('models/index', () => ({
 
 jest.mock('sequelize', () => ({
   Op: {
-    and: 'and'
+    and: 'and',
+    ne: 'ne'
   },
   fn: jest.fn((funcName, column) => ({ funcName, column })),
   col: jest.fn((column) => column),
   where: jest.fn((lhs, rhs) => ({ lhs, rhs }))
 }));
 
+jest.mock('../../../../utils/minioUtils', () => ({
+  buckets: {
+    HOTEL_IMAGES: 'hotel-images',
+    ROOM_IMAGES: 'room-images'
+  },
+  uploadFile: jest.fn(),
+  deleteFile: jest.fn(),
+  getFileUrl: jest.fn()
+}));
+
 const db = require('models/index');
 const { Op } = require('sequelize');
+const minioUtils = require('../../../../utils/minioUtils');
 
 describe('hotelProfileService - Unit Tests', () => {
   beforeEach(() => {
@@ -84,7 +102,7 @@ describe('hotelProfileService - Unit Tests', () => {
         status: 1,
         rating: 5.0,
         longitude: hotelData.longitude,
-        latitute: null,
+        latitude: null,
         description: 'No description provided',
         contact_phone: hotelData.contact_phone,
         thumbnail: null
@@ -100,6 +118,41 @@ describe('hotelProfileService - Unit Tests', () => {
       await expect(hotelProfileService.addNewHotel(hotelData, 1))
         .rejects
         .toThrow('Hotel has been registered on our system');
+    });
+
+    it('uploads thumbnail and stores returned object key when file is provided', async () => {
+      db.Hotel.findOne.mockResolvedValue(null);
+      const mockUser = { role: 'customer', save: jest.fn().mockResolvedValue() };
+      db.User.findByPk.mockResolvedValue(mockUser);
+
+      minioUtils.uploadFile.mockResolvedValue({
+        success: true,
+        fileName: 'thumb-123.png',
+        url: 'http://minio.local/hotel-images/thumb-123.png',
+        bucketName: 'hotel-images'
+      });
+
+      db.Hotel.create.mockResolvedValue({ name: hotelData.hotelName });
+
+      const thumbnailFile = {
+        buffer: Buffer.from('fake'),
+        originalname: 'thumb.png',
+        mimetype: 'image/png'
+      };
+
+      await hotelProfileService.addNewHotel(hotelData, 1, thumbnailFile);
+
+      expect(minioUtils.uploadFile).toHaveBeenCalledWith(
+        minioUtils.buckets.HOTEL_IMAGES,
+        thumbnailFile.buffer,
+        thumbnailFile.originalname,
+        { 'Content-Type': thumbnailFile.mimetype }
+      );
+      expect(db.Hotel.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          thumbnail: 'thumb-123.png'
+        })
+      );
     });
   });
 
@@ -129,7 +182,8 @@ describe('hotelProfileService - Unit Tests', () => {
 
     it('creates a room type with defaults when data is valid', async () => {
       db.Hotel.findByPk.mockResolvedValue({ hotel_owner: 1 });
-      db.RoomType.create.mockResolvedValue({});
+      db.RoomType.create.mockResolvedValue({ type_id: 77 });
+      db.RoomPrice.create.mockResolvedValue({});
 
       await hotelProfileService.addTypeForHotel(typeData, 1);
 
@@ -141,6 +195,15 @@ describe('hotelProfileService - Unit Tests', () => {
         description: 'No description provided',
         quantity: 0
       });
+      expect(db.RoomPrice.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type_id: 77,
+          basic_price: typeData.priceData.basic_price,
+          special_price: null,
+          event: 'No event',
+          discount: 0.0
+        })
+      );
     });
   });
 
@@ -201,16 +264,55 @@ describe('hotelProfileService - Unit Tests', () => {
       expect(roomType.quantity).toBe(1);
       expect(roomType.save).toHaveBeenCalled();
     });
+
+    it('uploads images and creates Image records when image files are provided', async () => {
+      const roomType = { type_id: 1, hotel_id: 1, quantity: 0, save: jest.fn().mockResolvedValue() };
+      db.RoomType.findByPk.mockResolvedValue(roomType);
+      db.Hotel.findByPk.mockResolvedValue({ hotel_owner: 1 });
+
+      db.Room.create.mockResolvedValue({ room_id: 55 });
+      minioUtils.uploadFile
+        .mockResolvedValueOnce({ fileName: 'room-1.png' })
+        .mockResolvedValueOnce({ fileName: 'room-2.png' });
+      db.Image.create.mockResolvedValue({});
+
+      const roomData = { type_id: 1, name: '101', location: 'Floor 1' };
+      const imageFiles = [
+        { buffer: Buffer.from('a'), originalname: 'a.png', mimetype: 'image/png' },
+        { buffer: Buffer.from('b'), originalname: 'b.jpg', mimetype: 'image/jpeg' }
+      ];
+
+      await hotelProfileService.addRoom(roomData, 1, imageFiles);
+
+      expect(minioUtils.uploadFile).toHaveBeenNthCalledWith(
+        1,
+        minioUtils.buckets.ROOM_IMAGES,
+        imageFiles[0].buffer,
+        imageFiles[0].originalname,
+        { 'Content-Type': imageFiles[0].mimetype }
+      );
+      expect(minioUtils.uploadFile).toHaveBeenNthCalledWith(
+        2,
+        minioUtils.buckets.ROOM_IMAGES,
+        imageFiles[1].buffer,
+        imageFiles[1].originalname,
+        { 'Content-Type': imageFiles[1].mimetype }
+      );
+      expect(db.Image.create).toHaveBeenCalledWith({ room_id: 55, image_url: 'room-1.png' });
+      expect(db.Image.create).toHaveBeenCalledWith({ room_id: 55, image_url: 'room-2.png' });
+    });
   });
 
   describe('viewHotelProfile', () => {
     it('returns hotel data when found', async () => {
-      const hotel = { hotel_id: 1, name: 'Hotel' };
+      const hotel = { hotel_id: 1, name: 'Hotel', thumbnail: null, setDataValue: jest.fn() };
       db.Hotel.findByPk.mockResolvedValue(hotel);
+      db.Image.findAll.mockResolvedValue([]);
 
       const result = await hotelProfileService.viewHotelProfile(1);
 
       expect(result).toEqual({ hotelData: hotel });
+      expect(hotel.setDataValue).toHaveBeenCalledWith('imageUrls', []);
     });
 
     it('throws when hotel is not found', async () => {
@@ -220,21 +322,36 @@ describe('hotelProfileService - Unit Tests', () => {
         .rejects
         .toThrow('Hotel not found');
     });
+
+    it('converts presigned URLs to public object URLs', async () => {
+      const hotel = { hotel_id: 1, thumbnail: 'thumb.png', setDataValue: jest.fn() };
+      db.Hotel.findByPk.mockResolvedValue(hotel);
+      db.Image.findAll.mockResolvedValue([{ image_url: 'h-1.png' }]);
+
+      minioUtils.getFileUrl.mockImplementation(async (_bucket, objectName) => {
+        return `http://minio:9000/hotel-images/${objectName}?X-Amz-Signature=abc`;
+      });
+
+      const result = await hotelProfileService.viewHotelProfile(1);
+
+      expect(result.hotelData.thumbnail).toBe('http://localhost:9002/hotel-images/thumb.png');
+      expect(hotel.setDataValue).toHaveBeenCalledWith('imageUrls', ['http://localhost:9002/hotel-images/h-1.png']);
+    });
   });
 
   describe('updateHotelProfile', () => {
-    const baseHotel = {
-      hotel_owner: 1,
-      name: 'Old Name',
-      address: 'Old Address',
-      status: 1,
-      longitude: 1,
-      latitute: 2,
-      description: 'Old',
-      contact_phone: '000',
-      thumbnail: 'old.png',
-      save: jest.fn().mockResolvedValue()
-    };
+	    const baseHotel = {
+	      hotel_owner: 1,
+	      name: 'Old Name',
+	      address: 'Old Address',
+	      status: 1,
+	      longitude: 1,
+	      latitude: 2,
+	      description: 'Old',
+	      contact_phone: '000',
+	      thumbnail: 'old.png',
+	      save: jest.fn().mockResolvedValue()
+	    };
 
     it('throws when hotel is not found', async () => {
       db.Hotel.findByPk.mockResolvedValue(null);
@@ -269,6 +386,32 @@ describe('hotelProfileService - Unit Tests', () => {
       expect(hotel.status).toBe(updateData.status);
       expect(hotel.address).toBe(baseHotel.address);
       expect(hotel.contact_phone).toBe(baseHotel.contact_phone);
+      expect(hotel.save).toHaveBeenCalled();
+    });
+
+    it('uploads and updates thumbnail when a new file is provided', async () => {
+      const hotel = { ...baseHotel };
+      db.Hotel.findByPk.mockResolvedValue(hotel);
+
+      minioUtils.uploadFile.mockResolvedValue({ fileName: 'new-thumb.png' });
+      minioUtils.deleteFile.mockResolvedValue(true);
+
+      const thumbnailFile = {
+        buffer: Buffer.from('fake-image-bytes'),
+        originalname: 'thumb.png',
+        mimetype: 'image/png'
+      };
+
+      await hotelProfileService.updateHotelProfile(1, 1, {}, thumbnailFile);
+
+      expect(minioUtils.uploadFile).toHaveBeenCalledWith(
+        minioUtils.buckets.HOTEL_IMAGES,
+        thumbnailFile.buffer,
+        thumbnailFile.originalname,
+        { 'Content-Type': thumbnailFile.mimetype }
+      );
+      expect(hotel.thumbnail).toBe('new-thumb.png');
+      expect(minioUtils.deleteFile).toHaveBeenCalledWith(minioUtils.buckets.HOTEL_IMAGES, 'old.png');
       expect(hotel.save).toHaveBeenCalled();
     });
   });
@@ -427,33 +570,47 @@ describe('hotelProfileService - Unit Tests', () => {
     it('returns rooms with availability and price', async () => {
       db.Hotel.findByPk.mockResolvedValue({ hotel_id: 1 });
       const roomTypes = [{ type_id: 1 }];
-      const rooms = [{ room_id: 1, type_id: 1, get: () => ({ room_id: 1, type_id: 1, isAvailable: true }), setDataValue: jest.fn() }];
+      const rooms = [{
+        room_id: 1,
+        type_id: 1,
+        get: jest.fn(() => ({ room_id: 1, type_id: 1, isAvailable: true })),
+        setDataValue: jest.fn()
+      }];
       db.RoomType.findAll.mockResolvedValue(roomTypes);
       db.Room.findAll.mockResolvedValue(rooms);
       db.Booking.findAll.mockResolvedValue([]);
       db.RoomPrice.findOne.mockResolvedValue({ special_price: null, basic_price: 200, discount: 0, start_date: null, end_date: null });
+      db.Image.findAll.mockResolvedValue([]);
 
       const result = await hotelProfileService.getAllRoomsForHotel(1);
 
       expect(result[0].priceData.price).toBe(200);
       expect(rooms[0].setDataValue).toHaveBeenCalledWith('isAvailable', true);
+      expect(rooms[0].setDataValue).toHaveBeenCalledWith('imageUrls', []);
     });
   });
 
   describe('getAllRooms', () => {
     it('returns all rooms with availability and price', async () => {
-      const rooms = [{ room_id: 1, type_id: 1, get: () => ({ room_id: 1, type_id: 1, isAvailable: true }), setDataValue: jest.fn() }];
+      const rooms = [{
+        room_id: 1,
+        type_id: 1,
+        get: jest.fn(() => ({ room_id: 1, type_id: 1, isAvailable: true })),
+        setDataValue: jest.fn()
+      }];
       const roomTypes = [{ type_id: 1 }];
       db.Room.findAll.mockResolvedValue(rooms);
       db.RoomType.findAll.mockResolvedValue(roomTypes);
       db.Booking.findAll.mockResolvedValue([]);
       db.RoomPrice.findOne.mockResolvedValue({ special_price: 120, basic_price: 150, discount: 0.1, start_date: null, end_date: null });
+      db.Image.findAll.mockResolvedValue([]);
 
       const result = await hotelProfileService.getAllRooms();
 
       expect(result[0].priceData.price).toBe(120);
       expect(result[0].roomTypeData).toEqual(roomTypes[0]);
       expect(rooms[0].setDataValue).toHaveBeenCalledWith('isAvailable', true);
+      expect(rooms[0].setDataValue).toHaveBeenCalledWith('imageUrls', []);
     });
   });
 });

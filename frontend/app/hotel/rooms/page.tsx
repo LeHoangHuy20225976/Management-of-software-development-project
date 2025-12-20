@@ -159,15 +159,23 @@ export default function HotelRoomsPage() {
                       👥 Tối đa {room.maxGuests} khách
                     </p>
                   </div>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full font-medium ${
-                      room.availability
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}
-                  >
-                    {room.availability ? 'Đang mở' : 'Tạm ngưng'}
-                  </span>
+                </div>
+
+                {/* Amenities */}
+                <div className="mb-4">
+                  <p className="text-sm font-semibold text-gray-900 mb-2">
+                    Tiện nghi:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {(room.amenities || []).map((amenity) => (
+                      <span
+                        key={amenity}
+                        className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full"
+                      >
+                        {amenity}
+                      </span>
+                    ))}
+                  </div>
                 </div>
 
                 <p className="text-gray-700">{room.description}</p>

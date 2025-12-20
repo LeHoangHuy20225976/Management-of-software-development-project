@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require("multer");
 
 const DestinationController = require("../controller/DestinationController");
+const authMiddleware = require("../../../kernels/middlewares/authMiddleware");
 
 // Configure multer for file uploads (memory storage)
 const storage = multer.memoryStorage();
@@ -36,6 +37,13 @@ router.get("/:id", DestinationController.getDestinationById); // GET /destinatio
 router.post("/", DestinationController.createDestination); // POST /destinations - Create destination
 router.put("/:id", DestinationController.updateDestination); // PUT /destinations/:id - Update destination
 router.delete("/:id", DestinationController.deleteDestination); // DELETE /destinations/:id - Delete destination
+
+// Review routes for destinations
+router.post(
+  "/:id/reviews",
+  authMiddleware,
+  DestinationController.addDestinationReview
+); // POST /destinations/:id/reviews - Add review for destination
 
 // Image upload routes
 router.post(

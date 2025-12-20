@@ -1,7 +1,5 @@
-'use strict';
-const {
-  Model
-} = require('sequelize');
+"use strict";
+const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   class Destination extends Model {
     /**
@@ -10,32 +8,36 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      Destination.hasMany(models.Image, { foreignKey: 'destination_id' });
-      Destination.hasMany(models.Review, { foreignKey: 'destination_id' });
-      Destination.hasMany(models.LovingList, { foreignKey: 'destination_id' });
+      Destination.hasMany(models.Image, { foreignKey: "destination_id" });
+      Destination.hasMany(models.Review, { foreignKey: "destination_id" });
+      Destination.hasMany(models.LovingList, { foreignKey: "destination_id" });
     }
   }
-  Destination.init({
-    destination_id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true
+  Destination.init(
+    {
+      destination_id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
+      name: DataTypes.STRING,
+      rating: DataTypes.INTEGER,
+      location: DataTypes.STRING,
+      transportation: DataTypes.STRING,
+      entry_fee: DataTypes.BIGINT,
+      description: DataTypes.TEXT,
+      latitude: DataTypes.DOUBLE,
+      longitude: DataTypes.DOUBLE,
+      type: DataTypes.STRING,
+      thumbnail: DataTypes.STRING,
     },
-    name: DataTypes.STRING,
-    rating: DataTypes.INTEGER,
-    location: DataTypes.STRING,
-    transportation: DataTypes.STRING,
-    entry_fee: DataTypes.BIGINT,
-    description: DataTypes.TEXT,
-    latitude: DataTypes.DOUBLE,
-    longitude: DataTypes.DOUBLE,
-    type: DataTypes.STRING,
-    thumbnail: DataTypes.STRING
-  }, {
-    sequelize,
-    modelName: 'Destination',
-    tableName: 'Destination',
-    freezeTableName: true
-  });
+    {
+      sequelize,
+      modelName: "Destination",
+      tableName: "Destination",
+      freezeTableName: true,
+      timestamps: true,
+    }
+  );
   return Destination;
 };

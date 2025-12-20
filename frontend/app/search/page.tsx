@@ -34,9 +34,10 @@ export default function SearchPage() {
     setLoading(true);
     try {
       const data = await hotelsApi.getAll(filters);
-      setHotels(data);
+      setHotels(data || []); // Ensure always array
     } catch (error) {
       console.error('Error loading hotels:', error);
+      setHotels([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -197,64 +198,61 @@ export default function SearchPage() {
                 </div>
               </div>
 
-              {loading ? (
-                <div className="grid grid-cols-1 gap-6">
-                  {[1, 2, 3].map((i) => (
-                    <Card key={i} className="animate-pulse">
-                      <div className="h-48 bg-gray-200 rounded-lg mb-4" />
-                      <div className="h-6 bg-gray-200 rounded w-3/4 mb-2" />
-                      <div className="h-4 bg-gray-200 rounded w-1/2" />
-                    </Card>
-                  ))}
-                </div>
-              ) : viewMode === 'map' ? (
-                <Card className="h-[600px]">
-                  <MapView hotels={hotels} />
-                </Card>
-              ) : hotels.length === 0 ? (
-                <Card className="text-center py-12">
-                  <div className="text-6xl mb-4">🔍</div>
-                  <h3 className="text-xl font-bold mb-2">
-                    Không tìm thấy khách sạn
-                  </h3>
-                  <p className="text-gray-600">
-                    Hãy thử thay đổi bộ lọc của bạn
-                  </p>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 gap-6">
-                  {hotels.map((hotel) => (
-                    <Link key={hotel.hotel_id} href={`/hotel/${hotel.hotel_id}`}>
-                      <Card
-                        hover
-                        padding="none"
-                        className="overflow-hidden group"
-                      >
-                        <div className="md:flex">
-                          <div className="md:w-1/3 relative h-64 md:h-auto">
-                            <div
-                              className="absolute inset-0 bg-cover bg-center transform group-hover:scale-110 transition-transform duration-500"
-                              style={{
-                                backgroundImage: `url('${hotel.thumbnail}')`,
-                              }}
-                            />
+            {loading ? (
+              <div className="grid grid-cols-1 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="animate-pulse">
+                    <div className="h-48 bg-gray-200 rounded-lg mb-4" />
+                    <div className="h-6 bg-gray-200 rounded w-3/4 mb-2" />
+                    <div className="h-4 bg-gray-200 rounded w-1/2" />
+                  </Card>
+                ))}
+              </div>
+            ) : viewMode === 'map' ? (
+              <Card className="h-[600px]">
+                <MapView hotels={hotels} />
+              </Card>
+            ) : !hotels || hotels.length === 0 ? (
+              <Card className="text-center py-12">
+                <div className="text-6xl mb-4">🔍</div>
+                <h3 className="text-xl font-bold mb-2">Không tìm thấy khách sạn</h3>
+                <p className="text-gray-600">Hãy thử thay đổi bộ lọc của bạn</p>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 gap-6">
+                {hotels.map((hotel) => (
+                  <Link key={hotel.id} href={`/hotel/${hotel.slug}`}>
+                    <Card hover padding="none" className="overflow-hidden group">
+                      <div className="md:flex">
+                        <div className="md:w-1/3 relative h-64 md:h-auto">
+                          <div
+                            className="absolute inset-0 bg-cover bg-center transform group-hover:scale-110 transition-transform duration-500"
+                            style={{ backgroundImage: `url('${hotel.thumbnail}')` }}
+                          />
+                          <div className="absolute top-4 left-4 bg-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
+                            {formatStars(hotel.stars)}
                           </div>
-                          <div className="md:w-2/3 p-6">
-                            <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-                              {hotel.name}
-                            </h3>
-                            <p className="text-sm text-gray-600 mb-3 flex items-center">
-                              📍 {hotel.address}
-                            </p>
-                            <p className="text-gray-700 mb-4 line-clamp-2">
-                              {hotel.description}
-                            </p>
+                        </div>
+                        <div className="md:w-2/3 p-6">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                            {hotel.name}
+                          </h3>
+                          <p className="text-sm text-gray-600 mb-3 flex items-center">
+                            📍 {hotel.address}
+                          </p>
+                          <p className="text-gray-700 mb-4 line-clamp-2">
+                            {hotel.description}
+                          </p>
 
-                            <div className="flex items-center justify-between mt-4">
-                              <div className="flex items-center space-x-2">
-                                <span className="text-2xl">⭐</span>
-                                <span className="font-bold text-xl text-gray-900">
-                                  {hotel.rating}
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            {(hotel.amenities || []).slice(0, 5).map((amenity) => {
+                              const amenityData = amenitiesList.find(a => a.id === amenity);
+                              return amenityData ? (
+                                <span
+                                  key={amenity}
+                                  className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full"
+                                >
+                                  {amenityData.icon} {amenityData.name}
                                 </span>
                                 <span className="text-sm font-medium text-gray-700">
                                   / 5

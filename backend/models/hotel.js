@@ -40,12 +40,13 @@ module.exports = (sequelize, DataTypes) => {
     latitude: DataTypes.DOUBLE,
     description: DataTypes.TEXT,
     contact_phone: DataTypes.STRING,
-    thumbnail: DataTypes.STRING
+    thumbnail: DataTypes.TEXT
   }, {
     sequelize,
     modelName: 'Hotel',
     tableName: 'Hotel',
-    freezeTableName: true
+    freezeTableName: true,
+    timestamps: true
   });
   return Hotel;
 };

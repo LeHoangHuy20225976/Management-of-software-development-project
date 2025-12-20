@@ -200,8 +200,39 @@ export default function HotelRoomsPage() {
                   </div>
 
                   <div className="space-y-1 text-sm text-gray-800 mb-3">
-                    <p>👥 Tối đa {room.maxGuests} khách</p>
-                    <p>Số lượng: {room.quantity ?? 0}</p>
+                    <p>
+                      📏 {room.size} • 🛏️ {room.beds} • 👥 {room.maxGuests}{' '}
+                      khách
+                    </p>
+                    <p className="font-semibold text-[#0071c2] text-lg">
+                      {formatCurrency(room.price)}/đêm
+                    </p>
+                    <p>
+                      Trống:{' '}
+                      <span
+                        className={`font-semibold ${
+                          room.available > 0 ? 'text-green-600' : 'text-red-600'
+                        }`}
+                      >
+                        {room.available}/{room.total}
+                      </span>
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {room.amenities.slice(0, 3).map((amenity: string) => (
+                      <span
+                        key={amenity}
+                        className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium"
+                      >
+                        {amenity}
+                      </span>
+                    ))}
+                    {room.amenities.length > 3 && (
+                      <span className="text-xs text-gray-600">
+                        +{room.amenities.length - 3} khác
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex gap-2">
