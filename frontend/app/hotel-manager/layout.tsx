@@ -13,6 +13,7 @@ const menuItems = [
   { name: 'Quản lý phòng', href: '/hotel-manager/rooms', icon: '🛏️' },
   { name: 'Quản lý giá', href: '/hotel-manager/pricing', icon: '💰' },
   { name: 'Đặt phòng', href: '/hotel-manager/bookings', icon: '📋' },
+  { name: 'Tin nhắn', href: '/hotel-manager/messages', icon: '💬' },
   { name: 'Đánh giá', href: '/hotel-manager/reviews', icon: '⭐' },
   { name: 'Thống kê', href: '/hotel-manager/analytics', icon: '📈' },
 ];

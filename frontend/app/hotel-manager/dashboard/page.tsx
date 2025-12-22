@@ -16,11 +16,11 @@ export default function HotelManagerDashboardPage() {
 
   useEffect(() => {
     // Check authentication
-    const hotelAuthToken = localStorage.getItem('hotel_auth_token');
-    if (!hotelAuthToken) {
-      router.push('/hotel-manager/login');
-      return;
-    }
+    // const hotelAuthToken = localStorage.getItem('hotel_auth_token');
+    // if (!hotelAuthToken) {
+    //   router.push('/hotel-manager/login');
+    //   return;
+    // }
 
     const loadData = async () => {
       try {
