@@ -195,6 +195,17 @@ class ApiClient {
     );
   }
 
+  async patch<T>(endpoint: string, body: unknown, params?: Record<string, string>): Promise<T> {
+    return this.request<T>(
+      endpoint,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      },
+      params
+    );
+  }
+
   async delete<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' }, params);
   }

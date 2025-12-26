@@ -11,6 +11,8 @@ const menuItems = [
   { name: 'Dashboard', href: '/hotel-manager/dashboard', icon: '📊' },
   { name: 'Thông tin khách sạn', href: '/hotel-manager/profile', icon: '🏢' },
   { name: 'Quản lý phòng', href: '/hotel-manager/rooms', icon: '🛏️' },
+  { name: 'Tiện nghi', href: '/hotel-manager/facilities', icon: '🛎️' },
+  { name: 'Hình ảnh', href: '/hotel-manager/images', icon: '📷' },
   { name: 'Quản lý giá', href: '/hotel-manager/pricing', icon: '💰' },
   { name: 'Đặt phòng', href: '/hotel-manager/bookings', icon: '📋' },
   { name: 'Tin nhắn', href: '/hotel-manager/messages', icon: '💬' },

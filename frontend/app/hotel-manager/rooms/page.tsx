@@ -99,9 +99,17 @@ export default function HotelRoomsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Quản lý phòng</h1>
-        <Link href="/hotel-manager/rooms/create">
-          <Button>+ Thêm loại phòng mới</Button>
-        </Link>
+        <div className="flex gap-3">
+          <Link href="/hotel-manager/rooms/inventory">
+            <Button variant="outline">📅 Lịch phòng trống</Button>
+          </Link>
+          <Link href="/hotel-manager/rooms/types">
+            <Button variant="outline">📋 Quản lý loại phòng</Button>
+          </Link>
+          <Link href="/hotel-manager/rooms/create">
+            <Button>+ Thêm loại phòng mới</Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}
