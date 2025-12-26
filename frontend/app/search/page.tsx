@@ -221,7 +221,7 @@ export default function SearchPage() {
             ) : (
               <div className="grid grid-cols-1 gap-6">
                 {hotels.map((hotel) => (
-                  <Link key={hotel.id} href={`/hotel/${hotel.slug}`}>
+                  <Link key={hotel.hotel_id} href={`/hotel/${hotel.hotel_id}`}>
                     <Card hover padding="none" className="overflow-hidden group">
                       <div className="md:flex">
                         <div className="md:w-1/3 relative h-64 md:h-auto">
@@ -230,7 +230,7 @@ export default function SearchPage() {
                             style={{ backgroundImage: `url('${hotel.thumbnail}')` }}
                           />
                           <div className="absolute top-4 left-4 bg-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
-                            {formatStars(hotel.stars)}
+                            ⭐ {hotel.stars ?? hotel.rating}
                           </div>
                         </div>
                         <div className="md:w-2/3 p-6">
@@ -245,43 +245,49 @@ export default function SearchPage() {
                           </p>
 
                           <div className="flex flex-wrap gap-2 mb-4">
-                            {(hotel.amenities || []).slice(0, 5).map((amenity) => {
-                              const amenityData = amenitiesList.find(a => a.id === amenity);
-                              return amenityData ? (
-                                <span
-                                  key={amenity}
-                                  className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full"
-                                >
-                                  {amenityData.icon} {amenityData.name}
-                                </span>
-                                <span className="text-sm font-medium text-gray-700">
-                                  / 5
-                                </span>
+                            {(hotel.amenities || []).slice(0, 5).map((amenity) => (
+                              <span
+                                key={amenity}
+                                className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full"
+                              >
+                                {amenity}
+                              </span>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg font-bold text-[#0071c2]">
+                                ⭐ {hotel.rating}
+                              </span>
+                              <span className="text-sm font-medium text-gray-700">
+                                / 5
+                              </span>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-sm text-gray-600 mb-1">
+                                Giá chỉ từ
                               </div>
-                              <div className="text-right">
-                                <div className="text-sm text-gray-600 mb-1">
-                                  Giá chỉ từ
-                                </div>
-                                <div className="text-2xl font-bold text-[#0071c2]">
-                                  500.000₫
-                                </div>
-                                <div className="text-xs text-gray-600">
-                                  / đêm
-                                </div>
+                              <div className="text-2xl font-bold text-[#0071c2]">
+                                {hotel.basePrice ? `${hotel.basePrice.toLocaleString('vi-VN')}₫` : 'Liên hệ'}
+                              </div>
+                              <div className="text-xs text-gray-600">
+                                / đêm
                               </div>
                             </div>
                           </div>
                         </div>
-                      </Card>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
+                      </div>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
-      <Footer />
-    </>
-  );
+    </div>
+    <Footer />
+  </>
+);
 }

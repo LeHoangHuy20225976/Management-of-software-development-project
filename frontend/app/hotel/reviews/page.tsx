@@ -9,8 +9,27 @@ import { useState } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 
+// Local interface for hotel reviews (different from global Review type)
+interface HotelReview {
+  review_id: string;
+  guestName: string;
+  guestAvatar: string;
+  rating: number;
+  title: string;
+  comment: string;
+  date: string;
+  bookingId: string;
+  roomType: string;
+  verified: boolean;
+  replied: boolean;
+  reply?: {
+    content: string;
+    date: string;
+  };
+}
+
 // Mock reviews data - in real app would fetch from API
-const mockReviews = [
+const mockReviews: HotelReview[] = [
   {
     review_id: 'rv1',
     guestName: 'Nguyễn Văn A',
@@ -75,7 +94,7 @@ const mockReviews = [
 ];
 
 export default function HotelReviewsPage() {
-  const [reviews] = useState(mockReviews);
+  const [reviews] = useState<HotelReview[]>(mockReviews);
   const [filter, setFilter] = useState<'all' | 'unreplied' | '5star' | 'low'>(
     'all'
   );

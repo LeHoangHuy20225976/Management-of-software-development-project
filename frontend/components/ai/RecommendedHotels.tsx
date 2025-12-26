@@ -28,10 +28,11 @@ export const RecommendedHotels = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {hotels.map((hotel) => {
-          if (!hotel.slug) return null;
+          const hotelSlug = hotel.slug || String(hotel.hotel_id);
+          if (!hotelSlug) return null;
 
           return (
-            <Link key={hotel.slug} href={ROUTES.HOTEL_DETAILS(hotel.slug)}>
+            <Link key={hotelSlug} href={ROUTES.HOTEL_DETAILS(hotelSlug)}>
               <Card hover padding="none" className="overflow-hidden group">
                 <div className="relative h-48">
                   <div
