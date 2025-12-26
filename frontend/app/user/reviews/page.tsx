@@ -265,7 +265,7 @@ export default function UserReviewsPage() {
                   )}
 
                   <div className="flex items-center space-x-4 text-sm text-gray-600 font-medium mb-3">
-                    <span>👍 {review.helpful} người thấy hữu ích</span>
+                    <span>👍 {review.helpful ?? 0} người thấy hữu ích</span>
                   </div>
 
                   {review.reply && (

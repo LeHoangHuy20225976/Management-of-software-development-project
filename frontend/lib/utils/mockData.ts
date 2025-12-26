@@ -39,6 +39,26 @@ const normalizeTourismSpot = (spot: any, index: number): TourismSpot => ({
   ...spot,
 });
 
+const normalizeRoomType = (room: any, hotelId: string, index: number): RoomType => ({
+  type_id: room.type_id ?? index + 1,
+  hotel_id: room.hotel_id ?? (parseInt(hotelId.replace(/\D/g, '')) || 1),
+  type: room.type ?? room.name ?? 'Phòng',
+  availability: room.availability ?? true,
+  max_guests: room.max_guests ?? room.maxGuests ?? 2,
+  description: room.description ?? '',
+  quantity: room.quantity ?? 1,
+  // Frontend-only fields
+  id: room.id ?? String(room.type_id ?? index + 1),
+  hotelId: room.hotelId ?? hotelId,
+  name: room.name ?? room.type ?? 'Phòng',
+  size: room.size,
+  beds: room.beds,
+  basePrice: room.basePrice,
+  images: room.images,
+  amenities: room.amenities ?? [],
+  available: room.available ?? room.quantity ?? 1,
+});
+
 // Force reinitialize (useful when updating mock data structure)
 export const forceReinitializeMockData = () => {
   clearMockData();
@@ -46,21 +66,15 @@ export const forceReinitializeMockData = () => {
 };
 
 const defaultRoomTypesByHotel = (): Record<string, RoomType[]> => ({
-  h1: (mockRoomTypes['1'] || []).map((room, idx) => ({
-    ...room,
-    id: room.id ? `h1-${room.id}` : `h1-r${idx + 1}`,
-    hotelId: 'h1',
-  })),
-  h2: (mockRoomTypes['2'] || []).map((room, idx) => ({
-    ...room,
-    id: room.id ? `h2-${room.id}` : `h2-r${idx + 1}`,
-    hotelId: 'h2',
-  })),
-  h3: (mockRoomTypes['1'] || []).map((room, idx) => ({
-    ...room,
-    id: room.id ? `h3-${room.id}` : `h3-r${idx + 1}`,
-    hotelId: 'h3',
-  })),
+  h1: (mockRoomTypes['1'] || []).map((room: any, idx: number) => 
+    normalizeRoomType(room, 'h1', idx)
+  ),
+  h2: (mockRoomTypes['2'] || []).map((room: any, idx: number) => 
+    normalizeRoomType(room, 'h2', idx)
+  ),
+  h3: (mockRoomTypes['1'] || []).map((room: any, idx: number) => 
+    normalizeRoomType(room, 'h3', idx)
+  ),
 });
 
 // Initialize mock data in localStorage
@@ -83,6 +97,7 @@ export const initializeMockData = () => {
       gender: 'male',
       date_of_birth: '1990-01-15',
       role: 'customer',
+      password: '', // Password is not stored in localStorage for security
       profile_image: 'https://i.pravatar.cc/150?u=user001',
       memberSince: '2023-01-15',
       totalBookings: 12,
