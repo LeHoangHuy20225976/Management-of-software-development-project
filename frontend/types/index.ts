@@ -6,6 +6,7 @@
 export * from './auth';
 
 export interface Hotel {
+  // Database fields
   hotel_id: number;
   hotel_owner: number;
   name: string;
@@ -17,9 +18,24 @@ export interface Hotel {
   description: string;
   contact_phone: string;
   thumbnail: string;
+  // Frontend-only fields (computed/extended)
+  slug?: string;
+  stars?: number;
+  city?: string;
+  district?: string;
+  images?: string[];
+  basePrice?: number;
+  amenities?: string[];
+  reviewCount?: number;
+  policies?: {
+    checkIn?: string;
+    checkOut?: string;
+    cancellation?: string;
+  };
 }
 
 export interface RoomType {
+  // Database fields
   type_id: number;
   hotel_id: number;
   type: string;
@@ -27,6 +43,16 @@ export interface RoomType {
   max_guests: number;
   description: string;
   quantity: number;
+  // Frontend-only fields (computed/extended)
+  id?: string;
+  hotelId?: string;
+  name?: string;
+  size?: number;
+  beds?: string;
+  basePrice?: number;
+  images?: string[];
+  amenities?: string[];
+  available?: number;
 }
 
 export interface Room {
@@ -44,6 +70,7 @@ export interface Room {
 }
 
 export interface Destination {
+  // Database fields
   destination_id: number;
   name: string;
   rating: number;
@@ -55,12 +82,20 @@ export interface Destination {
   longitude: number;
   type: string;
   thumbnail: string;
+  // Frontend-only fields
+  slug?: string;
+  category?: string;
+  fullDescription?: string;
+  images?: string[];
+  visitCount?: number;
+  tags?: string[];
 }
 
 // Keep old name as alias for backward compatibility
 export type TourismSpot = Destination;
 
 export interface Review {
+  // Database fields
   review_id: number;
   user_id: number;
   destination_id: number | null;
@@ -69,21 +104,43 @@ export interface Review {
   rating: number; // 1-5
   comment: string;
   date_created: string;
+  // Frontend-only fields
+  userName?: string;
+  userAvatar?: string;
+  title?: string;
+  images?: string[];
+  helpful?: number;
+  verified?: boolean;
+  reply?: {
+    content: string;
+    date: string;
+    authorName: string;
+  };
+  replied?: boolean;
 }
 
 export interface Booking {
+  // Database fields
   booking_id: number;
   user_id: number | null;
   room_id: number;
-  status: 'accepted' | 'pending' | 'rejected' | 'cancel requested' | 'cancelled' | 'maintained';
+  status: 'accepted' | 'pending' | 'rejected' | 'cancel requested' | 'cancelled' | 'maintained' | 'checked_in' | 'checked_out';
   total_price: number | null;
   check_in_date: string;
   check_out_date: string;
   created_at: string;
   people: number | null;
+  // Frontend-only fields
+  hotelName?: string;
+  hotelImage?: string;
+  roomType?: string;
+  nights?: number;
+  paymentStatus?: 'pending' | 'paid' | 'refunded';
+  paymentMethod?: string;
 }
 
 export interface User {
+  // Database fields
   user_id: number;
   name: string | null;
   email: string | null;
@@ -93,6 +150,10 @@ export interface User {
   role: string | null;
   password: string;
   profile_image: string | null;
+  // Frontend-only fields
+  memberSince?: string;
+  totalBookings?: number;
+  points?: number;
 }
 
 // Frontend-only utility types
@@ -104,6 +165,7 @@ export interface SearchFilters {
   minPrice?: number;
   maxPrice?: number;
   minRating?: number;
+  stars?: number[];
   sortBy?: 'price' | 'rating' | 'popularity';
 }
 
@@ -178,4 +240,23 @@ export interface Image {
   hotel_id: number | null;
   room_id: number | null;
   image_url: string;
+}
+
+// Payment type based on backend model
+export interface Payment {
+  payment_id: number;
+  booking_id: number;
+  amount: number;
+  payment_method: 'vnpay' | 'momo' | 'cash' | 'bank_transfer';
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'cancelled';
+  vnp_txn_ref: string | null;
+  vnp_transaction_no: string | null;
+  vnp_response_code: string | null;
+  vnp_bank_code: string | null;
+  vnp_pay_date: string | null;
+  vnp_order_info: string | null;
+  payment_url: string | null;
+  ip_address: string | null;
+  created_at: string;
+  updated_at: string;
 }

@@ -4,6 +4,7 @@
  */
 
 import { mockImages } from './images';
+import type { User } from '@/types';
 
 // Hotel Mock Data
 export const mockHotels = [
@@ -415,13 +416,18 @@ export const mockBookings = [
   },
 ];
 
-// User Mock Data
-export const mockUser = {
-  id: "u1",
-  email: "user@example.com",
+// User Mock Data - matches User type from types/index.ts
+export const mockUser: User = {
+  user_id: 1,
   name: "Nguyễn Văn A",
-  phone: "0901234567",
-  avatar: mockImages.avatars.user1,
+  email: "user@example.com",
+  phone_number: "0901234567",
+  gender: "male",
+  date_of_birth: "1990-01-15",
+  role: "customer",
+  password: "", // Not exposed in frontend
+  profile_image: mockImages.avatars.user1,
+  // Frontend-only fields
   memberSince: "2024-01-15",
   totalBookings: 12,
   points: 2400,

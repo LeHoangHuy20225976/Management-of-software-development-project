@@ -8,15 +8,23 @@
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
 import { authApi } from '@/lib/api/auth';
-import { userApi } from '@/lib/api/services';
+import { userApi, userProfileApi } from '@/lib/api/services';
 import { getMockBookings, getMockReviews } from '@/lib/utils/mockData';
 
 export default function UserProfilePage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -44,6 +52,7 @@ export default function UserProfilePage() {
         date_of_birth: dobFromContext,
         gender: user.gender || 'male',
       });
+      setProfileImage(user.profile_image || null);
     }
 
     // Load stats (mock data for now)
@@ -54,6 +63,74 @@ export default function UserProfilePage() {
       reviews: reviews.length,
     });
   }, [user]);
+
+  // Handle profile image upload
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Vui lòng chọn file ảnh!');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Kích thước ảnh tối đa là 5MB!');
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const result = await userProfileApi.uploadProfileImage(file);
+      setProfileImage(result.imageUrl);
+      alert('Cập nhật ảnh đại diện thành công!');
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Không thể tải ảnh lên, vui lòng thử lại.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Handle delete profile image
+  const handleDeleteImage = async () => {
+    if (!profileImage) return;
+    
+    if (!confirm('Bạn có chắc muốn xóa ảnh đại diện?')) return;
+
+    try {
+      await userProfileApi.deleteProfileImage();
+      setProfileImage(null);
+      alert('Đã xóa ảnh đại diện!');
+    } catch (error) {
+      console.error('Delete image error:', error);
+      alert('Không thể xóa ảnh, vui lòng thử lại.');
+    }
+  };
+
+  // Handle delete account
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'XÓA TÀI KHOẢN') {
+      alert('Vui lòng nhập đúng "XÓA TÀI KHOẢN" để xác nhận!');
+      return;
+    }
+
+    setDeletingAccount(true);
+    try {
+      await userProfileApi.deleteAccount();
+      await logout();
+      router.push('/');
+      alert('Tài khoản của bạn đã được xóa!');
+    } catch (error) {
+      console.error('Delete account error:', error);
+      alert('Không thể xóa tài khoản, vui lòng thử lại.');
+    } finally {
+      setDeletingAccount(false);
+      setShowDeleteModal(false);
+    }
+  };
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -140,9 +217,9 @@ export default function UserProfilePage() {
       <Card>
         <div className="flex items-center space-x-6">
           <div className="relative">
-            {user?.profile_image ? (
+            {profileImage || user?.profile_image ? (
               <img
-                src={user.profile_image}
+                src={profileImage || user?.profile_image || ''}
                 alt={displayName}
                 className="w-24 h-24 rounded-full object-cover"
               />
@@ -151,11 +228,21 @@ export default function UserProfilePage() {
                 {avatarChar}
               </div>
             )}
-            {isEditing && (
-              <button className="absolute bottom-0 right-0 bg-white border-2 border-gray-200 rounded-full p-2 hover:bg-gray-50 transition-colors">
-                📷
-              </button>
-            )}
+            {/* Upload/Edit Button */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingImage}
+              className="absolute bottom-0 right-0 bg-white border-2 border-gray-200 rounded-full p-2 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              {uploadingImage ? '⏳' : '📷'}
+            </button>
           </div>
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-gray-900">{displayName}</h2>
@@ -168,6 +255,24 @@ export default function UserProfilePage() {
                 Tham gia từ: Tháng 1, 2024
               </span>
             </div>
+            {/* Profile image actions */}
+            {(profileImage || user?.profile_image) && (
+              <div className="flex items-center space-x-2 mt-3">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-sm text-[#0071c2] hover:underline"
+                >
+                  Đổi ảnh
+                </button>
+                <span className="text-gray-300">|</span>
+                <button
+                  onClick={handleDeleteImage}
+                  className="text-sm text-red-600 hover:underline"
+                >
+                  Xóa ảnh
+                </button>
+              </div>
+            )}
           </div>
           {!isEditing && (
             <Button onClick={() => setIsEditing(true)}>✏️ Chỉnh sửa</Button>
@@ -466,6 +571,88 @@ export default function UserProfilePage() {
           </label>
         </div>
       </Card>
+
+      {/* Danger Zone - Delete Account */}
+      <Card className="border-red-200 bg-red-50">
+        <h3 className="text-xl font-bold text-red-800 mb-4">⚠️ Vùng nguy hiểm</h3>
+        <div className="p-4 bg-white rounded-lg border border-red-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-gray-900">Xóa tài khoản</p>
+              <p className="text-sm text-gray-600">
+                Xóa vĩnh viễn tài khoản và tất cả dữ liệu của bạn. Hành động này không thể hoàn tác.
+              </p>
+            </div>
+            <Button
+              variant="danger"
+              onClick={() => setShowDeleteModal(true)}
+            >
+              🗑️ Xóa tài khoản
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+                <span className="text-3xl">⚠️</span>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Xóa tài khoản?</h3>
+              <p className="text-gray-600 text-sm">
+                Bạn sắp xóa vĩnh viễn tài khoản của mình. Tất cả dữ liệu bao gồm đặt phòng, đánh giá và thông tin cá nhân sẽ bị xóa và không thể khôi phục.
+              </p>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Nhập <span className="text-red-600">XÓA TÀI KHOẢN</span> để xác nhận:
+              </label>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="XÓA TÀI KHOẢN"
+                className="text-center"
+              />
+            </div>
+
+            <div className="flex space-x-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmText('');
+                }}
+                disabled={deletingAccount}
+              >
+                Hủy
+              </Button>
+              <Button
+                variant="danger"
+                className="flex-1"
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirmText !== 'XÓA TÀI KHOẢN' || deletingAccount}
+              >
+                {deletingAccount ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Đang xóa...
+                  </span>
+                ) : (
+                  'Xóa vĩnh viễn'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
