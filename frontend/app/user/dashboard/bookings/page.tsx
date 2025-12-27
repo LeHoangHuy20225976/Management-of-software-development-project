@@ -27,17 +27,9 @@ export default function BookingsPage() {
   const loadBookings = async () => {
     try {
       setLoading(true);
-
-      if (API_CONFIG.USE_MOCK_DATA) {
-        // MOCK: Use localStorage
-        const { getMockBookings } = await import('@/lib/utils/mockData');
-        const data = getMockBookings();
-        setBookings(data);
-      } else {
-        // REAL API: Fetch from backend
-        const data = await bookingsApi.getAll();
-        setBookings(data);
-      }
+      // Fetch from backend API
+      const data = await bookingsApi.getAll();
+      setBookings(data);
     } catch (error) {
       console.error('Error loading bookings:', error);
       alert('❌ Lỗi khi tải danh sách bookings!');

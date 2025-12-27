@@ -44,121 +44,41 @@ export default function HotelDetailPage({
     guests: 2,
   });
 
+  // Room selection - track quantity for each room type
+  const [selectedRooms, setSelectedRooms] = useState<{ [key: number]: number }>({});
+
   useEffect(() => {
     const loadHotel = async () => {
       try {
         const data = await hotelsApi.getById(resolvedParams.hotel_id);
         setHotel(data);
 
-        // Mock room types with prices for testing UI
-        const mockRoomTypes: RoomTypeWithPrice[] = [
-          {
-            type_id: 1,
-            hotel_id: parseInt(resolvedParams.hotel_id),
-            type: 'Phòng Standard',
-            availability: true,
-            max_guests: 2,
-            description:
-              'Phòng tiêu chuẩn với 1 giường đôi, phù hợp cho 2 người. Bao gồm: WiFi miễn phí, điều hòa, TV, tủ lạnh mini.',
-            quantity: 10,
-            price: {
-              price_id: 1,
-              type_id: 1,
-              start_date: null,
-              end_date: null,
-              special_price: null,
-              event: null,
-              basic_price: 500000,
-              discount: 0,
-            },
-          },
-          {
-            type_id: 2,
-            hotel_id: parseInt(resolvedParams.hotel_id),
-            type: 'Phòng Deluxe',
-            availability: true,
-            max_guests: 2,
-            description:
-              'Phòng cao cấp với view đẹp, 1 giường king size. Bao gồm: WiFi, điều hòa, TV 43", minibar, bồn tắm.',
-            quantity: 5,
-            price: {
-              price_id: 2,
-              type_id: 2,
-              start_date: '2025-12-01',
-              end_date: '2025-12-31',
-              special_price: 850000,
-              event: 'Khuyến mãi Giáng Sinh',
-              basic_price: 1000000,
-              discount: 15,
-            },
-          },
-          {
-            type_id: 3,
-            hotel_id: parseInt(resolvedParams.hotel_id),
-            type: 'Phòng Suite',
-            availability: true,
-            max_guests: 4,
-            description:
-              'Phòng suite sang trọng với phòng khách riêng, 2 giường queen. Bao gồm: WiFi, điều hòa, Smart TV 55", bếp nhỏ, ban công.',
-            quantity: 3,
-            price: {
-              price_id: 3,
-              type_id: 3,
-              start_date: null,
-              end_date: null,
-              special_price: null,
-              event: null,
-              basic_price: 2000000,
-              discount: 10,
-            },
-          },
-          {
-            type_id: 4,
-            hotel_id: parseInt(resolvedParams.hotel_id),
-            type: 'Phòng Family',
-            availability: false,
-            max_guests: 4,
-            description:
-              'Phòng gia đình rộng rãi với 2 giường đôi, thích hợp cho gia đình có trẻ em. Bao gồm: WiFi, điều hòa, TV, tủ lạnh.',
-            quantity: 4,
-            price: {
-              price_id: 4,
-              type_id: 4,
-              start_date: null,
-              end_date: null,
-              special_price: null,
-              event: null,
-              basic_price: 1200000,
-              discount: 5,
-            },
-          },
-          {
-            type_id: 5,
-            hotel_id: parseInt(resolvedParams.hotel_id),
-            type: 'Phòng VIP',
-            availability: true,
-            max_guests: 2,
-            description:
-              'Phòng VIP đẳng cấp với view toàn cảnh thành phố, giường king size cao cấp, phòng tắm jacuzzi. Full tiện nghi 5 sao.',
-            quantity: 2,
-            price: {
-              price_id: 5,
-              type_id: 5,
-              start_date: '2025-12-20',
-              end_date: '2026-01-05',
-              special_price: 2800000,
-              event: 'Ưu đãi Tết Dương Lịch',
-              basic_price: 3500000,
-              discount: 20,
-            },
-          },
-        ];
+        // Load real room types from API
+        const roomTypesData = await hotelsApi.getRoomTypes(resolvedParams.hotel_id);
 
-        setRoomTypes(mockRoomTypes);
+        // Transform API response to match expected format
+        const transformedRoomTypes: RoomTypeWithPrice[] = roomTypesData.map((rt: any) => ({
+          type_id: rt.type_id,
+          hotel_id: rt.hotel_id,
+          type: rt.type,
+          availability: rt.availability,
+          max_guests: rt.max_guests,
+          description: rt.description,
+          quantity: rt.quantity,
+          services: rt.services || [],
+          price: rt.RoomPrice ? {
+            price_id: rt.RoomPrice.price_id,
+            type_id: rt.RoomPrice.type_id,
+            start_date: rt.RoomPrice.start_date,
+            end_date: rt.RoomPrice.end_date,
+            special_price: rt.RoomPrice.special_price ? parseInt(rt.RoomPrice.special_price) : null,
+            event: rt.RoomPrice.event,
+            basic_price: parseInt(rt.RoomPrice.basic_price),
+            discount: rt.RoomPrice.discount,
+          } : undefined,
+        }));
 
-        // TODO: Replace with actual API call
-        // const rooms = await roomTypesApi.getByHotelId(resolvedParams.hotel_id);
-        // setRoomTypes(rooms);
+        setRoomTypes(transformedRoomTypes);
       } catch (error) {
         console.error('Error loading hotel:', error);
       } finally {
@@ -176,6 +96,69 @@ export default function HotelDetailPage({
     } catch (error) {
       console.error('Error loading reviews:', error);
     }
+  };
+
+  // Calculate total capacity from selected rooms
+  const calculateTotalCapacity = () => {
+    let totalCapacity = 0;
+    Object.entries(selectedRooms).forEach(([typeId, quantity]) => {
+      const roomType = roomTypes.find(rt => rt.type_id === parseInt(typeId));
+      if (roomType && quantity > 0) {
+        totalCapacity += roomType.max_guests * quantity;
+      }
+    });
+    return totalCapacity;
+  };
+
+  // Calculate total selected rooms
+  const getTotalSelectedRooms = () => {
+    return Object.values(selectedRooms).reduce((sum, qty) => sum + qty, 0);
+  };
+
+  // Handle room quantity change
+  const handleRoomQuantityChange = (typeId: number, change: number) => {
+    setSelectedRooms(prev => {
+      const currentQty = prev[typeId] || 0;
+      const newQty = Math.max(0, currentQty + change);
+      const roomType = roomTypes.find(rt => rt.type_id === typeId);
+
+      // Don't exceed available quantity
+      if (roomType && newQty > roomType.quantity) {
+        return prev;
+      }
+
+      if (newQty === 0) {
+        const { [typeId]: _, ...rest } = prev;
+        return rest;
+      }
+
+      return { ...prev, [typeId]: newQty };
+    });
+  };
+
+  // Handle proceed to booking with multiple rooms
+  const handleProceedToBooking = () => {
+    const totalCapacity = calculateTotalCapacity();
+
+    if (getTotalSelectedRooms() === 0) {
+      alert('Vui lòng chọn ít nhất 1 phòng!');
+      return;
+    }
+
+    if (totalCapacity < searchDates.guests) {
+      alert(`Tổng sức chứa (${totalCapacity} khách) không đủ cho ${searchDates.guests} khách! Vui lòng chọn thêm phòng.`);
+      return;
+    }
+
+    // Build query params with multiple room types
+    const roomSelections = Object.entries(selectedRooms)
+      .filter(([_, qty]) => qty > 0)
+      .map(([typeId, qty]) => `${typeId}:${qty}`)
+      .join(',');
+
+    router.push(
+      `/booking?hotel_id=${hotel?.hotel_id}&rooms=${roomSelections}&check_in=${searchDates.checkIn}&check_out=${searchDates.checkOut}&guests=${searchDates.guests}`
+    );
   };
 
   const handleSubmitReview = async () => {
@@ -319,6 +302,45 @@ export default function HotelDetailPage({
               </p>
             </div>
 
+            {/* Facilities - Booking.com Style */}
+            {hotel.facilities && hotel.facilities.length > 0 && (
+              <div className="mt-6 pt-6 border-t">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                  Tiện ích phổ biến nhất
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {hotel.facilities.map((facility) => {
+                    // Icon mapping for facilities
+                    const iconMap: { [key: string]: string } = {
+                      'Hồ bơi': '🏊',
+                      'Phòng gym': '🏋️',
+                      'Spa': '💆',
+                      'Nhà hàng': '🍽️',
+                      'WiFi miễn phí': '📶',
+                      'Bãi đỗ xe': '🚗',
+                      'Quầy bar': '🍸',
+                      'Bãi biển riêng': '🏖️',
+                      'Lễ tân 24/7': '🛎️',
+                      'Phòng họp': '👔',
+                    };
+                    const icon = iconMap[facility.name] || '✨';
+
+                    return (
+                      <div
+                        key={facility.facility_id}
+                        className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        <span className="text-2xl">{icon}</span>
+                        <span className="text-gray-900 font-medium">
+                          {facility.name}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Location */}
             <div className="mt-6 pt-6 border-t">
               <h2 className="text-xl font-bold text-gray-900 mb-3">Vị trí</h2>
@@ -387,11 +409,11 @@ export default function HotelDetailPage({
                       </label>
                       <input
                         type="number"
-                        value={searchDates.guests}
+                        value={searchDates.guests || ''}
                         onChange={(e) =>
                           setSearchDates({
                             ...searchDates,
-                            guests: parseInt(e.target.value),
+                            guests: parseInt(e.target.value) || 1,
                           })
                         }
                         min={1}
@@ -426,19 +448,49 @@ export default function HotelDetailPage({
               </Card>
             ) : roomTypes.length > 0 ? (
               <div className="space-y-4">
-                {roomTypes
-                  .filter((roomType) => roomType.max_guests >= searchDates.guests)
-                  .map((roomType) => {
-                    // Mock availability check - TODO: Replace with actual API call
-                    const isAvailable = roomType.availability;
-                    const isGuestsExceeded = searchDates.guests > roomType.max_guests;
+                {/* Selection Summary */}
+                {getTotalSelectedRooms() > 0 && (
+                  <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-[#0071c2] sticky top-32 z-10">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">
+                          📋 Tóm tắt lựa chọn
+                        </h3>
+                        <div className="flex items-center gap-6 text-sm">
+                          <span className="font-semibold text-gray-700">
+                            🏠 Tổng số phòng: <span className="text-[#0071c2] text-lg">{getTotalSelectedRooms()}</span>
+                          </span>
+                          <span className="font-semibold text-gray-700">
+                            👥 Sức chứa tối đa: <span className="text-[#0071c2] text-lg">{calculateTotalCapacity()}</span> khách
+                          </span>
+                          <span className="font-semibold text-gray-700">
+                            ✅ Yêu cầu: <span className="text-gray-600 text-lg">{searchDates.guests}</span> khách
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={handleProceedToBooking}
+                        className="bg-gradient-to-r from-[#0071c2] to-[#005999] hover:from-[#005999] hover:to-[#003d66] text-white font-bold px-8 py-3 shadow-lg"
+                      >
+                        ➡️ Tiếp tục đặt phòng
+                      </Button>
+                    </div>
+                  </Card>
+                )}
+
+                {roomTypes.map((roomType) => {
+                    // Show all available rooms, not filtered by guest count
+                    const isAvailable = roomType.availability && roomType.quantity > 0;
+                    const selectedQty = selectedRooms[roomType.type_id] || 0;
 
                     return (
                       <div
                         key={roomType.type_id}
                         className={`border rounded-lg p-6 transition-all ${
-                          isAvailable && !isGuestsExceeded
-                            ? 'border-gray-200 hover:shadow-md hover:border-[#0071c2]'
+                          isAvailable
+                            ? selectedQty > 0
+                              ? 'border-[#0071c2] border-2 bg-blue-50 shadow-md'
+                              : 'border-gray-200 hover:shadow-md hover:border-[#0071c2]'
                             : 'border-gray-200 bg-gray-50 opacity-75'
                         }`}
                       >
@@ -450,22 +502,54 @@ export default function HotelDetailPage({
                             <p className="text-gray-700 mb-3">
                               {roomType.description}
                             </p>
-                            <div className="flex items-center gap-4 text-sm">
-                              <span className="text-gray-600">
-                                👥 Tối đa {roomType.max_guests} khách
+
+                            {/* Room Services */}
+                            {roomType.services && roomType.services.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                {roomType.services.map((service) => {
+                                  // Icon mapping for room services
+                                  const iconMap: { [key: string]: string } = {
+                                    'TV': '📺',
+                                    'Minibar': '🍷',
+                                    'Két sắt': '🔒',
+                                    'Điều hòa': '❄️',
+                                    'Bồn tắm': '🛁',
+                                    'Ban công': '🌅',
+                                    'WiFi': '📶',
+                                  };
+                                  const icon = iconMap[service.name] || '✨';
+
+                                  return (
+                                    <span
+                                      key={service.service_id}
+                                      className="flex items-center gap-1 text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-md"
+                                    >
+                                      <span>{icon}</span>
+                                      <span>{service.name}</span>
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            <div className="flex items-center gap-4 text-sm flex-wrap">
+                              <span className="text-gray-600 font-medium">
+                                👥 Tối đa {roomType.max_guests} khách/phòng
                               </span>
-                              {isAvailable && !isGuestsExceeded ? (
+                              {isAvailable ? (
                                 <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-semibold text-xs">
-                                  ✅ Còn phòng
+                                  ✅ Còn {roomType.quantity} phòng
                                 </span>
                               ) : (
                                 <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full font-semibold text-xs">
                                   ❌ Hết phòng
                                 </span>
                               )}
-                              <span className="text-gray-600">
-                                📦 Còn lại: {roomType.quantity} phòng
-                              </span>
+                              {selectedQty > 0 && (
+                                <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold text-xs">
+                                  ✓ Đã chọn {selectedQty} phòng (chứa tối đa {selectedQty * roomType.max_guests} khách)
+                                </span>
+                              )}
                             </div>
                           </div>
                       <div className="text-right ml-6">
@@ -535,32 +619,50 @@ export default function HotelDetailPage({
                           </div>
                         )}
 
-                            {/* Booking Button */}
-                            <Button
-                              className="mt-4 w-full"
-                              onClick={() => {
-                                // Redirect to booking page with room type and dates
-                                router.push(
-                                  `/booking?hotel_id=${hotel.hotel_id}&room_type_id=${roomType.type_id}&check_in=${searchDates.checkIn}&check_out=${searchDates.checkOut}&guests=${searchDates.guests}`
-                                );
-                              }}
-                              disabled={!isAvailable || isGuestsExceeded}
-                            >
-                              {!isAvailable || isGuestsExceeded
-                                ? '❌ Không khả dụng'
-                                : '🛒 Đặt phòng online'}
-                            </Button>
+                            {/* Room Quantity Selector */}
+                            <div className="mt-4">
+                              {isAvailable ? (
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-center gap-3 bg-white border-2 border-gray-300 rounded-lg p-2">
+                                    <button
+                                      onClick={() => handleRoomQuantityChange(roomType.type_id, -1)}
+                                      disabled={selectedQty === 0}
+                                      className="w-10 h-10 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 text-gray-800 font-bold rounded-lg transition-colors disabled:cursor-not-allowed"
+                                    >
+                                      -
+                                    </button>
+                                    <span className="text-2xl font-bold text-[#0071c2] min-w-[3rem] text-center">
+                                      {selectedQty}
+                                    </span>
+                                    <button
+                                      onClick={() => handleRoomQuantityChange(roomType.type_id, 1)}
+                                      disabled={selectedQty >= roomType.quantity}
+                                      className="w-10 h-10 bg-[#0071c2] hover:bg-[#005999] disabled:bg-gray-300 disabled:text-gray-400 text-white font-bold rounded-lg transition-colors disabled:cursor-not-allowed"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                  <p className="text-xs text-gray-500 text-center">
+                                    Chọn số lượng phòng
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="text-center py-3 bg-gray-100 rounded-lg text-gray-500 font-semibold">
+                                  ❌ Hết phòng
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
                     );
                   })}
 
-                {roomTypes.filter((rt) => rt.max_guests >= searchDates.guests).length === 0 && (
+                {roomTypes.length === 0 && (
                   <Card className="text-center py-8 bg-yellow-50 border-yellow-200">
                     <div className="text-4xl mb-2">⚠️</div>
                     <p className="text-gray-700 font-semibold">
-                      Không có phòng phù hợp với {searchDates.guests} khách.
+                      Không có phòng trống.
                     </p>
                     <p className="text-gray-600 text-sm mt-2">
                       Vui lòng giảm số lượng khách hoặc liên hệ khách sạn: {hotel.contact_phone}

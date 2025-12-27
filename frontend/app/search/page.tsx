@@ -23,6 +23,7 @@ export default function SearchPage() {
   const [filters, setFilters] = useState<SearchFilters>({
     location: '',
     sortBy: 'popularity',
+    guests: 2,
   });
 
   // Load hotels
@@ -50,7 +51,7 @@ export default function SearchPage() {
         <div className="container mx-auto px-4">
           {/* Search Header */}
           <Card className="mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
                   Địa điểm
@@ -75,6 +76,7 @@ export default function SearchPage() {
                   onChange={(e) =>
                     setFilters({ ...filters, checkIn: e.target.value })
                   }
+                  min={new Date().toISOString().split('T')[0]}
                   className="w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900"
                 />
               </div>
@@ -88,6 +90,22 @@ export default function SearchPage() {
                   onChange={(e) =>
                     setFilters({ ...filters, checkOut: e.target.value })
                   }
+                  min={filters.checkIn || new Date().toISOString().split('T')[0]}
+                  className="w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Số khách
+                </label>
+                <input
+                  type="number"
+                  value={filters.guests || ''}
+                  onChange={(e) =>
+                    setFilters({ ...filters, guests: parseInt(e.target.value) || 1 })
+                  }
+                  min={1}
+                  max={10}
                   className="w-full px-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900"
                 />
               </div>
@@ -100,6 +118,40 @@ export default function SearchPage() {
                 </button>
               </div>
             </div>
+
+            {/* Search Summary */}
+            {(filters.location || filters.checkIn || filters.checkOut || filters.guests) && (
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <span className="font-semibold text-gray-700">Tìm kiếm:</span>
+                  {filters.location && (
+                    <span className="bg-white px-3 py-1 rounded-full border border-blue-300 text-gray-800">
+                      📍 {filters.location}
+                    </span>
+                  )}
+                  {filters.checkIn && (
+                    <span className="bg-white px-3 py-1 rounded-full border border-blue-300 text-gray-800">
+                      📅 Nhận: {new Date(filters.checkIn).toLocaleDateString('vi-VN')}
+                    </span>
+                  )}
+                  {filters.checkOut && (
+                    <span className="bg-white px-3 py-1 rounded-full border border-blue-300 text-gray-800">
+                      📅 Trả: {new Date(filters.checkOut).toLocaleDateString('vi-VN')}
+                    </span>
+                  )}
+                  {filters.checkIn && filters.checkOut && (
+                    <span className="bg-white px-3 py-1 rounded-full border border-blue-300 text-gray-800 font-semibold">
+                      🌙 {Math.ceil((new Date(filters.checkOut).getTime() - new Date(filters.checkIn).getTime()) / (1000 * 60 * 60 * 24))} đêm
+                    </span>
+                  )}
+                  {filters.guests && (
+                    <span className="bg-white px-3 py-1 rounded-full border border-blue-300 text-gray-800">
+                      👥 {filters.guests} khách
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </Card>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -229,7 +281,7 @@ export default function SearchPage() {
                             className="absolute inset-0 bg-cover bg-center transform group-hover:scale-110 transition-transform duration-500"
                             style={{ backgroundImage: `url('${hotel.thumbnail}')` }}
                           />
-                          <div className="absolute top-4 left-4 bg-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
+                          <div className="absolute top-4 left-4 bg-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg text-yellow-600">
                             ⭐ {hotel.stars ?? hotel.rating}
                           </div>
                         </div>
@@ -244,20 +296,46 @@ export default function SearchPage() {
                             {hotel.description}
                           </p>
 
-                          <div className="flex flex-wrap gap-2 mb-4">
-                            {(hotel.amenities || []).slice(0, 5).map((amenity) => (
-                              <span
-                                key={amenity}
-                                className="text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full"
-                              >
-                                {amenity}
-                              </span>
-                            ))}
-                          </div>
+                          {/* Facilities */}
+                          {hotel.facilities && hotel.facilities.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-4">
+                              {hotel.facilities.slice(0, 5).map((facility) => {
+                                // Icon mapping for facilities
+                                const iconMap: { [key: string]: string } = {
+                                  'Hồ bơi': '🏊',
+                                  'Phòng gym': '🏋️',
+                                  'Spa': '💆',
+                                  'Nhà hàng': '🍽️',
+                                  'WiFi miễn phí': '📶',
+                                  'Bãi đỗ xe': '🚗',
+                                  'Quầy bar': '🍸',
+                                  'Bãi biển riêng': '🏖️',
+                                  'Lễ tân 24/7': '🛎️',
+                                  'Phòng họp': '👔',
+                                };
+                                const icon = iconMap[facility.name] || '✨';
+
+                                return (
+                                  <span
+                                    key={facility.facility_id}
+                                    className="flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-3 py-1 rounded-full font-medium"
+                                  >
+                                    <span>{icon}</span>
+                                    <span>{facility.name}</span>
+                                  </span>
+                                );
+                              })}
+                              {hotel.facilities.length > 5 && (
+                                <span className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-full font-medium">
+                                  +{hotel.facilities.length - 5} tiện ích khác
+                                </span>
+                              )}
+                            </div>
+                          )}
 
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <span className="text-lg font-bold text-[#0071c2]">
+                              <span className="text-lg font-bold text-yellow-500">
                                 ⭐ {hotel.rating}
                               </span>
                               <span className="text-sm font-medium text-gray-700">
@@ -265,15 +343,51 @@ export default function SearchPage() {
                               </span>
                             </div>
                             <div className="text-right">
-                              <div className="text-sm text-gray-600 mb-1">
-                                Giá chỉ từ
-                              </div>
-                              <div className="text-2xl font-bold text-[#0071c2]">
-                                {hotel.basePrice ? `${hotel.basePrice.toLocaleString('vi-VN')}₫` : 'Liên hệ'}
-                              </div>
-                              <div className="text-xs text-gray-600">
-                                / đêm
-                              </div>
+                              {(() => {
+                                // Calculate lowest price from basePrice or contact
+                                const price = hotel.basePrice;
+                                const discount = hotel.discount || 0;
+
+                                if (price) {
+                                  return (
+                                    <>
+                                      <div className="text-sm text-gray-600 mb-1">
+                                        Giá chỉ từ
+                                      </div>
+                                      {discount > 0 && (
+                                        <div className="text-sm text-gray-400 line-through">
+                                          {price.toLocaleString('vi-VN')}₫
+                                        </div>
+                                      )}
+                                      <div className="flex items-baseline justify-end gap-2">
+                                        <span className="text-2xl font-bold text-[#0071c2]">
+                                          {discount > 0
+                                            ? Math.round(price * (100 - discount) / 100).toLocaleString('vi-VN')
+                                            : price.toLocaleString('vi-VN')
+                                          }₫
+                                        </span>
+                                        <span className="text-xs text-gray-600">/ đêm</span>
+                                      </div>
+                                      {discount > 0 && (
+                                        <div className="inline-block bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded mt-1">
+                                          -{discount}% OFF
+                                        </div>
+                                      )}
+                                    </>
+                                  );
+                                } else {
+                                  return (
+                                    <>
+                                      <div className="text-sm text-gray-600 mb-1">
+                                        Liên hệ
+                                      </div>
+                                      <div className="text-lg font-semibold text-[#0071c2]">
+                                        {hotel.contact_phone}
+                                      </div>
+                                    </>
+                                  );
+                                }
+                              })()}
                             </div>
                           </div>
                         </div>

@@ -6,25 +6,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Logo } from './Logo';
-import { Button } from '../common/Button';
-import { useState } from 'react';
 
 export const Footer = () => {
-  const [email, setEmail] = useState('');
-  const [isSubscribed, setIsSubscribed] = useState(false);
-
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Handle newsletter subscription
-    console.log('Newsletter signup:', email);
-    setIsSubscribed(true);
-    setTimeout(() => {
-      setEmail('');
-      setIsSubscribed(false);
-    }, 3000);
-  };
-
   return (
     <footer className="relative bg-gradient-to-br from-[#001a40] via-[#002855] to-[#003580] text-white overflow-hidden">
       {/* Background Decorations */}
@@ -32,44 +15,6 @@ export const Footer = () => {
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
         <div className="absolute top-1/2 -left-20 w-60 h-60 bg-blue-400/10 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-20 right-1/4 w-72 h-72 bg-cyan-400/5 rounded-full blur-3xl"></div>
-      </div>
-
-      {/* Newsletter Section */}
-      <div className="relative border-b border-white/10">
-        <div className="container mx-auto px-4 py-12">
-          <div className="max-w-4xl mx-auto bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-sm rounded-3xl p-8 md:p-12 border border-white/10">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-              <div className="text-center md:text-left">
-                <h3 className="text-2xl md:text-3xl font-bold mb-2">
-                  Nhận ưu đãi độc quyền ✨
-                </h3>
-                <p className="text-white/70">
-                  Đăng ký để nhận thông tin khuyến mãi mới nhất
-                </p>
-              </div>
-              <form onSubmit={handleNewsletterSubmit} className="flex w-full md:w-auto gap-3">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Nhập email của bạn"
-                  className="flex-1 md:w-72 px-5 py-4 rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-white/40 focus:bg-white/15 transition-all duration-300"
-                  required
-                />
-                <button
-                  type="submit"
-                  className={`px-6 py-4 rounded-xl font-semibold transition-all duration-300 whitespace-nowrap ${
-                    isSubscribed 
-                      ? 'bg-green-500 text-white' 
-                      : 'bg-white text-[#003580] hover:bg-gray-100 hover:shadow-lg'
-                  }`}
-                >
-                  {isSubscribed ? '✓ Đã đăng ký!' : 'Đăng ký'}
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Main Footer Content */}

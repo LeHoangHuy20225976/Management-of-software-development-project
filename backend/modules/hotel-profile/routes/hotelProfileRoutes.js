@@ -133,4 +133,8 @@ router.get(
   middlewares([authMiddleware, rbacMiddleware(["hotel:update"])]),
   hotelProfileController.getHotelForHotelOwner
 );
+router.get(
+  "/all-reviews/:hotel_id",
+  hotelProfileController.getAllReviewsForHotel
+);
 module.exports = router;

@@ -41,6 +41,10 @@ export const hotelsApi = {
     return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ALL_ROOMS, { hotel_id: hotelId });
   },
 
+  async getRoomTypes(hotelId: string): Promise<RoomType[]> {
+    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ROOM_TYPES, { hotel_id: hotelId });
+  },
+
   async getReviews(hotelId: string): Promise<Review[]> {
     return apiClient.get<Review[]>(API_CONFIG.ENDPOINTS.ALL_REVIEWS, { hotel_id: hotelId });
   },

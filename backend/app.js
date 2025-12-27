@@ -8,7 +8,7 @@ const router = require("./routes/index");
 const app = express();
 app.disable("x-powered-by");
 const corsOptions = {
-  origin: "http://localhost:3000", 
+  origin: ["http://localhost:3000", "http://localhost:3002"],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true  // using cookies

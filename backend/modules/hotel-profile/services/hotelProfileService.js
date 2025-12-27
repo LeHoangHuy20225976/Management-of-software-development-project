@@ -211,26 +211,54 @@ const hotelProfileService = {
         // get images for hotel
         const imageUrl = hotel?.thumbnail ? hotel.thumbnail : null;
         if(imageUrl) {
-            const presignedUrl = await minioUtils.getFileUrl(
-                minioUtils.buckets.HOTEL_IMAGES,
-                imageUrl
-            );
-            let publicUrl = toPublicObjectUrl(presignedUrl);
-            hotel.thumbnail = publicUrl; // just replace with presigned URL to return for client
+            // Check if it's already a full URL (from external sources like Unsplash)
+            if(imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+                hotel.thumbnail = imageUrl; // Keep the external URL as-is
+            } else {
+                // It's a MinIO object key, get presigned URL
+                const presignedUrl = await minioUtils.getFileUrl(
+                    minioUtils.buckets.HOTEL_IMAGES,
+                    imageUrl
+                );
+                let publicUrl = toPublicObjectUrl(presignedUrl);
+                hotel.thumbnail = publicUrl; // just replace with presigned URL to return for client
+            }
         }
         const imageList = await db.Image.findAll({
             where: { hotel_id: hotel.hotel_id }
         });
         const publicImageUrls = [];
         for(const image of imageList) {
-            const presignedUrl = await minioUtils.getFileUrl(
-                minioUtils.buckets.HOTEL_IMAGES,
-                image.image_url
-            );
-            let publicUrl = toPublicObjectUrl(presignedUrl);
-            publicImageUrls.push(publicUrl);
+            // Check if it's already a full URL
+            if(image.image_url.startsWith('http://') || image.image_url.startsWith('https://')) {
+                publicImageUrls.push(image.image_url); // Keep the external URL as-is
+            } else {
+                // It's a MinIO object key, get presigned URL
+                const presignedUrl = await minioUtils.getFileUrl(
+                    minioUtils.buckets.HOTEL_IMAGES,
+                    image.image_url
+                );
+                let publicUrl = toPublicObjectUrl(presignedUrl);
+                publicImageUrls.push(publicUrl);
+            }
         }
         hotel.setDataValue('imageUrls', publicImageUrls); // make it JSON-visible
+
+        // Get facilities for hotel
+        const facilitiesPossessing = await db.FacilitiesPossessing.findAll({
+            where: { hotel_id: hotel.hotel_id },
+            include: [{
+                model: db.HotelFacilities,
+                as: 'HotelFacility',
+                attributes: ['facility_id', 'name']
+            }]
+        });
+        const facilities = facilitiesPossessing.map(fp => ({
+            facility_id: fp.HotelFacility.facility_id,
+            name: fp.HotelFacility.name
+        }));
+        hotel.setDataValue('facilities', facilities); // make it JSON-visible
+
         console.log("Hotel profile data: ", hotel);
         return {
             hotelData: hotel
@@ -678,26 +706,84 @@ const hotelProfileService = {
         for(const hotel of hotels) {
             const imageUrl = hotel?.thumbnail ? hotel.thumbnail : null;
             if(imageUrl) {
-                const presignedUrl = await minioUtils.getFileUrl(
-                    minioUtils.buckets.HOTEL_IMAGES,
-                    imageUrl
-                );
-                let publicUrl = toPublicObjectUrl(presignedUrl);
-                hotel.thumbnail = publicUrl; // just replace with presigned URL to return for client
+                // Check if it's already a full URL (from external sources like Unsplash)
+                if(imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+                    hotel.thumbnail = imageUrl; // Keep the external URL as-is
+                } else {
+                    // It's a MinIO object key, get presigned URL
+                    const presignedUrl = await minioUtils.getFileUrl(
+                        minioUtils.buckets.HOTEL_IMAGES,
+                        imageUrl
+                    );
+                    let publicUrl = toPublicObjectUrl(presignedUrl);
+                    hotel.thumbnail = publicUrl; // just replace with presigned URL to return for client
+                }
             }
             const imageList = await db.Image.findAll({
                 where: { hotel_id: hotel.hotel_id }
             });
             const publicImageUrls = [];
             for(const image of imageList) {
-                const presignedUrl = await minioUtils.getFileUrl(
-                    minioUtils.buckets.HOTEL_IMAGES,
-                    image.image_url
-                );
-                let publicUrl = toPublicObjectUrl(presignedUrl);
-                publicImageUrls.push(publicUrl);
+                // Check if it's already a full URL
+                if(image.image_url.startsWith('http://') || image.image_url.startsWith('https://')) {
+                    publicImageUrls.push(image.image_url); // Keep the external URL as-is
+                } else {
+                    // It's a MinIO object key, get presigned URL
+                    const presignedUrl = await minioUtils.getFileUrl(
+                        minioUtils.buckets.HOTEL_IMAGES,
+                        image.image_url
+                    );
+                    let publicUrl = toPublicObjectUrl(presignedUrl);
+                    publicImageUrls.push(publicUrl);
+                }
             }
             hotel.setDataValue('imageUrls', publicImageUrls); // make it JSON-visible
+
+            // Get facilities for hotel
+            const facilitiesPossessing = await db.FacilitiesPossessing.findAll({
+                where: { hotel_id: hotel.hotel_id },
+                include: [{
+                    model: db.HotelFacilities,
+                    as: 'HotelFacility',
+                    attributes: ['facility_id', 'name']
+                }]
+            });
+            const facilities = facilitiesPossessing.map(fp => ({
+                facility_id: fp.HotelFacility.facility_id,
+                name: fp.HotelFacility.name
+            }));
+            hotel.setDataValue('facilities', facilities); // make it JSON-visible
+
+            // Calculate lowest room price
+            const roomTypes = await db.RoomType.findAll({
+                where: { hotel_id: hotel.hotel_id },
+                include: [{
+                    model: db.RoomPrice,
+                    required: false
+                }]
+            });
+
+            let lowestPrice = null;
+            let maxDiscount = 0;
+
+            for (const roomType of roomTypes) {
+                if (roomType.RoomPrice) {
+                    const price = roomType.RoomPrice.special_price
+                        ? parseInt(roomType.RoomPrice.special_price)
+                        : parseInt(roomType.RoomPrice.basic_price);
+
+                    if (lowestPrice === null || price < lowestPrice) {
+                        lowestPrice = price;
+                    }
+
+                    if (roomType.RoomPrice.discount > maxDiscount) {
+                        maxDiscount = roomType.RoomPrice.discount;
+                    }
+                }
+            }
+
+            hotel.setDataValue('basePrice', lowestPrice);
+            hotel.setDataValue('discount', maxDiscount);
         }
         return hotels;
     },
@@ -766,6 +852,31 @@ const hotelProfileService = {
             where: { hotel_owner: userid }
         });
         return hotels;
+    },
+    async getAllReviewsForHotel(hotelId) {
+        const reviews = await db.Review.findAll({
+            where: { hotel_id: hotelId },
+            include: [{
+                model: db.User,
+                attributes: ['user_id', 'name', 'email']
+            }],
+            order: [['date_created', 'DESC']]
+        });
+
+        // Format the reviews data
+        const formattedReviews = reviews.map(review => ({
+            review_id: review.review_id,
+            rating: review.rating,
+            comment: review.comment,
+            date_created: review.date_created,
+            user: {
+                user_id: review.User.user_id,
+                name: review.User.name,
+                email: review.User.email
+            }
+        }));
+
+        return formattedReviews;
     }
 };
 module.exports = hotelProfileService;

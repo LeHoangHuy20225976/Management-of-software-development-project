@@ -12,7 +12,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
-import { hotelsApi } from '@/lib/api/services';
+import { hotelsApi, bookingsApi } from '@/lib/api/services';
 import type { Hotel, RoomType, RoomPrice } from '@/types';
 
 interface RoomTypeWithPrice extends RoomType {
@@ -23,13 +23,13 @@ function BookingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const hotel_id = searchParams.get('hotel_id');
-  const room_type_id = searchParams.get('room_type_id');
+  const rooms_param = searchParams.get('rooms'); // Format: "typeId:qty,typeId:qty"
   const check_in = searchParams.get('check_in');
   const check_out = searchParams.get('check_out');
   const guests = searchParams.get('guests');
 
   const [hotel, setHotel] = useState<Hotel | null>(null);
-  const [roomType, setRoomType] = useState<RoomTypeWithPrice | null>(null);
+  const [selectedRoomTypes, setSelectedRoomTypes] = useState<Array<{ roomType: RoomTypeWithPrice; quantity: number }>>([]);
   const [loading, setLoading] = useState(true);
 
   // Form data matching Booking table
@@ -45,14 +45,14 @@ function BookingContent() {
   });
 
   useEffect(() => {
-    if (!hotel_id || !room_type_id) {
+    if (!hotel_id || !rooms_param) {
       alert('Thiếu thông tin đặt phòng!');
       router.push('/search');
       return;
     }
 
     loadBookingData();
-  }, [hotel_id, room_type_id]);
+  }, [hotel_id, rooms_param]);
 
   const loadBookingData = async () => {
     try {
@@ -60,71 +60,46 @@ function BookingContent() {
       const hotelData = await hotelsApi.getById(hotel_id!);
       setHotel(hotelData);
 
-      // Mock room type data - TODO: Replace with API call
-      const mockRoomTypes: RoomTypeWithPrice[] = [
-        {
-          type_id: 1,
-          hotel_id: parseInt(hotel_id!),
-          type: 'Phòng Standard',
-          availability: true,
-          max_guests: 2,
-          description: 'Phòng tiêu chuẩn với 1 giường đôi',
-          quantity: 10,
-          price: {
-            price_id: 1,
-            type_id: 1,
-            start_date: null,
-            end_date: null,
-            special_price: null,
-            event: null,
-            basic_price: 500000,
-            discount: 0,
-          },
-        },
-        {
-          type_id: 2,
-          hotel_id: parseInt(hotel_id!),
-          type: 'Phòng Deluxe',
-          availability: true,
-          max_guests: 2,
-          description: 'Phòng cao cấp với view đẹp',
-          quantity: 5,
-          price: {
-            price_id: 2,
-            type_id: 2,
-            start_date: '2025-12-01',
-            end_date: '2025-12-31',
-            special_price: 850000,
-            event: 'Khuyến mãi Giáng Sinh',
-            basic_price: 1000000,
-            discount: 15,
-          },
-        },
-        {
-          type_id: 3,
-          hotel_id: parseInt(hotel_id!),
-          type: 'Phòng Suite',
-          availability: true,
-          max_guests: 4,
-          description: 'Phòng suite sang trọng',
-          quantity: 3,
-          price: {
-            price_id: 3,
-            type_id: 3,
-            start_date: null,
-            end_date: null,
-            special_price: null,
-            event: null,
-            basic_price: 2000000,
-            discount: 10,
-          },
-        },
-      ];
+      // Load real room types from API
+      const roomTypesData = await hotelsApi.getRoomTypes(hotel_id!);
 
-      const selectedRoom = mockRoomTypes.find(
-        (r) => r.type_id === parseInt(room_type_id!)
-      );
-      setRoomType(selectedRoom || null);
+      // Transform API response to match expected format
+      const transformedRoomTypes: RoomTypeWithPrice[] = roomTypesData.map((rt: any) => ({
+        type_id: rt.type_id,
+        hotel_id: rt.hotel_id,
+        type: rt.type,
+        availability: rt.availability,
+        max_guests: rt.max_guests,
+        description: rt.description,
+        quantity: rt.quantity,
+        services: rt.services || [],
+        price: rt.RoomPrice ? {
+          price_id: rt.RoomPrice.price_id,
+          type_id: rt.RoomPrice.type_id,
+          start_date: rt.RoomPrice.start_date,
+          end_date: rt.RoomPrice.end_date,
+          special_price: rt.RoomPrice.special_price ? parseInt(rt.RoomPrice.special_price) : null,
+          event: rt.RoomPrice.event,
+          basic_price: parseInt(rt.RoomPrice.basic_price),
+          discount: rt.RoomPrice.discount,
+        } : undefined,
+      }));
+
+      // Parse rooms parameter: "typeId:qty,typeId:qty"
+      const roomSelections = rooms_param!.split(',').map(selection => {
+        const [typeId, qty] = selection.split(':').map(Number);
+        return { typeId, qty };
+      });
+
+      // Build selected room types array
+      const selected = roomSelections
+        .map(({ typeId, qty }) => {
+          const roomType = transformedRoomTypes.find(rt => rt.type_id === typeId);
+          return roomType ? { roomType, quantity: qty } : null;
+        })
+        .filter((item): item is { roomType: RoomTypeWithPrice; quantity: number } => item !== null);
+
+      setSelectedRoomTypes(selected);
     } catch (error) {
       console.error('Error loading booking data:', error);
     } finally {
@@ -142,10 +117,27 @@ function BookingContent() {
   };
 
   const calculateTotalPrice = () => {
-    if (!roomType?.price) return 0;
     const nights = calculateNights();
-    const pricePerNight = roomType.price.special_price || roomType.price.basic_price;
-    return nights * pricePerNight;
+    let total = 0;
+
+    selectedRoomTypes.forEach(({ roomType, quantity }) => {
+      if (roomType.price) {
+        const pricePerNight = roomType.price.special_price || roomType.price.basic_price;
+        total += nights * pricePerNight * quantity;
+      }
+    });
+
+    return total;
+  };
+
+  const getTotalRooms = () => {
+    return selectedRoomTypes.reduce((sum, { quantity }) => sum + quantity, 0);
+  };
+
+  const getTotalCapacity = () => {
+    return selectedRoomTypes.reduce((sum, { roomType, quantity }) =>
+      sum + (roomType.max_guests * quantity), 0
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -162,8 +154,9 @@ function BookingContent() {
       return;
     }
 
-    if (formData.people > (roomType?.max_guests || 0)) {
-      alert(`Phòng này chỉ chứa tối đa ${roomType?.max_guests} khách!`);
+    const totalCapacity = getTotalCapacity();
+    if (formData.people > totalCapacity) {
+      alert(`Tổng sức chứa của các phòng đã chọn (${totalCapacity} khách) không đủ cho ${formData.people} khách!`);
       return;
     }
 
@@ -182,34 +175,39 @@ function BookingContent() {
 
     console.log('Booking data:', bookingData);
 
-    // TODO: Call API to create booking
-    // await bookingsApi.create(bookingData);
+    // Call API to create booking
+    try {
+      const result = await bookingsApi.create(bookingData);
 
-    // Mock success - redirect to confirmation
-    sessionStorage.setItem(
-      'bookingConfirmation',
-      JSON.stringify({
-        bookingId: 'BK' + Date.now(),
-        bookingDate: new Date().toISOString(),
-        paymentStatus: 'pending',
-        hotelName: hotel?.name,
-        roomType: roomType?.type,
-        guests: formData.people,
-        checkIn: formData.check_in_date,
-        checkOut: formData.check_out_date,
-        roomPrice: roomType?.price?.special_price || roomType?.price?.basic_price || 0,
-        nights: calculateNights(),
-        paymentMethod: 'cash',
-        guestInfo: {
-          fullName: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
-          specialRequests: formData.specialRequests,
-        },
-      })
-    );
+      // Store booking info for confirmation page
+      sessionStorage.setItem(
+        'bookingConfirmation',
+        JSON.stringify({
+          bookingId: result.booking_id || 'BK' + Date.now(),
+          bookingDate: result.created_at || new Date().toISOString(),
+          paymentStatus: result.status || 'pending',
+          hotelName: hotel?.name,
+          roomType: roomType?.type,
+          guests: formData.people,
+          checkIn: formData.check_in_date,
+          checkOut: formData.check_out_date,
+          roomPrice: roomType?.price?.special_price || roomType?.price?.basic_price || 0,
+          nights: calculateNights(),
+          paymentMethod: 'cash',
+          guestInfo: {
+            fullName: formData.fullName,
+            email: formData.email,
+            phone: formData.phone,
+            specialRequests: formData.specialRequests,
+          },
+        })
+      );
 
-    router.push('/booking/confirmation');
+      router.push('/booking/confirmation');
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      alert('Lỗi khi tạo đặt phòng. Vui lòng thử lại!');
+    }
   };
 
   if (loading) {
@@ -224,7 +222,7 @@ function BookingContent() {
     );
   }
 
-  if (!hotel || !roomType) {
+  if (!hotel || selectedRoomTypes.length === 0) {
     return (
       <>
         <Header />
@@ -308,7 +306,7 @@ function BookingContent() {
                     <Input
                       type="number"
                       min={1}
-                      max={roomType.max_guests}
+                      max={getTotalCapacity()}
                       value={formData.people}
                       onChange={(e) =>
                         setFormData({
@@ -319,7 +317,7 @@ function BookingContent() {
                       required
                     />
                     <p className="text-xs text-gray-600 mt-1">
-                      Tối đa: {roomType.max_guests} khách
+                      Tối đa: {getTotalCapacity()} khách ({getTotalRooms()} phòng)
                     </p>
                   </div>
                 </Card>
@@ -415,51 +413,78 @@ function BookingContent() {
                   <p className="text-sm text-gray-600">📞 {hotel.contact_phone}</p>
                 </div>
 
-                {/* Room Info */}
+                {/* Selected Rooms Info */}
                 <div className="mb-4 pb-4 border-b">
-                  <h3 className="font-bold text-gray-900 mb-2">{roomType.type}</h3>
-                  <p className="text-sm text-gray-600">{roomType.description}</p>
-                  <p className="text-sm text-gray-600 mt-2">
-                    👥 Tối đa {roomType.max_guests} khách
-                  </p>
-                </div>
-
-                {/* Price Info */}
-                {roomType.price && (
-                  <div className="mb-4 pb-4 border-b">
-                    {roomType.price.event && (
-                      <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-3 py-1 rounded-full mb-2 inline-block">
-                        🎉 {roomType.price.event}
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Giá phòng/đêm:</span>
-                        <span className="font-semibold text-gray-900">
-                          {(roomType.price.special_price || roomType.price.basic_price).toLocaleString('vi-VN')} ₫
-                        </span>
-                      </div>
-
-                      {roomType.price.special_price && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500 line-through">
-                            Giá gốc:
-                          </span>
-                          <span className="text-gray-500 line-through">
-                            {roomType.price.basic_price.toLocaleString('vi-VN')} ₫
+                  <h3 className="font-bold text-gray-900 mb-3">Phòng đã chọn</h3>
+                  <div className="space-y-3">
+                    {selectedRoomTypes.map(({ roomType, quantity }) => (
+                      <div key={roomType.type_id} className="bg-blue-50 p-3 rounded-lg">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-900 text-sm">
+                              {roomType.type}
+                            </h4>
+                            <p className="text-xs text-gray-600">
+                              👥 {roomType.max_guests} khách/phòng
+                            </p>
+                          </div>
+                          <span className="bg-[#0071c2] text-white text-xs font-bold px-2 py-1 rounded">
+                            x{quantity}
                           </span>
                         </div>
-                      )}
 
-                      {roomType.price.discount > 0 && (
-                        <div className="inline-block bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded">
-                          Tiết kiệm {roomType.price.discount}%
-                        </div>
-                      )}
+                        {/* Room Services */}
+                        {roomType.services && roomType.services.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {roomType.services.slice(0, 3).map((service) => {
+                              const iconMap: { [key: string]: string } = {
+                                'TV': '📺',
+                                'Minibar': '🍷',
+                                'Két sắt': '🔒',
+                                'Điều hòa': '❄️',
+                                'Bồn tắm': '🛁',
+                                'Ban công': '🌅',
+                                'WiFi': '📶',
+                              };
+                              const icon = iconMap[service.name] || '✨';
+                              return (
+                                <span
+                                  key={service.service_id}
+                                  className="text-xs text-gray-600"
+                                >
+                                  {icon}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Price per room type */}
+                        {roomType.price && (
+                          <div className="flex justify-between text-xs border-t border-blue-200 pt-2">
+                            <span className="text-gray-600">
+                              {(roomType.price.special_price || roomType.price.basic_price).toLocaleString('vi-VN')} ₫/đêm
+                            </span>
+                            <span className="font-semibold text-gray-900">
+                              {quantity} phòng
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-3 p-2 bg-gray-50 rounded text-xs">
+                    <div className="flex justify-between mb-1">
+                      <span className="text-gray-600">Tổng số phòng:</span>
+                      <span className="font-semibold text-gray-900">{getTotalRooms()} phòng</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Sức chứa tối đa:</span>
+                      <span className="font-semibold text-gray-900">{getTotalCapacity()} khách</span>
                     </div>
                   </div>
-                )}
+                </div>
 
                 {/* Calculation */}
                 <div className="space-y-2 mb-4">
