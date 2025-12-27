@@ -1,82 +1,54 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
-import { hotelManagerApi } from '@/lib/api/services';
+import { hotelManagerApi, reviewsApi } from '@/lib/api/services';
+import { useAuth } from '@/lib/context/AuthContext';
 import type { Review } from '@/types';
 
-const mockReviews = [
-  {
-    review_id: 'rv1',
-    guestName: 'Nguyễn Văn A',
-    guestAvatar: 'https://i.pravatar.cc/150?u=user1',
-    rating: 5,
-    title: 'Trải nghiệm tuyệt vời!',
-    comment:
-      'Khách sạn rất đẹp, phòng sạch sẽ, nhân viên thân thiện. View từ phòng nhìn ra thành phố rất đẹp. Bữa sáng buffet đa dạng và ngon. Chắc chắn sẽ quay lại!',
-    date: '2025-12-05',
-    bookingId: 'BK001',
-    roomType: 'Deluxe Room',
-    verified: true,
-    replied: false,
-  },
-  {
-    review_id: 'rv2',
-    guestName: 'Trần Thị B',
-    guestAvatar: 'https://i.pravatar.cc/150?u=user2',
-    rating: 4,
-    title: 'Tốt nhưng có thể cải thiện',
-    comment:
-      'Vị trí khách sạn thuận tiện. Phòng đẹp và sạch sẽ. Tuy nhiên wifi hơi chậm, hy vọng khách sạn sẽ cải thiện điểm này.',
-    date: '2025-12-03',
-    bookingId: 'BK002',
-    roomType: 'Standard Room',
-    verified: true,
-    replied: true,
-    reply: {
-      content:
-        'Cảm ơn bạn đã góp ý. Chúng tôi đã nâng cấp hệ thống wifi và hi vọng bạn sẽ có trải nghiệm tốt hơn trong lần tới.',
-      date: '2025-12-04',
-    },
-  },
-  {
-    review_id: 'rv3',
-    guestName: 'Lê Văn C',
-    guestAvatar: 'https://i.pravatar.cc/150?u=user3',
-    rating: 5,
-    title: 'Hoàn hảo cho kỳ nghỉ gia đình',
-    comment:
-      'Khách sạn view biển tuyệt đẹp! Hồ bơi rộng rãi, bãi biển riêng sạch sẽ. Con tôi rất thích khu vui chơi trẻ em. Staff nhiệt tình và chu đáo.',
-    date: '2025-12-01',
-    bookingId: 'BK003',
-    roomType: 'Family Suite',
-    verified: true,
-    replied: false,
-  },
-  {
-    review_id: 'rv4',
-    guestName: 'Phạm Thị D',
-    guestAvatar: 'https://i.pravatar.cc/150?u=user4',
-    rating: 3,
-    title: 'Bình thường',
-    comment:
-      'Phòng ốc ổn nhưng không có gì đặc biệt. Giá hơi cao so với chất lượng dịch vụ.',
-    date: '2025-11-28',
-    bookingId: 'BK004',
-    roomType: 'Standard Room',
-    verified: true,
-    replied: false,
-  },
-];
-
 export default function HotelReviewsPage() {
-  const [reviews, setReviews] = useState(mockReviews);
+  const { user } = useAuth();
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unreplied' | '5star' | 'low'>(
     'all'
   );
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
+
+  useEffect(() => {
+    loadReviews();
+  }, []);
+
+  const loadReviews = async () => {
+    try {
+      setLoading(true);
+      // Get hotel of current manager - assuming hotel_id = 1 for now
+      // TODO: Get actual hotel_id from user context or API
+      const hotelId = '1';
+      const data = await reviewsApi.getByHotel(hotelId);
+      const transformedReviews = data.map((review: any) => ({
+        review_id: review.review_id?.toString() || '',
+        guestName: review.User?.name || 'Khách hàng',
+        guestAvatar: review.User?.profile_image || 'https://i.pravatar.cc/150',
+        rating: review.rating || 0,
+        title: review.comment?.substring(0, 50) || '',
+        comment: review.comment || '',
+        date: review.date_created || new Date().toISOString(),
+        bookingId: review.booking_id?.toString() || '',
+        roomType: review.Room?.RoomType?.type || 'N/A',
+        verified: true,
+        replied: false,
+      }));
+      setReviews(transformedReviews);
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+      setReviews([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredReviews =
     filter === 'all'

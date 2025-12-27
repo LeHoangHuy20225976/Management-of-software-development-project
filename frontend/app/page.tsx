@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/common/Button';
 import { Card } from '@/components/common/Card';
 import { Header } from '@/components/layout/Header';
@@ -16,11 +17,19 @@ import { hotelsApi, tourismApi } from '@/lib/api/services';
 import type { Hotel, TourismSpot } from '@/types';
 
 export default function HomePage() {
+  const router = useRouter();
   const [featuredHotels, setFeaturedHotels] = useState<Hotel[]>([]);
   const [popularDestinations, setPopularDestinations] = useState<TourismSpot[]>(
     []
   );
   const [loading, setLoading] = useState(true);
+
+  // Search form state
+  const [searchForm, setSearchForm] = useState({
+    location: '',
+    checkIn: '',
+    checkOut: '',
+  });
 
   useEffect(() => {
     const loadData = async () => {
@@ -39,6 +48,14 @@ export default function HomePage() {
     };
     loadData();
   }, []);
+
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    if (searchForm.location) params.append('location', searchForm.location);
+    if (searchForm.checkIn) params.append('checkIn', searchForm.checkIn);
+    if (searchForm.checkOut) params.append('checkOut', searchForm.checkOut);
+    router.push(`/search?${params.toString()}`);
+  };
 
   return (
     <>
@@ -90,6 +107,8 @@ export default function HomePage() {
                       type="text"
                       placeholder="Bạn muốn đi đâu?"
                       className="input-field w-full"
+                      value={searchForm.location}
+                      onChange={(e) => setSearchForm({ ...searchForm, location: e.target.value })}
                     />
                   </div>
                   <div className="group">
@@ -99,6 +118,9 @@ export default function HomePage() {
                     <input
                       type="date"
                       className="input-field w-full"
+                      value={searchForm.checkIn}
+                      onChange={(e) => setSearchForm({ ...searchForm, checkIn: e.target.value })}
+                      min={new Date().toISOString().split('T')[0]}
                     />
                   </div>
                   <div className="group">
@@ -108,10 +130,15 @@ export default function HomePage() {
                     <input
                       type="date"
                       className="input-field w-full"
+                      value={searchForm.checkOut}
+                      onChange={(e) => setSearchForm({ ...searchForm, checkOut: e.target.value })}
+                      min={searchForm.checkIn || new Date().toISOString().split('T')[0]}
                     />
                   </div>
                   <div className="flex items-end">
-                    <button className="w-full btn-primary py-4 text-base rounded-xl relative overflow-hidden group">
+                    <button
+                      onClick={handleSearch}
+                      className="w-full btn-primary py-4 text-base rounded-xl relative overflow-hidden group">
                       <span className="relative z-10 flex items-center justify-center gap-2">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -120,37 +147,6 @@ export default function HomePage() {
                       </span>
                       <div className="absolute inset-0 bg-gradient-to-r from-[#005999] to-[#0071c2] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </button>
-                  </div>
-                </div>
-                
-                {/* Quick Stats */}
-                <div className="mt-8 pt-6 border-t border-gray-100 flex flex-wrap justify-center gap-8">
-                  <div className="flex items-center gap-3 text-gray-600">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                      <span className="text-lg">🏨</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">10,000+</p>
-                      <p className="text-xs text-gray-500">Khách sạn</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 text-gray-600">
-                    <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
-                      <span className="text-lg">⭐</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">4.8/5</p>
-                      <p className="text-xs text-gray-500">Đánh giá TB</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 text-gray-600">
-                    <div className="w-10 h-10 rounded-xl bg-yellow-50 flex items-center justify-center">
-                      <span className="text-lg">💰</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">Giá tốt</p>
-                      <p className="text-xs text-gray-500">Cam kết</p>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -227,8 +223,22 @@ export default function HomePage() {
                         <span className="line-clamp-1">{hotel.address}</span>
                       </p>
                       <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                        <span className="text-sm text-gray-500">Liên hệ</span>
-                        <span className="font-semibold text-[#0071c2]">{hotel.contact_phone}</span>
+                        {hotel.basePrice ? (
+                          <>
+                            <span className="text-sm text-gray-600">Giá chỉ từ</span>
+                            <div className="text-right">
+                              <span className="text-xl font-bold text-[#0071c2]">
+                                {hotel.basePrice.toLocaleString('vi-VN')}₫
+                              </span>
+                              <span className="text-xs text-gray-500 block">/ đêm</span>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-sm text-gray-500">Liên hệ</span>
+                            <span className="font-semibold text-[#0071c2]">{hotel.contact_phone}</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

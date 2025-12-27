@@ -1,58 +1,216 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { formatCurrency } from '@/lib/utils/format';
 import { hotelManagerApi } from '@/lib/api/services';
+import { apiClient } from '@/lib/api/client';
+import { API_CONFIG } from '@/lib/api/config';
+import type { RoomType } from '@/types';
+
+type PricingFormData = {
+  basic_price: string;
+  special_price: string;
+  discount: string;
+  event: string;
+  start_date: string;
+  end_date: string;
+};
+
+const getBackendRoomPrice = (roomType: unknown): {
+  basic_price?: number | string | null;
+  special_price?: number | string | null;
+  discount?: number | string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  event?: string | null;
+  price?: number | string | null;
+} => {
+  const rt = roomType as any;
+
+  if (rt?.priceData && typeof rt.priceData === 'object') return rt.priceData;
+  if (rt?.RoomPrice && typeof rt.RoomPrice === 'object') return rt.RoomPrice;
+  if (rt?.roomPrice && typeof rt.roomPrice === 'object') return rt.roomPrice;
+
+  return {
+    basic_price: rt?.basic_price ?? null,
+    special_price: rt?.special_price ?? null,
+    discount: rt?.discount ?? null,
+    start_date: rt?.start_date ?? null,
+    end_date: rt?.end_date ?? null,
+    event: rt?.event ?? null,
+    price: rt?.price ?? null,
+  };
+};
+
+const toNumberOrNull = (value: unknown): number | null => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+};
+
+const getDisplayPrice = (roomType: unknown): number => {
+  const price = getBackendRoomPrice(roomType);
+  const special = toNumberOrNull(price.special_price);
+  const basic = toNumberOrNull(price.basic_price);
+  const fallback = toNumberOrNull(price.price);
+  if (special !== null) return special;
+  if (basic !== null) return basic;
+  if (fallback !== null) return fallback;
+  return 0;
+};
 
 export default function HotelPricingPage() {
   const [loading, setLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [pricing, setPricing] = useState({
-    basePrice: 1500000,
-    weekendPrice: 2000000,
-    holidayPrice: 2500000,
-    seasonalRates: [] as Array<{ season: string; multiplier: number; start: string; end: string }>,
-  });
-  const [isEditing, setIsEditing] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState('');
+
+  const [hotels, setHotels] = useState<Array<Record<string, unknown>>>([]);
+  const [selectedHotelId, setSelectedHotelId] = useState('');
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+
+  const [editingTypeId, setEditingTypeId] = useState<number | null>(null);
+  const [savingTypeId, setSavingTypeId] = useState<number | null>(null);
+  const [formData, setFormData] = useState<Record<number, PricingFormData>>({});
+
+  const selectedHotelName = useMemo(() => {
+    const hotel = hotels.find(
+      (h) => String((h as any).hotel_id ?? (h as any).id) === selectedHotelId
+    );
+    return hotel ? String((hotel as any).name ?? '') : '';
+  }, [hotels, selectedHotelId]);
+
+  const loadHotels = async () => {
+    const myHotels = await hotelManagerApi.getMyHotels();
+    const normalized = (myHotels as unknown as Array<Record<string, unknown>>) ?? [];
+    setHotels(normalized);
+    const firstId = normalized.length
+      ? String((normalized[0] as any).hotel_id ?? (normalized[0] as any).id)
+      : '';
+    setSelectedHotelId(firstId);
+  };
+
+  const loadRoomTypes = async (hotelId: string) => {
+    const types = await apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ROOM_TYPES, {
+      hotel_id: hotelId,
+    });
+    setRoomTypes(types);
+
+    const initial: Record<number, PricingFormData> = {};
+    (types ?? []).forEach((t) => {
+      const price = getBackendRoomPrice(t);
+      const basic = toNumberOrNull(price.basic_price) ?? toNumberOrNull(price.price) ?? null;
+      const special = toNumberOrNull(price.special_price);
+      const discount = toNumberOrNull(price.discount);
+      initial[t.type_id] = {
+        basic_price: basic === null ? '' : String(basic),
+        special_price: special === null ? '' : String(special),
+        discount: discount === null ? '' : String(discount),
+        event: typeof price.event === 'string' ? price.event : '',
+        start_date: price.start_date ? String(price.start_date).split('T')[0] : '',
+        end_date: price.end_date ? String(price.end_date).split('T')[0] : '',
+      };
+    });
+    setFormData(initial);
+  };
 
   useEffect(() => {
-    loadPricing();
+    const init = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        await loadHotels();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Không thể tải danh sách khách sạn');
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
   }, []);
 
-  const loadPricing = async () => {
-    try {
-      const hotelId = 'h1';
-      const data = await hotelManagerApi.getPricing(hotelId);
-      setPricing(data as typeof pricing);
-    } catch (error) {
-      console.error('Error loading pricing:', error);
-      alert('Có lỗi khi tải thông tin giá!');
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    if (!selectedHotelId) return;
+    const run = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        await loadRoomTypes(selectedHotelId);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Không thể tải danh sách loại phòng');
+      } finally {
+        setLoading(false);
+      }
+    };
+    run();
+  }, [selectedHotelId]);
+
+  const updateFormField = (
+    typeId: number,
+    field: keyof PricingFormData,
+    value: string
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [typeId]: {
+        ...prev[typeId],
+        [field]: value,
+      },
+    }));
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
+  const handleSave = async (typeId: number) => {
+    setSavingTypeId(typeId);
     try {
-      const hotelId = 'h1';
-      await hotelManagerApi.updatePricing(hotelId, pricing);
-      alert('✅ Cập nhật giá thành công!');
-      setIsEditing(false);
-    } catch (error) {
-      console.error('Error saving pricing:', error);
-      alert('❌ Có lỗi khi lưu thông tin giá!');
-    } finally {
-      setIsSaving(false);
-    }
-  };
+      const data = formData[typeId];
+      if (!data?.basic_price || Number.isNaN(Number(data.basic_price))) {
+        alert('Vui lòng nhập giá cơ bản hợp lệ');
+        return;
+      }
 
-  const handleCancel = () => {
-    setIsEditing(false);
-    loadPricing(); // Reload to reset changes
+      const priceData: Record<string, unknown> = {
+        type_id: typeId,
+        basic_price: Number(data.basic_price),
+      };
+
+      if (data.special_price.trim() !== '') {
+        const special = Number(data.special_price);
+        if (Number.isNaN(special)) {
+          alert('Giá đặc biệt không hợp lệ');
+          return;
+        }
+        priceData.special_price = special;
+      }
+
+      if (data.discount.trim() !== '') {
+        const discount = Number(data.discount);
+        if (Number.isNaN(discount)) {
+          alert('Giảm giá không hợp lệ');
+          return;
+        }
+        priceData.discount = discount;
+      }
+
+      if (data.event.trim() !== '') priceData.event = data.event.trim();
+      if (data.start_date) priceData.start_date = data.start_date;
+      if (data.end_date) priceData.end_date = data.end_date;
+
+      await apiClient.put(API_CONFIG.ENDPOINTS.UPDATE_PRICE, { priceData });
+
+      alert('Cập nhật giá thành công!');
+      setEditingTypeId(null);
+      if (selectedHotelId) await loadRoomTypes(selectedHotelId);
+    } catch (e) {
+      console.error('Error updating pricing:', e);
+      alert(e instanceof Error ? e.message : 'Có lỗi khi cập nhật giá');
+    } finally {
+      setSavingTypeId(null);
+    }
   };
 
   if (loading) {
@@ -60,7 +218,7 @@ export default function HotelPricingPage() {
       <div className="space-y-6">
         <Card>
           <div className="text-center py-8">
-            <p className="text-gray-900 font-medium">⏳ Đang tải thông tin giá...</p>
+            <p className="text-gray-900 font-medium">Đang tải dữ liệu...</p>
           </div>
         </Card>
       </div>
@@ -70,215 +228,188 @@ export default function HotelPricingPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Quản lý giá</h1>
-        {!isEditing ? (
-          <Button onClick={() => setIsEditing(true)}>✏️ Chỉnh sửa</Button>
-        ) : (
-          <div className="flex space-x-2">
-            <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
-              Hủy
-            </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? '⏳ Đang lưu...' : '💾 Lưu thay đổi'}
-            </Button>
-          </div>
-        )}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Quản lý giá</h1>
+          <p className="text-gray-600 mt-1">Theo backend `/hotel-profile`</p>
+        </div>
       </div>
 
-      {/* Base Pricing */}
+      {error && (
+        <Card>
+          <p className="text-red-600 text-sm font-medium">{error}</p>
+        </Card>
+      )}
+
       <Card>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Giá cơ bản</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Ngày thường (T2-T5)
-            </label>
-            {isEditing ? (
-              <Input
-                type="number"
-                value={pricing.basePrice}
-                onChange={(e) =>
-                  setPricing({ ...pricing, basePrice: Number(e.target.value) })
-                }
-                className="w-full"
-              />
+        <div className="flex flex-col md:flex-row md:items-center gap-3">
+          <div className="text-sm font-semibold text-gray-900">Khách sạn</div>
+          <select
+            value={selectedHotelId}
+            onChange={(e) => setSelectedHotelId(e.target.value)}
+            className="w-full md:w-[420px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] text-gray-900 disabled:bg-gray-100"
+            disabled={hotels.length === 0 || processing}
+          >
+            {hotels.length === 0 ? (
+              <option value="">Chưa có khách sạn</option>
             ) : (
-              <div className="text-2xl font-bold text-[#0071c2]">
-                {formatCurrency(pricing.basePrice)}
-              </div>
+              hotels.map((h) => (
+                <option
+                  key={String((h as any).hotel_id ?? (h as any).id)}
+                  value={String((h as any).hotel_id ?? (h as any).id)}
+                >
+                  {String((h as any).name ?? 'Unnamed hotel')}
+                </option>
+              ))
             )}
-            <p className="text-sm text-gray-700 mt-1">Giá tiêu chuẩn cho ngày thường</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Cuối tuần (T6-CN)
-            </label>
-            {isEditing ? (
-              <Input
-                type="number"
-                value={pricing.weekendPrice}
-                onChange={(e) =>
-                  setPricing({ ...pricing, weekendPrice: Number(e.target.value) })
-                }
-                className="w-full"
-              />
-            ) : (
-              <div className="text-2xl font-bold text-green-600">
-                {formatCurrency(pricing.weekendPrice)}
-              </div>
-            )}
-            <p className="text-sm text-gray-700 mt-1">
-              Tăng {Math.round((pricing.weekendPrice / pricing.basePrice - 1) * 100)}% so với
-              ngày thường
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Ngày lễ
-            </label>
-            {isEditing ? (
-              <Input
-                type="number"
-                value={pricing.holidayPrice}
-                onChange={(e) =>
-                  setPricing({ ...pricing, holidayPrice: Number(e.target.value) })
-                }
-                className="w-full"
-              />
-            ) : (
-              <div className="text-2xl font-bold text-red-600">
-                {formatCurrency(pricing.holidayPrice)}
-              </div>
-            )}
-            <p className="text-sm text-gray-700 mt-1">
-              Tăng {Math.round((pricing.holidayPrice / pricing.basePrice - 1) * 100)}% so với
-              ngày thường
-            </p>
-          </div>
+          </select>
+          {selectedHotelName && (
+            <div className="text-sm text-gray-600 truncate">Đang xem: {selectedHotelName}</div>
+          )}
         </div>
       </Card>
 
-      {/* Seasonal Rates */}
-      <Card>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Giá theo mùa</h2>
-        <div className="space-y-4">
-          {pricing.seasonalRates.map((rate, index) => (
-            <div
-              key={index}
-              className="flex flex-col md:flex-row md:items-center justify-between p-4 border border-gray-200 rounded-lg"
-            >
-              <div className="flex-1 mb-3 md:mb-0">
-                <h3 className="font-semibold text-gray-900">{rate.season}</h3>
-                <p className="text-sm text-gray-700">
-                  {rate.start} - {rate.end}
-                </p>
+      <div className="space-y-6">
+        {roomTypes.map((roomType) => {
+          const isEditing = editingTypeId === roomType.type_id;
+          const isSaving = savingTypeId === roomType.type_id;
+          const data = formData[roomType.type_id];
+
+          const backendPrice = getBackendRoomPrice(roomType);
+          const effectivePrice = getDisplayPrice(roomType);
+          const discountLabel =
+            toNumberOrNull(backendPrice.discount) !== null
+              ? `${(toNumberOrNull(backendPrice.discount) as number) * 100}%`
+              : '—';
+          const startDateLabel = backendPrice.start_date
+            ? String(backendPrice.start_date).split('T')[0]
+            : '—';
+          const endDateLabel = backendPrice.end_date
+            ? String(backendPrice.end_date).split('T')[0]
+            : '—';
+
+          return (
+            <Card key={roomType.type_id}>
+              <div className="flex items-start justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">{roomType.type}</h2>
+                  <p className="text-sm text-gray-700 mt-1">
+                    {roomType.description} • Tối đa {roomType.max_guests} khách • {roomType.quantity ?? 0} phòng
+                  </p>
+                </div>
+                {!isEditing ? (
+                  <Button
+                    onClick={() => setEditingTypeId(roomType.type_id)}
+                    size="sm"
+                    disabled={processing}
+                  >
+                    Chỉnh sửa
+                  </Button>
+                ) : (
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingTypeId(null)}
+                      disabled={isSaving}
+                    >
+                      Huỷ
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleSave(roomType.type_id)}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? 'Đang lưu...' : 'Lưu'}
+                    </Button>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center space-x-4">
-                <div className="text-right">
-                  <p className="text-sm text-gray-700">Hệ số nhân</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Giá hiển thị (ưu tiên special)
+                  </label>
+                  <div className="text-2xl font-bold text-[#0071c2]">{formatCurrency(effectivePrice)}</div>
+                  <p className="text-xs text-gray-700 mt-1">
+                    Special: {toNumberOrNull(backendPrice.special_price) !== null ? formatCurrency(toNumberOrNull(backendPrice.special_price) as number) : '—'} • Basic:{' '}
+                    {toNumberOrNull(backendPrice.basic_price) !== null ? formatCurrency(toNumberOrNull(backendPrice.basic_price) as number) : '—'}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Giảm giá</label>
                   {isEditing ? (
                     <Input
                       type="number"
-                      step="0.1"
-                      value={rate.multiplier}
-                      onChange={(e) => {
-                        const updated = [...pricing.seasonalRates];
-                        updated[index].multiplier = Number(e.target.value);
-                        setPricing({ ...pricing, seasonalRates: updated });
-                      }}
-                      className="w-20"
+                      step="0.01"
+                      min="0"
+                      value={data?.discount ?? ''}
+                      onChange={(e) => updateFormField(roomType.type_id, 'discount', e.target.value)}
+                      placeholder="VD: 0.15"
                     />
                   ) : (
-                    <p className="text-xl font-bold text-[#0071c2]">
-                      x{rate.multiplier}
-                    </p>
+                    <div className="text-2xl font-bold text-gray-900">{discountLabel}</div>
                   )}
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-700">Giá ước tính</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {formatCurrency(pricing.basePrice * rate.multiplier)}
-                  </p>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">Thời gian</label>
+                  {isEditing ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        type="date"
+                        value={data?.start_date ?? ''}
+                        onChange={(e) => updateFormField(roomType.type_id, 'start_date', e.target.value)}
+                      />
+                      <Input
+                        type="date"
+                        value={data?.end_date ?? ''}
+                        onChange={(e) => updateFormField(roomType.type_id, 'end_date', e.target.value)}
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-800">
+                      {startDateLabel} → {endDateLabel}
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </Card>
 
-      {/* Price Calculator */}
-      <Card>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Tính giá nhanh</h2>
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Loại ngày
-              </label>
-              <select className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900">
-                <option>Ngày thường</option>
-                <option>Cuối tuần</option>
-                <option>Ngày lễ</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Số đêm
-              </label>
-              <Input type="number" defaultValue={1} min={1} />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Hệ số mùa
-              </label>
-              <select className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900">
-                <option value="1.0">Bình thường (x1.0)</option>
-                <option value="1.3">Mùa du lịch (x1.3)</option>
-                <option value="1.8">Cao điểm (x1.8)</option>
-              </select>
-            </div>
-          </div>
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-gray-800 font-medium mb-1">Tổng giá dự kiến:</p>
-            <p className="text-3xl font-bold text-[#0071c2]">
-              {formatCurrency(pricing.basePrice)}
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Tips */}
-      <Card className="bg-gradient-to-br from-yellow-50 to-white border border-yellow-200">
-        <h3 className="text-lg font-bold text-gray-900 mb-3">💡 Mẹo định giá</h3>
-        <ul className="text-sm text-gray-800 space-y-2">
-          <li className="flex items-start gap-2">
-            <span className="text-yellow-600 mt-0.5">★</span>
-            <span>
-              Cập nhật giá thường xuyên dựa trên tỷ lệ lấp đầy và cạnh tranh thị trường
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-yellow-600 mt-0.5">★</span>
-            <span>
-              Tăng giá vào mùa cao điểm (Tết, Hè) để tối ưu doanh thu
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-yellow-600 mt-0.5">★</span>
-            <span>
-              Giảm giá nhẹ vào mùa thấp điểm để duy trì tỷ lệ lấp đầy
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-yellow-600 mt-0.5">★</span>
-            <span>
-              Theo dõi phản hồi khách hàng về giá cả để điều chỉnh hợp lý
-            </span>
-          </li>
-        </ul>
-      </Card>
+              {isEditing && (
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">Basic price *</label>
+                    <Input
+                      type="number"
+                      value={data?.basic_price ?? ''}
+                      onChange={(e) => updateFormField(roomType.type_id, 'basic_price', e.target.value)}
+                      placeholder="Bắt buộc"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">Special price</label>
+                    <Input
+                      type="number"
+                      value={data?.special_price ?? ''}
+                      onChange={(e) => updateFormField(roomType.type_id, 'special_price', e.target.value)}
+                      placeholder="(tuỳ chọn)"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2">Event</label>
+                    <Input
+                      value={data?.event ?? ''}
+                      onChange={(e) => updateFormField(roomType.type_id, 'event', e.target.value)}
+                      placeholder="(tuỳ chọn)"
+                    />
+                  </div>
+                </div>
+              )}
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -56,13 +56,16 @@ const minioUtils = {
       );
 
       // Build a stable, non-expiring public URL based on MinIO config
+      // Use publicEndPoint and publicPort for URLs accessible from browser
       const protocol = minioConfig.useSSL ? "https" : "http";
+      const publicEndPoint = minioConfig.publicEndPoint || minioConfig.endPoint;
+      const publicPort = minioConfig.publicPort || minioConfig.port;
       const needsPort = !(
-        (!minioConfig.useSSL && minioConfig.port === 80) ||
-        (minioConfig.useSSL && minioConfig.port === 443)
+        (!minioConfig.useSSL && publicPort === 80) ||
+        (minioConfig.useSSL && publicPort === 443)
       );
-      const portPart = needsPort ? `:${minioConfig.port}` : "";
-      const baseUrl = `${protocol}://${minioConfig.endPoint}${portPart}`;
+      const portPart = needsPort ? `:${publicPort}` : "";
+      const baseUrl = `${protocol}://${publicEndPoint}${portPart}`;
       const url = `${baseUrl}/${bucketName}/${uniqueFileName}`;
 
       return {

@@ -6,7 +6,8 @@
 export const API_CONFIG = {
   // Set to false to use real backend API
   // Can be controlled via NEXT_PUBLIC_USE_MOCK_DATA in .env.local
-  USE_MOCK_DATA: process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true' ? true : false,
+  // Changed default to FALSE - now using real API
+  USE_MOCK_DATA: process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true' ? true : process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'false' ? false : false,
 
   // Backend API URL
   BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
@@ -25,18 +26,24 @@ export const API_CONFIG = {
 
     // Hotel Profile (matches backend /hotel-profile/*)
     ADD_HOTEL: '/hotel-profile/add-hotel',
+    HOTEL_MANAGER_HOTELS: '/hotel-profile/hotel-manager/hotels',
     VIEW_HOTEL: '/hotel-profile/view-hotel/:hotel_id',
     UPDATE_HOTEL: '/hotel-profile/update-hotel/:hotel_id',
     DELETE_HOTEL: '/hotel-profile/delete-hotel/:hotel_id',
     ADD_FACILITY: '/hotel-profile/add-facility/:hotel_id',
+    VIEW_FACILITIES: '/hotel-profile/view-facilities/:hotel_id',
     
     // Room Type Management
     ADD_ROOM_TYPE: '/hotel-profile/add-room-type',
     VIEW_ROOM_TYPES: '/hotel-profile/view-room-types/:hotel_id',
+    VIEW_ROOM_TYPE: '/hotel-profile/view-room-type/:type_id',
+    UPDATE_ROOM_TYPE: '/hotel-profile/update-room-type/:type_id',
     
     // Room Management
     ADD_ROOM: '/hotel-profile/add-room',
     VIEW_ALL_ROOMS: '/hotel-profile/view-all-rooms/:hotel_id',
+    VIEW_ROOM: '/hotel-profile/view-room/:room_id',
+    UPDATE_ROOM: '/hotel-profile/update-room/:room_id',
     ALL_ROOMS: '/hotel-profile/all-rooms',
     ALL_HOTELS: '/hotel-profile/all-hotels',
     
@@ -81,6 +88,7 @@ export const API_CONFIG = {
     PAYMENT_BY_BOOKING: '/payments/booking/:bookingId',
     PAYMENT_QUERY_STATUS: '/payments/:id/query',
     PAYMENT_REFUND: '/payments/:id/refund',
+    PAYMENT_CANCEL: '/payments/:id/cancel',
     VNPAY_RETURN: '/payments/vnpay-return',
     VNPAY_IPN: '/payments/vnpay-ipn',
 
@@ -99,6 +107,7 @@ export const API_CONFIG = {
 
     // Pricing Engine
     GET_PRICE: '/pricing-engine/get-price/:type_id',
+    PRICING_PRICE_FOR_DATE: '/pricing/date/:typeId',
 
     // User Profile Extended
     DELETE_PROFILE: '/users/profile',

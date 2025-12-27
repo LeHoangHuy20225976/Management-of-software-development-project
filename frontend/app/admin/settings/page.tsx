@@ -74,8 +74,8 @@ export default function AdminSettingsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Cài đặt Hệ thống</h1>
-        <p className="text-gray-600 mt-1">Quản lý cấu hình và cài đặt của hệ thống</p>
+        <h1 className="text-2xl font-bold text-black">Cài đặt Hệ thống</h1>
+        <p className="text-black mt-1">Quản lý cấu hình và cài đặt của hệ thống</p>
       </div>
 
       {/* Success Message */}
@@ -99,7 +99,7 @@ export default function AdminSettingsPage() {
                 className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                   activeTab === tab.id
                     ? 'border-blue-600 text-blue-600 bg-blue-50'
-                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    : 'border-transparent text-black hover:text-black hover:bg-gray-50 font-medium'
                 }`}
               >
                 <span>{tab.icon}</span>
@@ -114,45 +114,45 @@ export default function AdminSettingsPage() {
           {/* General Settings */}
           {activeTab === 'general' && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900">Cài đặt chung</h3>
+              <h3 className="text-lg font-semibold text-black">Cài đặt chung</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tên website</label>
+                  <label className="block text-sm font-medium text-black mb-1">Tên website</label>
                   <input
                     type="text"
                     value={settings.siteName}
                     onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email hỗ trợ</label>
+                  <label className="block text-sm font-medium text-black mb-1">Email hỗ trợ</label>
                   <input
                     type="email"
                     value={settings.supportEmail}
                     onChange={(e) => setSettings({ ...settings, supportEmail: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại hỗ trợ</label>
+                  <label className="block text-sm font-medium text-black mb-1">Số điện thoại hỗ trợ</label>
                   <input
                     type="text"
                     value={settings.supportPhone}
                     onChange={(e) => setSettings({ ...settings, supportPhone: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Múi giờ</label>
+                  <label className="block text-sm font-medium text-black mb-1">Múi giờ</label>
                   <select
                     value={settings.timezone}
                     onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   >
                     <option value="Asia/Ho_Chi_Minh">Việt Nam (UTC+7)</option>
                     <option value="Asia/Bangkok">Thái Lan (UTC+7)</option>
@@ -161,12 +161,12 @@ export default function AdminSettingsPage() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả website</label>
+                  <label className="block text-sm font-medium text-black mb-1">Mô tả website</label>
                   <textarea
                     value={settings.siteDescription}
                     onChange={(e) => setSettings({ ...settings, siteDescription: e.target.value })}
                     rows={3}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   />
                 </div>
 
@@ -179,8 +179,8 @@ export default function AdminSettingsPage() {
                       className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <div>
-                      <span className="font-medium text-gray-900">Chế độ bảo trì</span>
-                      <p className="text-sm text-gray-500">Tắt website cho người dùng thông thường để bảo trì</p>
+                      <span className="font-medium text-black">Chế độ bảo trì</span>
+                      <p className="text-sm text-black">Tắt website cho người dùng thông thường để bảo trì</p>
                     </div>
                   </label>
                 </div>
@@ -191,56 +191,56 @@ export default function AdminSettingsPage() {
           {/* Booking Settings */}
           {activeTab === 'booking' && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900">Cài đặt đặt phòng</h3>
+              <h3 className="text-lg font-semibold text-black">Cài đặt đặt phòng</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Số ngày đặt trước tối đa</label>
+                  <label className="block text-sm font-medium text-black mb-1">Số ngày đặt trước tối đa</label>
                   <input
                     type="number"
                     value={settings.maxBookingDays}
                     onChange={(e) => setSettings({ ...settings, maxBookingDays: Number(e.target.value) })}
                     min="1"
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   />
-                  <p className="text-sm text-gray-500 mt-1">Khách có thể đặt phòng trước tối đa bao nhiêu ngày</p>
+                  <p className="text-sm text-black mt-1">Khách có thể đặt phòng trước tối đa bao nhiêu ngày</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Thời gian đặt tối thiểu (giờ)</label>
+                  <label className="block text-sm font-medium text-black mb-1">Thời gian đặt tối thiểu (giờ)</label>
                   <input
                     type="number"
                     value={settings.minBookingHours}
                     onChange={(e) => setSettings({ ...settings, minBookingHours: Number(e.target.value) })}
                     min="0"
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   />
-                  <p className="text-sm text-gray-500 mt-1">Số giờ tối thiểu trước khi check-in để đặt phòng</p>
+                  <p className="text-sm text-black mt-1">Số giờ tối thiểu trước khi check-in để đặt phòng</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Thời gian hủy miễn phí (giờ)</label>
+                  <label className="block text-sm font-medium text-black mb-1">Thời gian hủy miễn phí (giờ)</label>
                   <input
                     type="number"
                     value={settings.cancellationHours}
                     onChange={(e) => setSettings({ ...settings, cancellationHours: Number(e.target.value) })}
                     min="0"
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   />
-                  <p className="text-sm text-gray-500 mt-1">Số giờ trước check-in cho phép hủy miễn phí</p>
+                  <p className="text-sm text-black mt-1">Số giờ trước check-in cho phép hủy miễn phí</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tỷ lệ hoa hồng (%)</label>
+                  <label className="block text-sm font-medium text-black mb-1">Tỷ lệ hoa hồng (%)</label>
                   <input
                     type="number"
                     value={settings.commissionRate}
                     onChange={(e) => setSettings({ ...settings, commissionRate: Number(e.target.value) })}
                     min="0"
                     max="100"
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   />
-                  <p className="text-sm text-gray-500 mt-1">Phần trăm hoa hồng từ mỗi booking</p>
+                  <p className="text-sm text-black mt-1">Phần trăm hoa hồng từ mỗi booking</p>
                 </div>
               </div>
             </div>
@@ -249,15 +249,15 @@ export default function AdminSettingsPage() {
           {/* Payment Settings */}
           {activeTab === 'payment' && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900">Cài đặt thanh toán</h3>
+              <h3 className="text-lg font-semibold text-black">Cài đặt thanh toán</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Đơn vị tiền tệ</label>
+                  <label className="block text-sm font-medium text-black mb-1">Đơn vị tiền tệ</label>
                   <select
                     value={settings.currency}
                     onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   >
                     <option value="VND">VND - Việt Nam Đồng</option>
                     <option value="USD">USD - US Dollar</option>
@@ -266,7 +266,7 @@ export default function AdminSettingsPage() {
               </div>
 
               <div className="border-t pt-6">
-                <h4 className="font-medium text-gray-900 mb-4">Phương thức thanh toán</h4>
+                <h4 className="font-medium text-black mb-4">Phương thức thanh toán</h4>
                 <div className="space-y-4">
                   <label className="flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
                     <input
@@ -276,8 +276,8 @@ export default function AdminSettingsPage() {
                       className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <div className="flex-1">
-                      <span className="font-medium text-gray-900">VNPay</span>
-                      <p className="text-sm text-gray-500">Thanh toán qua cổng VNPay</p>
+                      <span className="font-medium text-black">VNPay</span>
+                      <p className="text-sm text-black">Thanh toán qua cổng VNPay</p>
                     </div>
                     <img src="https://vnpay.vn/s1/statics.vnpay.vn/2023/9/06ncktiwd6dc1694418196384.png" alt="VNPay" className="h-8" />
                   </label>
@@ -290,8 +290,8 @@ export default function AdminSettingsPage() {
                       className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <div className="flex-1">
-                      <span className="font-medium text-gray-900">MoMo</span>
-                      <p className="text-sm text-gray-500">Thanh toán qua ví MoMo</p>
+                      <span className="font-medium text-black">MoMo</span>
+                      <p className="text-sm text-black">Thanh toán qua ví MoMo</p>
                     </div>
                     <div className="w-8 h-8 bg-pink-500 rounded-lg flex items-center justify-center text-white font-bold">M</div>
                   </label>
@@ -304,8 +304,8 @@ export default function AdminSettingsPage() {
                       className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <div className="flex-1">
-                      <span className="font-medium text-gray-900">Chuyển khoản ngân hàng</span>
-                      <p className="text-sm text-gray-500">Chuyển khoản trực tiếp qua ngân hàng</p>
+                      <span className="font-medium text-black">Chuyển khoản ngân hàng</span>
+                      <p className="text-sm text-black">Chuyển khoản trực tiếp qua ngân hàng</p>
                     </div>
                     <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white">🏦</div>
                   </label>
@@ -318,8 +318,8 @@ export default function AdminSettingsPage() {
                       className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <div className="flex-1">
-                      <span className="font-medium text-gray-900">Tiền mặt</span>
-                      <p className="text-sm text-gray-500">Thanh toán tiền mặt khi check-in</p>
+                      <span className="font-medium text-black">Tiền mặt</span>
+                      <p className="text-sm text-black">Thanh toán tiền mặt khi check-in</p>
                     </div>
                     <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center text-white">💵</div>
                   </label>
@@ -331,7 +331,7 @@ export default function AdminSettingsPage() {
           {/* Email Settings */}
           {activeTab === 'email' && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900">Cài đặt Email</h3>
+              <h3 className="text-lg font-semibold text-black">Cài đặt Email</h3>
               
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <div className="flex items-start gap-3">
@@ -349,7 +349,7 @@ export default function AdminSettingsPage() {
               </div>
 
               <div className="space-y-4">
-                <h4 className="font-medium text-gray-900">Các loại email tự động</h4>
+                <h4 className="font-medium text-black">Các loại email tự động</h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 border rounded-lg">
@@ -357,7 +357,7 @@ export default function AdminSettingsPage() {
                       <span className="text-green-500">✓</span>
                       <span className="font-medium">Email xác nhận đặt phòng</span>
                     </div>
-                    <p className="text-sm text-gray-500">Gửi khi khách hoàn tất đặt phòng</p>
+                    <p className="text-sm text-black">Gửi khi khách hoàn tất đặt phòng</p>
                   </div>
 
                   <div className="p-4 border rounded-lg">
@@ -365,7 +365,7 @@ export default function AdminSettingsPage() {
                       <span className="text-green-500">✓</span>
                       <span className="font-medium">Email hủy đặt phòng</span>
                     </div>
-                    <p className="text-sm text-gray-500">Gửi khi booking bị hủy</p>
+                    <p className="text-sm text-black">Gửi khi booking bị hủy</p>
                   </div>
 
                   <div className="p-4 border rounded-lg">
@@ -373,7 +373,7 @@ export default function AdminSettingsPage() {
                       <span className="text-green-500">✓</span>
                       <span className="font-medium">Email thanh toán thành công</span>
                     </div>
-                    <p className="text-sm text-gray-500">Gửi khi thanh toán hoàn tất</p>
+                    <p className="text-sm text-black">Gửi khi thanh toán hoàn tất</p>
                   </div>
 
                   <div className="p-4 border rounded-lg">
@@ -381,7 +381,7 @@ export default function AdminSettingsPage() {
                       <span className="text-green-500">✓</span>
                       <span className="font-medium">Email chào mừng</span>
                     </div>
-                    <p className="text-sm text-gray-500">Gửi khi đăng ký tài khoản mới</p>
+                    <p className="text-sm text-black">Gửi khi đăng ký tài khoản mới</p>
                   </div>
                 </div>
               </div>
@@ -391,7 +391,7 @@ export default function AdminSettingsPage() {
           {/* Security Settings */}
           {activeTab === 'security' && (
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold text-gray-900">Cài đặt bảo mật</h3>
+              <h3 className="text-lg font-semibold text-black">Cài đặt bảo mật</h3>
               
               <div className="space-y-4">
                 <label className="flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
@@ -402,8 +402,8 @@ export default function AdminSettingsPage() {
                     className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <div>
-                    <span className="font-medium text-gray-900">Cho phép đăng ký</span>
-                    <p className="text-sm text-gray-500">Cho phép người dùng mới đăng ký tài khoản</p>
+                    <span className="font-medium text-black">Cho phép đăng ký</span>
+                    <p className="text-sm text-black">Cho phép người dùng mới đăng ký tài khoản</p>
                   </div>
                 </label>
 
@@ -415,14 +415,14 @@ export default function AdminSettingsPage() {
                     className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <div>
-                    <span className="font-medium text-gray-900">Yêu cầu xác thực email</span>
-                    <p className="text-sm text-gray-500">Người dùng phải xác thực email trước khi sử dụng tài khoản</p>
+                    <span className="font-medium text-black">Yêu cầu xác thực email</span>
+                    <p className="text-sm text-black">Người dùng phải xác thực email trước khi sử dụng tài khoản</p>
                   </div>
                 </label>
               </div>
 
               <div className="border-t pt-6">
-                <h4 className="font-medium text-gray-900 mb-4">Hành động nguy hiểm</h4>
+                <h4 className="font-medium text-black mb-4">Hành động nguy hiểm</h4>
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                   <p className="text-sm text-red-700 mb-4">
                     Các hành động bên dưới có thể ảnh hưởng đến dữ liệu và hoạt động của hệ thống. Hãy cẩn thận!

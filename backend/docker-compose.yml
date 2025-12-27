@@ -77,12 +77,15 @@ services:
       REDIS_URL: redis://redis:6379
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
+      MINIO_PUBLIC_ENDPOINT: localhost
+      MINIO_PUBLIC_PORT: 9002
       MINIO_USE_SSL: false
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
       APP_PASS: ${APP_PASS}
       GMAIL_USER: ${GMAIL_USER}
       RESET_PASSWORD_URL: http://localhost:3000/reset-password?token=
+      SEED_HOTEL_FACILITIES: "true"
     ports:
       - "4000:4000"
     depends_on:
@@ -97,8 +100,7 @@ services:
       - /app/node_modules
     networks:
       - hotel_network
-    command: >
-      sh -c "npx sequelize-cli db:migrate && npm run dev"
+    command: ["npm", "run", "dev"]
 
 volumes:
   postgres_data:

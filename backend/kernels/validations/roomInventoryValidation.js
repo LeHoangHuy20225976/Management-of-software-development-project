@@ -141,7 +141,29 @@ const roomInventoryValidation = {
       .withMessage('End date is required')
       .isISO8601()
       .withMessage('End date must be a valid date (YYYY-MM-DD)')
-  ]
+  ],
+
+  updateRoom: [
+    param('room_id')
+      .isInt({ min: 1 })
+      .withMessage('Room ID must be a positive integer'),
+
+    body('name').optional().isString(),
+    body('location').optional().isString(),
+    body('status').optional().isInt(),
+    body('estimated_available_time').optional().isISO8601(),
+    body('number_of_single_beds').optional().isInt({ min: 0 }),
+    body('number_of_double_beds').optional().isInt({ min: 0 }),
+    body('room_view').optional().isString(),
+    body('room_size').optional().isFloat({ min: 0 }),
+    body('notes').optional().isString(),
+  ],
+
+  deleteRoom: [
+    param('room_id')
+      .isInt({ min: 1 })
+      .withMessage('Room ID must be a positive integer'),
+  ],
 };
 
 module.exports = roomInventoryValidation;

@@ -41,7 +41,7 @@ export default function AdminBookingsPage() {
       accepted: 'bg-green-100 text-green-800',
       pending: 'bg-yellow-100 text-yellow-800',
       rejected: 'bg-red-100 text-red-800',
-      cancelled: 'bg-gray-100 text-gray-800',
+      cancelled: 'bg-gray-100 text-black',
       maintained: 'bg-blue-100 text-blue-800',
     };
     const labels: Record<string, string> = {
@@ -61,7 +61,7 @@ export default function AdminBookingsPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-900">Quản lý đặt phòng</h1>
+        <h1 className="text-3xl font-bold text-black">Quản lý đặt phòng</h1>
         <Card>
           <div className="animate-pulse space-y-4">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -76,8 +76,8 @@ export default function AdminBookingsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">📋 Quản lý đặt phòng</h1>
-        <div className="text-gray-600">
+        <h1 className="text-3xl font-bold text-black">📋 Quản lý đặt phòng</h1>
+        <div className="text-black font-medium">
           Tổng: <strong>{bookings.length}</strong> đơn
         </div>
       </div>
@@ -86,8 +86,8 @@ export default function AdminBookingsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <div className="text-center">
-            <div className="text-3xl font-bold text-gray-900">{bookings.length}</div>
-            <div className="text-sm text-gray-600">Tổng cộng</div>
+            <div className="text-3xl font-bold text-black">{bookings.length}</div>
+            <div className="text-sm text-black font-medium">Tổng cộng</div>
           </div>
         </Card>
         <Card>
@@ -95,7 +95,7 @@ export default function AdminBookingsPage() {
             <div className="text-3xl font-bold text-yellow-600">
               {bookings.filter(b => b.status === 'pending').length}
             </div>
-            <div className="text-sm text-gray-600">Chờ xử lý</div>
+            <div className="text-sm text-black font-medium">Chờ xử lý</div>
           </div>
         </Card>
         <Card>
@@ -103,7 +103,7 @@ export default function AdminBookingsPage() {
             <div className="text-3xl font-bold text-green-600">
               {bookings.filter(b => b.status === 'accepted').length}
             </div>
-            <div className="text-sm text-gray-600">Đã xác nhận</div>
+            <div className="text-sm text-black font-medium">Đã xác nhận</div>
           </div>
         </Card>
         <Card>
@@ -111,7 +111,7 @@ export default function AdminBookingsPage() {
             <div className="text-3xl font-bold text-red-600">
               {bookings.filter(b => b.status === 'cancelled').length}
             </div>
-            <div className="text-sm text-gray-600">Đã hủy</div>
+            <div className="text-sm text-black font-medium">Đã hủy</div>
           </div>
         </Card>
       </div>
@@ -123,7 +123,7 @@ export default function AdminBookingsPage() {
             <input
               type="text"
               placeholder="🔍 Tìm theo mã đơn hoặc tên khách sạn..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -167,13 +167,13 @@ export default function AdminBookingsPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Mã đơn</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Khách sạn</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Nhận phòng</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Trả phòng</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Tổng tiền</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Trạng thái</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Hành động</th>
+                <th className="text-left py-3 px-4 font-semibold text-black bg-gray-50">Mã đơn</th>
+                <th className="text-left py-3 px-4 font-semibold text-black bg-gray-50">Khách sạn</th>
+                <th className="text-left py-3 px-4 font-semibold text-black bg-gray-50">Nhận phòng</th>
+                <th className="text-left py-3 px-4 font-semibold text-black bg-gray-50">Trả phòng</th>
+                <th className="text-left py-3 px-4 font-semibold text-black bg-gray-50">Tổng tiền</th>
+                <th className="text-left py-3 px-4 font-semibold text-black bg-gray-50">Trạng thái</th>
+                <th className="text-left py-3 px-4 font-semibold text-black bg-gray-50">Hành động</th>
               </tr>
             </thead>
             <tbody>
@@ -183,16 +183,16 @@ export default function AdminBookingsPage() {
                     <span className="font-medium text-blue-600">#{booking.booking_id}</span>
                   </td>
                   <td className="py-3 px-4">
-                    <div className="font-medium text-gray-900">{booking.hotelName || 'N/A'}</div>
-                    <div className="text-sm text-gray-500">{booking.roomType || ''}</div>
+                    <div className="font-medium text-black">{booking.hotelName || 'N/A'}</div>
+                    <div className="text-sm text-black">{booking.roomType || ''}</div>
                   </td>
-                  <td className="py-3 px-4 text-sm text-gray-600">
+                  <td className="py-3 px-4 text-sm text-black">
                     {formatDate(booking.check_in_date, 'short')}
                   </td>
-                  <td className="py-3 px-4 text-sm text-gray-600">
+                  <td className="py-3 px-4 text-sm text-black">
                     {formatDate(booking.check_out_date, 'short')}
                   </td>
-                  <td className="py-3 px-4 font-medium text-gray-900">
+                  <td className="py-3 px-4 font-medium text-black">
                     {formatCurrency(booking.total_price ?? 0)}
                   </td>
                   <td className="py-3 px-4">{getStatusBadge(booking.status)}</td>
@@ -210,7 +210,7 @@ export default function AdminBookingsPage() {
         {filteredBookings.length === 0 && (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">📋</div>
-            <p className="text-gray-600">Không tìm thấy đơn đặt phòng nào</p>
+            <p className="text-black">Không tìm thấy đơn đặt phòng nào</p>
           </div>
         )}
       </Card>

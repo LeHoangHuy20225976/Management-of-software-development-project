@@ -24,7 +24,7 @@ export default function UserReviewsPage() {
   useEffect(() => {
     const loadReviews = async () => {
       try {
-        const allReviews = await reviewsApi.getAll();
+        const allReviews = await reviewsApi.getAll(''); // Empty hotelId for user's all reviews
         // Filter reviews by current user
         const userReviews = allReviews.filter(
           r => r.user_id === user?.user_id
@@ -200,7 +200,7 @@ export default function UserReviewsPage() {
                       <Button
                         variant="danger"
                         size="sm"
-                        onClick={() => handleDelete(review.review_id)}
+                        onClick={() => handleDelete(String(review.review_id))}
                       >
                         🗑️ Xóa
                       </Button>
@@ -236,7 +236,7 @@ export default function UserReviewsPage() {
                           📝 Phản hồi từ khách sạn:
                         </span>
                       </div>
-                      <p className="text-gray-700">{review.reply}</p>
+                      <p className="text-gray-700">{review.reply.content}</p>
                     </div>
                   )}
                 </div>

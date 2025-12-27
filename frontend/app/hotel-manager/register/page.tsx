@@ -8,6 +8,9 @@ import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
 import { HotelLogo } from '@/components/hotel/HotelLogo';
 import { useAuth } from '@/lib/context/AuthContext';
+import { authApi } from '@/lib/api/auth';
+import { apiClient } from '@/lib/api/client';
+import { API_CONFIG } from '@/lib/api/config';
 
 export default function HotelRegisterPage() {
   const router = useRouter();
@@ -21,6 +24,7 @@ export default function HotelRegisterPage() {
     hotelCity: '',
     hotelDistrict: '',
     hotelPhone: '',
+    hotelDescription: '',
     // Manager Info
     managerName: '',
     managerEmail: '',
@@ -95,6 +99,36 @@ export default function HotelRegisterPage() {
         password: formData.password,
         role: 'hotel_manager',
       });
+
+      // Backend requires auth for /hotel-profile/add-hotel, so login to obtain httpOnly cookies
+      await authApi.login(formData.managerEmail, formData.password, 'hotel_manager');
+
+      const address = `${formData.hotelAddress} ${formData.hotelDistrict} ${formData.hotelCity}`
+        .split(' ')
+        .map((v) => v.trim())
+        .filter(Boolean)
+        .join(' ');
+
+      // Note: backend validation uses `.optional().isFloat()` which will FAIL for `null`.
+      // So we omit longitude/latitute entirely unless we have numbers.
+      const hotelData: Record<string, unknown> = {
+        hotelName: formData.hotelName,
+        address,
+        contact_phone: formData.hotelPhone,
+        rating: formData.hotelStars,
+        description: formData.hotelDescription?.trim() || '',
+      };
+
+      const hotelFormData = new FormData();
+      hotelFormData.append(
+        'hotelData',
+        JSON.stringify(hotelData)
+      );
+
+      await apiClient.postFormData(API_CONFIG.ENDPOINTS.ADD_HOTEL, {}, hotelFormData);
+
+      // Clear session after setup; user will login manually next
+      await authApi.logout().catch(() => authApi.clearAuthState());
 
       setSuccess(true);
       
@@ -329,6 +363,25 @@ export default function HotelRegisterPage() {
                           })
                         }
                         placeholder="0283 xxx xxxx"
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900 placeholder:text-gray-400"
+                        disabled={isLoading || success}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2">
+                        Mô tả (không bắt buộc)
+                      </label>
+                      <textarea
+                        value={formData.hotelDescription}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            hotelDescription: e.target.value,
+                          })
+                        }
+                        placeholder="Mô tả ngắn về khách sạn..."
+                        rows={3}
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900 placeholder:text-gray-400"
                         disabled={isLoading || success}
                       />
