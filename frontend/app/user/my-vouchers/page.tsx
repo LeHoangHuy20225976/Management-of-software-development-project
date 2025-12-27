@@ -9,7 +9,7 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import Link from 'next/link';
-import { getMockCoupons } from '@/lib/utils/mockData';
+import { couponsApi } from '@/lib/api/services';
 import type { Coupon } from '@/types';
 import { cn } from '@/lib/utils/cn';
 
@@ -17,11 +17,20 @@ export default function UserVouchersPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [filter, setFilter] = useState<'all' | 'active' | 'expired'>('all');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, you'd fetch this from an API
-    const mockCoupons = getMockCoupons();
-    setCoupons(mockCoupons);
+    const loadCoupons = async () => {
+      try {
+        const data = await couponsApi.getAll();
+        setCoupons(data);
+      } catch (error) {
+        console.error('Error loading coupons:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadCoupons();
   }, []);
 
   const handleCopyCode = (code: string) => {

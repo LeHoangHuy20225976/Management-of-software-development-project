@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { hotelManagerApi } from '@/lib/api/services';
 
 interface Facility {
   id: number;
@@ -67,16 +68,29 @@ export default function HotelManagerFacilitiesPage() {
   const [newFacility, setNewFacility] = useState({ name: '', icon: '', category: 'general' });
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  // TODO: Get actual hotel ID from auth context or props
+  const hotelId = '1';
 
   useEffect(() => {
-    // Load from localStorage or use defaults
-    const saved = localStorage.getItem('hotelFacilities');
-    if (saved) {
-      setFacilities(JSON.parse(saved));
-    } else {
-      setFacilities(defaultFacilities);
-    }
-  }, []);
+    const loadFacilities = async () => {
+      try {
+        const savedFacilities = await hotelManagerApi.getFacilities(hotelId);
+        if (savedFacilities && savedFacilities.length > 0) {
+          setFacilities(savedFacilities);
+        } else {
+          setFacilities(defaultFacilities);
+        }
+      } catch (error) {
+        console.error('Error loading facilities:', error);
+        setFacilities(defaultFacilities);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadFacilities();
+  }, [hotelId]);
 
   const toggleFacility = (id: number) => {
     setFacilities(prev => 
@@ -86,11 +100,16 @@ export default function HotelManagerFacilitiesPage() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    localStorage.setItem('hotelFacilities', JSON.stringify(facilities));
-    setSaveMessage('Đã lưu tiện nghi thành công!');
-    setIsSaving(false);
-    setTimeout(() => setSaveMessage(''), 3000);
+    try {
+      await hotelManagerApi.updateFacilities(hotelId, facilities);
+      setSaveMessage('Đã lưu tiện nghi thành công!');
+    } catch (error) {
+      console.error('Error saving facilities:', error);
+      setSaveMessage('Lỗi khi lưu tiện nghi!');
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setSaveMessage(''), 3000);
+    }
   };
 
   const handleAddFacility = () => {
