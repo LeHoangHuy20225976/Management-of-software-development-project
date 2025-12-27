@@ -1,63 +1,74 @@
 'use client';
 
-import { use, useState, useEffect, useRef } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { hotelManagerApi, hotelManagerApiExtended } from '@/lib/api/services';
-import type { RoomType } from '@/types';
+import { apiClient } from '@/lib/api/client';
+import { API_CONFIG } from '@/lib/api/config';
 
-export default function EditRoomPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+type RoomDetailResponse = {
+  roomData?: Record<string, unknown>;
+  roomTypeData?: Record<string, unknown>;
+  priceData?: Record<string, unknown> | null;
+};
+
+export default function EditRoomPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [roomId, setRoomId] = useState<string>('');
+
+  const [roomTypeName, setRoomTypeName] = useState<string>('');
 
   const [formData, setFormData] = useState({
-    type: '',
-    max_guests: 1,
-    description: '',
-    quantity: 0,
-    availability: true,
+    name: '',
+    location: '',
+    status: 1,
+    number_of_single_beds: 0,
+    number_of_double_beds: 0,
+    room_view: '',
+    room_size: '',
+    notes: '',
   });
 
   useEffect(() => {
     const loadRoom = async () => {
       try {
-        const hotelId = 'h1';
-        const rooms = await hotelManagerApi.getRooms(hotelId);
-        const room = rooms.find((r) => String(r.type_id) === resolvedParams.id);
+        const detail = await apiClient.get<RoomDetailResponse>(API_CONFIG.ENDPOINTS.VIEW_ROOM, {
+          room_id: resolvedParams.id,
+        });
 
-        if (room) {
-          setFormData({
-            type: room.type || '',
-            max_guests: room.max_guests || 1,
-            description: room.description || '',
-            quantity: room.quantity ?? 0,
-            availability: Boolean(room.availability),
-          });
-          // Store type_id for image upload
-          if (room.type_id) {
-            setRoomId(String(room.type_id));
-          }
-        } else {
-          alert('Không tìm thấy phòng!');
-          router.push('/hotel-manager/rooms');
-        }
+        const roomData = detail?.roomData ?? {};
+        const roomTypeData = detail?.roomTypeData ?? {};
+
+        setRoomTypeName(String(roomTypeData.type ?? ''));
+
+        setFormData({
+          name: typeof roomData.name === 'string' ? roomData.name : '',
+          location: typeof roomData.location === 'string' ? roomData.location : '',
+          status: Number(roomData.status ?? 1) || 1,
+          number_of_single_beds: Number(roomData.number_of_single_beds ?? 0) || 0,
+          number_of_double_beds: Number(roomData.number_of_double_beds ?? 0) || 0,
+          room_view: typeof roomData.room_view === 'string' ? roomData.room_view : '',
+          room_size:
+            roomData.room_size === null || roomData.room_size === undefined
+              ? ''
+              : String(roomData.room_size),
+          notes: typeof roomData.notes === 'string' ? roomData.notes : '',
+        });
       } catch (error) {
         console.error('Error loading room:', error);
         alert('Có lỗi khi tải thông tin phòng!');
+        router.push('/hotel-manager/rooms');
       } finally {
         setLoading(false);
       }
@@ -68,43 +79,35 @@ export default function EditRoomPage({
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    
-    // Validate max 10 images
+
     if (files.length > 10) {
       alert('Tối đa 10 ảnh!');
       return;
     }
 
-    // Validate file types
-    const invalidFiles = files.filter(file => !file.type.startsWith('image/'));
+    const invalidFiles = files.filter((file) => !file.type.startsWith('image/'));
     if (invalidFiles.length > 0) {
       alert('Vui lòng chỉ chọn file ảnh!');
       return;
     }
 
-    // Validate file sizes (max 5MB each)
-    const oversizedFiles = files.filter(file => file.size > 5 * 1024 * 1024);
+    const oversizedFiles = files.filter((file) => file.size > 5 * 1024 * 1024);
     if (oversizedFiles.length > 0) {
       alert('Kích thước mỗi ảnh tối đa là 5MB!');
       return;
     }
 
     setSelectedImages(files);
-
-    // Create previews
-    const previews = files.map(file => URL.createObjectURL(file));
+    const previews = files.map((file) => URL.createObjectURL(file));
     setImagePreviews(previews);
   };
 
   const handleRemoveImage = (index: number) => {
-    const newImages = selectedImages.filter((_, i) => i !== index);
-    const newPreviews = imagePreviews.filter((_, i) => i !== index);
-    
-    // Revoke the URL to avoid memory leaks
+    const nextImages = selectedImages.filter((_, i) => i !== index);
+    const nextPreviews = imagePreviews.filter((_, i) => i !== index);
     URL.revokeObjectURL(imagePreviews[index]);
-    
-    setSelectedImages(newImages);
-    setImagePreviews(newPreviews);
+    setSelectedImages(nextImages);
+    setImagePreviews(nextPreviews);
   };
 
   const handleUploadImages = async () => {
@@ -113,28 +116,21 @@ export default function EditRoomPage({
       return;
     }
 
-    if (!roomId) {
-      alert('Không tìm thấy room_id. Vui lòng thử lại!');
-      return;
-    }
-
     setUploadingImages(true);
     try {
-      await hotelManagerApiExtended.uploadRoomImages(roomId, selectedImages);
-      alert('✅ Tải ảnh lên thành công!');
-      
-      // Clear selected images
+      await hotelManagerApiExtended.uploadRoomImages(resolvedParams.id, selectedImages);
+      alert('Tải ảnh lên thành công!');
+
       setSelectedImages([]);
-      imagePreviews.forEach(preview => URL.revokeObjectURL(preview));
+      imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
       setImagePreviews([]);
-      
-      // Reset file input
+
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     } catch (error) {
       console.error('Error uploading images:', error);
-      alert('❌ Có lỗi khi tải ảnh lên. Vui lòng thử lại!');
+      alert('Đã có lỗi khi tải ảnh lên. Vui lòng thử lại!');
     } finally {
       setUploadingImages(false);
     }
@@ -143,28 +139,40 @@ export default function EditRoomPage({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.type) {
-      alert('Vui lòng điền đầy đủ thông tin bắt buộc!');
+    if (!formData.name.trim()) {
+      alert('Vui lòng nhập tên phòng!');
+      return;
+    }
+
+    if (!formData.location.trim()) {
+      alert('Vui lòng nhập vị trí phòng!');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const updates = {
-        type: formData.type,
-        max_guests: formData.max_guests,
-        description: formData.description,
-        quantity: formData.quantity,
-        availability: formData.availability,
-      };
+      const room_size = formData.room_size.trim() === '' ? undefined : Number(formData.room_size);
+      if (room_size !== undefined && Number.isNaN(room_size)) {
+        alert('Diện tích phòng không hợp lệ!');
+        return;
+      }
 
-      await hotelManagerApi.updateRoom(resolvedParams.id, updates);
+      await hotelManagerApi.updateRoom(resolvedParams.id, {
+        name: formData.name.trim(),
+        location: formData.location.trim(),
+        status: formData.status,
+        number_of_single_beds: formData.number_of_single_beds,
+        number_of_double_beds: formData.number_of_double_beds,
+        room_view: formData.room_view.trim(),
+        room_size,
+        notes: formData.notes.trim(),
+      });
 
-      alert('✅ Cập nhật loại phòng thành công!');
+      alert('Cập nhật phòng thành công!');
       router.push('/hotel-manager/rooms');
     } catch (error) {
       console.error('Error updating room:', error);
-      alert('❌ Có lỗi xảy ra. Vui lòng thử lại!');
+      alert('Đã có lỗi xảy ra. Vui lòng thử lại!');
     } finally {
       setIsSubmitting(false);
     }
@@ -175,9 +183,7 @@ export default function EditRoomPage({
       <div className="space-y-6">
         <Card>
           <div className="text-center py-8">
-            <p className="text-gray-900 font-medium">
-              ⏳ Đang tải thông tin phòng...
-            </p>
+            <p className="text-gray-900 font-medium">Đang tải thông tin phòng...</p>
           </div>
         </Card>
       </div>
@@ -188,121 +194,132 @@ export default function EditRoomPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Chỉnh sửa loại phòng
-          </h1>
-          <p className="text-gray-800 mt-1">
-            Cập nhật thông tin loại phòng #{resolvedParams.id}
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">Chỉnh sửa phòng</h1>
+          <p className="text-gray-800 mt-1">Cập nhật thông tin phòng #{resolvedParams.id}</p>
         </div>
         <Link href="/hotel-manager/rooms">
-          <Button variant="outline">← Quay lại</Button>
+          <Button variant="outline">Quay lại</Button>
         </Link>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Info */}
         <Card>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Thông tin cơ bản
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Thông tin phòng</h2>
+
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Tên loại phòng *
-              </label>
-              <Input
-                required
-                value={formData.type}
-                onChange={(e) =>
-                  setFormData({ ...formData, type: e.target.value })
-                }
-                placeholder="VD: Phòng Deluxe"
-              />
+              <label className="block text-sm font-semibold text-gray-900 mb-2">Loại phòng</label>
+              <Input value={roomTypeName} disabled />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Tên phòng *</label>
+                <Input
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                  placeholder="VD: Deluxe 101"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Vị trí *</label>
+                <Input
+                  required
+                  value={formData.location}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, location: e.target.value }))
+                  }
+                  placeholder="VD: Tầng 1"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Số khách tối đa *
-                </label>
-                <select
-                  value={formData.max_guests}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      max_guests: Number(e.target.value),
-                    })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] text-gray-900"
-                >
-                  {[1, 2, 3, 4, 5, 6].map((n) => (
-                    <option key={n} value={n}>
-                      {n} người
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Số phòng (tổng) *
-                </label>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Giường đơn</label>
                 <Input
                   type="number"
-                  required
-                  value={formData.quantity}
+                  value={formData.number_of_single_beds}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      quantity: Number(e.target.value),
-                    })
+                    setFormData((prev) => ({
+                      ...prev,
+                      number_of_single_beds: Number(e.target.value),
+                    }))
                   }
                   min={0}
                 />
               </div>
               <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Giường đôi</label>
+                <Input
+                  type="number"
+                  value={formData.number_of_double_beds}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      number_of_double_beds: Number(e.target.value),
+                    }))
+                  }
+                  min={0}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Trạng thái</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, status: Number(e.target.value) }))
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] text-gray-900"
+                >
+                  <option value={1}>Đang hoạt động</option>
+                  <option value={0}>Tạm ngưng</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">View</label>
+                <Input
+                  value={formData.room_view}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, room_view: e.target.value }))
+                  }
+                  placeholder="VD: Sea view"
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Trạng thái *
+                  Diện tích (m2)
                 </label>
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                  <input
-                    type="checkbox"
-                    checked={formData.availability}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        availability: e.target.checked,
-                      })
-                    }
-                    className="w-4 h-4 text-[#0071c2] rounded focus:ring-2 focus:ring-[#0071c2]"
-                  />
-                  Đang mở bán
-                </label>
+                <Input
+                  type="number"
+                  value={formData.room_size}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, room_size: e.target.value }))
+                  }
+                  min={0}
+                />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Mô tả
-              </label>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">Ghi chú</label>
               <textarea
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
+                value={formData.notes}
+                onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
                 rows={4}
-                placeholder="Mô tả chi tiết về phòng..."
+                placeholder="Ghi chú chi tiết về phòng..."
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] text-gray-900"
               />
             </div>
           </div>
         </Card>
 
-        {/* Room Images Upload */}
         <Card>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Thêm hình ảnh phòng
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Thêm hình ảnh phòng</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
@@ -324,28 +341,23 @@ export default function EditRoomPage({
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingImages}
                 >
-                  📷 Chọn ảnh
+                  Chọn ảnh
                 </Button>
                 {selectedImages.length > 0 && (
-                  <Button
-                    type="button"
-                    onClick={handleUploadImages}
-                    disabled={uploadingImages}
-                  >
-                    {uploadingImages ? '⏳ Đang tải lên...' : `📤 Tải lên ${selectedImages.length} ảnh`}
+                  <Button type="button" onClick={handleUploadImages} disabled={uploadingImages}>
+                    {uploadingImages
+                      ? 'Đang tải lên...'
+                      : `Tải lên ${selectedImages.length} ảnh`}
                   </Button>
                 )}
               </div>
-              <p className="text-sm text-gray-600 mt-2">
-                Đã chọn: {selectedImages.length} ảnh
-              </p>
+              <p className="text-sm text-gray-600 mt-2">Đã chọn: {selectedImages.length} ảnh</p>
             </div>
 
-            {/* Image Previews */}
             {imagePreviews.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative group">
+                  <div key={preview} className="relative group">
                     <img
                       src={preview}
                       alt={`Preview ${index + 1}`}
@@ -358,12 +370,19 @@ export default function EditRoomPage({
                       disabled={uploadingImages}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                     </button>
-                    <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                      {(selectedImages[index].size / 1024 / 1024).toFixed(2)} MB
-                    </div>
+                    {selectedImages[index] && (
+                      <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                        {(selectedImages[index].size / 1024 / 1024).toFixed(2)} MB
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -371,7 +390,6 @@ export default function EditRoomPage({
           </div>
         </Card>
 
-        {/* Actions */}
         <div className="flex justify-end space-x-3">
           <Link href="/hotel-manager/rooms">
             <Button variant="outline" type="button" disabled={isSubmitting}>
@@ -379,10 +397,11 @@ export default function EditRoomPage({
             </Button>
           </Link>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? '⏳ Đang lưu...' : '💾 Lưu thay đổi'}
+            {isSubmitting ? 'Đang lưu...' : 'Lưu thay đổi'}
           </Button>
         </div>
       </form>
     </div>
   );
 }
+

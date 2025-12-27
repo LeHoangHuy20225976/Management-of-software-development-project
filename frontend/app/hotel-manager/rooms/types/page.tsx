@@ -264,6 +264,8 @@ export default function RoomTypesPage() {
     );
   }
 
+  const goToEditTypePage = (typeId: number) => `/hotel-manager/rooms/type/${typeId}/edit`;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -354,7 +356,7 @@ export default function RoomTypesPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Link href={`/hotel-manager/rooms/${roomType.type_id}/edit`}>
+                  <Link href={goToEditTypePage(roomType.type_id)}>
                     <Button variant="outline" size="sm">
                       Chỉnh sửa
                     </Button>

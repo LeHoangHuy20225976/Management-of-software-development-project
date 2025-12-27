@@ -13,9 +13,32 @@ import { API_CONFIG } from '@/lib/api/config';
 type RoomTypeLike = {
   type_id: number;
   type: string;
+  max_guests?: number;
+  availability?: boolean;
+  description?: string | null;
+  priceData?: Record<string, unknown> | null;
+  RoomPrice?: Record<string, unknown> | null;
+  roomPrice?: Record<string, unknown> | null;
 };
 
 const normalizeType = (value: string) => value.trim().toLowerCase();
+
+const toNumberOrNull = (value: unknown): number | null => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+};
+
+const getBackendRoomPrice = (roomType: unknown): Record<string, unknown> => {
+  const rt = roomType as any;
+  if (rt?.priceData && typeof rt.priceData === 'object') return rt.priceData;
+  if (rt?.RoomPrice && typeof rt.RoomPrice === 'object') return rt.RoomPrice;
+  if (rt?.roomPrice && typeof rt.roomPrice === 'object') return rt.roomPrice;
+  return {};
+};
 
 export default function CreateRoomPage() {
   const router = useRouter();
@@ -23,6 +46,10 @@ export default function CreateRoomPage() {
 
   const [loadingHotels, setLoadingHotels] = useState(true);
   const [hotels, setHotels] = useState<Array<Record<string, unknown>>>([]);
+  const [loadingTypes, setLoadingTypes] = useState(false);
+  const [roomTypes, setRoomTypes] = useState<RoomTypeLike[]>([]);
+  const [typeMode, setTypeMode] = useState<'existing' | 'new'>('existing');
+  const [selectedTypeId, setSelectedTypeId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -67,6 +94,67 @@ export default function CreateRoomPage() {
 
     loadHotels();
   }, []);
+
+  useEffect(() => {
+    const loadRoomTypes = async () => {
+      if (!formData.hotel_id) {
+        setRoomTypes([]);
+        setSelectedTypeId('');
+        setTypeMode('new');
+        return;
+      }
+
+      try {
+        setLoadingTypes(true);
+        const types = await apiClient.get<RoomTypeLike[]>(API_CONFIG.ENDPOINTS.VIEW_ROOM_TYPES, {
+          hotel_id: formData.hotel_id,
+        });
+
+        const normalizedTypes = types ?? [];
+        setRoomTypes(normalizedTypes);
+
+        if (normalizedTypes.length === 0) {
+          setSelectedTypeId('');
+          setTypeMode('new');
+          return;
+        }
+
+        const nextTypeId = selectedTypeId || String(normalizedTypes[0].type_id);
+        setSelectedTypeId(nextTypeId);
+        const picked =
+          normalizedTypes.find((t) => String(t.type_id) === nextTypeId) ?? normalizedTypes[0];
+
+        const price = getBackendRoomPrice(picked);
+        setFormData((prev) => ({
+          ...prev,
+          type: picked.type,
+          max_guests: typeof picked.max_guests === 'number' ? picked.max_guests : prev.max_guests,
+          availability:
+            typeof picked.availability === 'boolean' ? picked.availability : prev.availability,
+          typeDescription:
+            typeof picked.description === 'string' ? picked.description : prev.typeDescription,
+          basic_price:
+            toNumberOrNull(price.basic_price) ?? toNumberOrNull(price.price) ?? prev.basic_price,
+          special_price:
+            toNumberOrNull(price.special_price) === null
+              ? ''
+              : String(toNumberOrNull(price.special_price)),
+          discount: toNumberOrNull(price.discount) ?? 0,
+          event: typeof price.event === 'string' ? price.event : '',
+        }));
+      } catch (error) {
+        console.error('Error loading room types:', error);
+        setRoomTypes([]);
+        setSelectedTypeId('');
+        setTypeMode('new');
+      } finally {
+        setLoadingTypes(false);
+      }
+    };
+
+    loadRoomTypes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.hotel_id]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -242,7 +330,12 @@ export default function CreateRoomPage() {
               <select
                 required
                 value={formData.hotel_id}
-                onChange={(e) => setFormData({ ...formData, hotel_id: e.target.value })}
+                onChange={(e) => {
+                  const nextHotelId = e.target.value;
+                  setFormData((prev) => ({ ...prev, hotel_id: nextHotelId, type: '' }));
+                  setSelectedTypeId('');
+                  setTypeMode('existing');
+                }}
                 disabled={isSubmitting || loadingHotels}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] text-gray-900 disabled:bg-gray-100"
               >
@@ -266,12 +359,124 @@ export default function CreateRoomPage() {
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
                   Loại phòng (type) *
                 </label>
-                <Input
-                  required
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  placeholder="VD: Deluxe"
-                />
+                <div className="space-y-2">
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                      <input
+                        type="radio"
+                        name="typeMode"
+                        value="existing"
+                        checked={typeMode === 'existing'}
+                        disabled={isSubmitting || loadingTypes || roomTypes.length === 0}
+                        onChange={() => {
+                          setTypeMode('existing');
+                          if (roomTypes.length > 0) {
+                            const picked =
+                              roomTypes.find((t) => String(t.type_id) === selectedTypeId) ??
+                              roomTypes[0];
+                            setSelectedTypeId(String(picked.type_id));
+                            const price = getBackendRoomPrice(picked);
+                            setFormData((prev) => ({
+                              ...prev,
+                              type: picked.type,
+                              max_guests:
+                                typeof picked.max_guests === 'number'
+                                  ? picked.max_guests
+                                  : prev.max_guests,
+                              availability:
+                                typeof picked.availability === 'boolean'
+                                  ? picked.availability
+                                  : prev.availability,
+                              typeDescription:
+                                typeof picked.description === 'string'
+                                  ? picked.description
+                                  : prev.typeDescription,
+                              basic_price:
+                                toNumberOrNull(price.basic_price) ??
+                                toNumberOrNull(price.price) ??
+                                prev.basic_price,
+                              special_price:
+                                toNumberOrNull(price.special_price) === null
+                                  ? ''
+                                  : String(toNumberOrNull(price.special_price)),
+                              discount: toNumberOrNull(price.discount) ?? 0,
+                              event: typeof price.event === 'string' ? price.event : '',
+                            }));
+                          }
+                        }}
+                        className="w-4 h-4 text-[#0071c2] rounded focus:ring-2 focus:ring-[#0071c2]"
+                      />
+                      Dùng loại có sẵn
+                    </label>
+                    <label className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                      <input
+                        type="radio"
+                        name="typeMode"
+                        value="new"
+                        checked={typeMode === 'new'}
+                        disabled={isSubmitting}
+                        onChange={() => setTypeMode('new')}
+                        className="w-4 h-4 text-[#0071c2] rounded focus:ring-2 focus:ring-[#0071c2]"
+                      />
+                      Tạo loại mới
+                    </label>
+                  </div>
+
+                  {typeMode === 'existing' && roomTypes.length > 0 ? (
+                    <select
+                      required
+                      value={selectedTypeId || ''}
+                      disabled={isSubmitting || loadingTypes}
+                      onChange={(e) => {
+                        const nextId = e.target.value;
+                        setSelectedTypeId(nextId);
+                        const picked = roomTypes.find((t) => String(t.type_id) === nextId);
+                        if (!picked) return;
+                        const price = getBackendRoomPrice(picked);
+                        setFormData((prev) => ({
+                          ...prev,
+                          type: picked.type,
+                          max_guests:
+                            typeof picked.max_guests === 'number'
+                              ? picked.max_guests
+                              : prev.max_guests,
+                          availability:
+                            typeof picked.availability === 'boolean'
+                              ? picked.availability
+                              : prev.availability,
+                          typeDescription:
+                            typeof picked.description === 'string'
+                              ? picked.description
+                              : prev.typeDescription,
+                          basic_price:
+                            toNumberOrNull(price.basic_price) ??
+                            toNumberOrNull(price.price) ??
+                            prev.basic_price,
+                          special_price:
+                            toNumberOrNull(price.special_price) === null
+                              ? ''
+                              : String(toNumberOrNull(price.special_price)),
+                          discount: toNumberOrNull(price.discount) ?? 0,
+                          event: typeof price.event === 'string' ? price.event : '',
+                        }));
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] text-gray-900 disabled:bg-gray-100"
+                    >
+                      {roomTypes.map((t) => (
+                        <option key={t.type_id} value={String(t.type_id)}>
+                          {t.type}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <Input
+                      required
+                      value={formData.type}
+                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                      placeholder="VD: Deluxe"
+                    />
+                  )}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
@@ -284,6 +489,7 @@ export default function CreateRoomPage() {
                     setFormData({ ...formData, max_guests: Number(e.target.value) })
                   }
                   min={1}
+                  disabled={typeMode === 'existing' && roomTypes.length > 0}
                 />
               </div>
             </div>
@@ -295,12 +501,13 @@ export default function CreateRoomPage() {
                 </label>
                 <Input
                   type="number"
-                  required
+                  required={typeMode === 'new' || roomTypes.length === 0}
                   value={formData.basic_price}
                   onChange={(e) =>
                     setFormData({ ...formData, basic_price: Number(e.target.value) })
                   }
                   min={0}
+                  disabled={typeMode === 'existing' && roomTypes.length > 0}
                 />
               </div>
               <div>
@@ -312,6 +519,7 @@ export default function CreateRoomPage() {
                   value={formData.special_price}
                   onChange={(e) => setFormData({ ...formData, special_price: e.target.value })}
                   min={0}
+                  disabled={typeMode === 'existing' && roomTypes.length > 0}
                 />
               </div>
               <div>
@@ -323,6 +531,7 @@ export default function CreateRoomPage() {
                   value={formData.discount}
                   onChange={(e) => setFormData({ ...formData, discount: Number(e.target.value) })}
                   min={0}
+                  disabled={typeMode === 'existing' && roomTypes.length > 0}
                 />
               </div>
             </div>
@@ -337,6 +546,7 @@ export default function CreateRoomPage() {
                       setFormData({ ...formData, availability: e.target.checked })
                     }
                     className="w-4 h-4 text-[#0071c2] rounded focus:ring-2 focus:ring-[#0071c2]"
+                    disabled={typeMode === 'existing' && roomTypes.length > 0}
                   />
                   Đang mở bán
                 </label>
@@ -349,6 +559,7 @@ export default function CreateRoomPage() {
                   value={formData.event}
                   onChange={(e) => setFormData({ ...formData, event: e.target.value })}
                   placeholder="VD: Summer sale"
+                  disabled={typeMode === 'existing' && roomTypes.length > 0}
                 />
               </div>
             </div>
@@ -362,6 +573,7 @@ export default function CreateRoomPage() {
                 onChange={(e) => setFormData({ ...formData, typeDescription: e.target.value })}
                 rows={3}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] text-gray-900"
+                disabled={typeMode === 'existing' && roomTypes.length > 0}
               />
             </div>
           </div>
@@ -520,4 +732,3 @@ export default function CreateRoomPage() {
     </div>
   );
 }
-

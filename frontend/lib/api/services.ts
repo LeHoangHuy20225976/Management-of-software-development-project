@@ -322,8 +322,12 @@ export const hotelManagerApi = {
     return apiClient.post<RoomType>(API_CONFIG.ENDPOINTS.ADD_ROOM, { roomData });
   },
 
-  async updateRoom(roomId: string, updates: Partial<RoomType>): Promise<RoomType> {
-    return apiClient.put<RoomType>(API_CONFIG.ENDPOINTS.ROOM_INVENTORY_UPDATE, { room_id: roomId, ...updates });
+  async updateRoom(roomId: string, updates: Partial<Room>): Promise<Room> {
+    return apiClient.put<Room>(
+      API_CONFIG.ENDPOINTS.UPDATE_ROOM,
+      { roomData: updates },
+      { room_id: roomId }
+    );
   },
 
   async deleteRoom(roomId: string): Promise<void> {
@@ -456,7 +460,19 @@ export const hotelManagerApi = {
       }
       return [];
     }
-    return apiClient.get<any[]>(API_CONFIG.ENDPOINTS.VIEW_HOTEL, { hotel_id: hotelId }).then(data => (data as any).facilities || []);
+    const data = await apiClient.get<{
+      facilities: Array<{ facility_id: number; name: string }>;
+      hotel_facilities: Array<{ facility_id: number }>;
+    }>(API_CONFIG.ENDPOINTS.VIEW_FACILITIES, { hotel_id: hotelId });
+
+    const activeIds = new Set((data.hotel_facilities ?? []).map((f) => Number(f.facility_id)));
+    return (data.facilities ?? []).map((f) => ({
+      id: Number(f.facility_id),
+      name: String(f.name ?? ''),
+      icon: '',
+      category: 'general',
+      isActive: activeIds.has(Number(f.facility_id)),
+    }));
   },
 
   async updateFacilities(hotelId: string, facilities: { id: number; name: string; icon: string; category: string; isActive: boolean }[]): Promise<{ success: boolean }> {
@@ -466,7 +482,13 @@ export const hotelManagerApi = {
       localStorage.setItem(`hotelFacilities_${hotelId}`, JSON.stringify(facilities));
       return { success: true };
     }
-    return apiClient.post<any>(API_CONFIG.ENDPOINTS.ADD_FACILITY, { hotel_id: hotelId, facilities });
+    const selected = facilities.filter((f) => f.isActive).map((f) => ({ facility_id: f.id }));
+    await apiClient.post(
+      API_CONFIG.ENDPOINTS.ADD_FACILITY,
+      { facilityData: { hotel_id: Number(hotelId), facilities: selected } },
+      { hotel_id: hotelId }
+    );
+    return { success: true };
   },
 
   // Images Management

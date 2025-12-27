@@ -102,11 +102,63 @@ const hotelProfileController = {
             return responseUtils.error(res, error.message);
         }
     },
+    getFacilitiesForHotel: async(req, res) => {
+        try {
+            const userid = req.user.user_id;
+            const hotelid = req.params.hotel_id;
+            const facilities = await hotelProfileService.getFacilitiesForHotel(hotelid, userid);
+            return responseUtils.ok(res, facilities);
+        } catch(error) {
+            return responseUtils.error(res, error.message);
+        }
+    },
     getAllRoomsForHotel: async(req, res) => {
         try {
             const hotelid = req.params.hotel_id;
             const rooms = await hotelProfileService.getAllRoomsForHotel(hotelid);
             return responseUtils.ok(res, rooms);
+        } catch(error) {
+            return responseUtils.error(res, error.message);
+        }
+    },
+    viewRoom: async(req, res) => {
+        try {
+            const userid = req.user.user_id;
+            const roomid = req.params.room_id;
+            const room = await hotelProfileService.viewRoom(roomid, userid);
+            return responseUtils.ok(res, room);
+        } catch(error) {
+            return responseUtils.error(res, error.message);
+        }
+    },
+    updateRoom: async(req, res) => {
+        try {
+            const userid = req.user.user_id;
+            const roomid = req.params.room_id;
+            const { roomData } = req.body;
+            await hotelProfileService.updateRoom(roomid, userid, roomData ?? {});
+            return responseUtils.ok(res, {message: "Update room successfully"});
+        } catch(error) {
+            return responseUtils.error(res, error.message);
+        }
+    },
+    viewRoomType: async(req, res) => {
+        try {
+            const userid = req.user.user_id;
+            const typeid = req.params.type_id;
+            const roomType = await hotelProfileService.viewRoomType(typeid, userid);
+            return responseUtils.ok(res, roomType);
+        } catch(error) {
+            return responseUtils.error(res, error.message);
+        }
+    },
+    updateRoomType: async(req, res) => {
+        try {
+            const userid = req.user.user_id;
+            const typeid = req.params.type_id;
+            const { typeData } = req.body;
+            await hotelProfileService.updateRoomType(typeid, userid, typeData ?? {});
+            return responseUtils.ok(res, {message: "Update room type successfully"});
         } catch(error) {
             return responseUtils.error(res, error.message);
         }
