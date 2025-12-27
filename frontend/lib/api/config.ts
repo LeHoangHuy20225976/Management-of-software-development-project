@@ -39,6 +39,8 @@ export const API_CONFIG = {
     // Room Management
     ADD_ROOM: '/hotel-profile/add-room',
     VIEW_ALL_ROOMS: '/hotel-profile/view-all-rooms/:hotel_id',
+    VIEW_ROOM: '/hotel-profile/view-room/:room_id',
+    UPDATE_ROOM: '/hotel-profile/update-room/:room_id',
     ALL_ROOMS: '/hotel-profile/all-rooms',
     ALL_HOTELS: '/hotel-profile/all-hotels',
     

@@ -414,10 +414,10 @@ const hotelProfileService = {
         const roomTypes = await db.RoomType.findAll({
             where: {hotel_id: hotelid},
             include: [{
-                model: db.RoomPrice,
-                as: 'roomPrice'
+                model: db.RoomPrice
             }]
         });
+        console.log("Room types with prices: ", roomTypes.RoomPrice);
         return roomTypes;
     },
     getAllRoomsForHotel: async(hotelid) => {
@@ -493,6 +493,117 @@ const hotelProfileService = {
             });
         }
         return roomsWithPrices;
+    },
+    viewRoom: async(roomid, userid) => {
+        const room = await db.Room.findByPk(roomid);
+        if(!room) {
+            throw new Error("Room not found");
+        }
+
+        const roomType = await db.RoomType.findByPk(room.type_id);
+        if(!roomType) {
+            throw new Error("Room type not found");
+        }
+
+        const hotel = await db.Hotel.findByPk(roomType.hotel_id);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+
+        const ownerid = hotel.hotel_owner;
+        if(ownerid !== userid) {
+            throw new Error("You are not the owner of this hotel");
+        }
+
+        const bookings = await db.Booking.findAll({
+            where: {
+                room_id: room.room_id,
+                status: { [Op.ne]: 'cancelled' } // exclude cancelled bookings
+            }
+        });
+        const currentDate = new Date();
+        const isAvailable = !bookings.some(
+            b => currentDate >= b.check_in_date && currentDate <= b.check_out_date
+        );
+        room.setDataValue('isAvailable', isAvailable); // make it JSON-visible
+
+        const listImages = await db.Image.findAll({
+            where: { room_id: room.room_id }
+        });
+        const publicImageUrls = [];
+        for(const image of listImages) {
+            const presignedUrl = await minioUtils.getFileUrl(
+                minioUtils.buckets.HOTEL_IMAGES,
+                image.image_url
+            );
+            let publicUrl = toPublicObjectUrl(presignedUrl);
+            publicImageUrls.push(publicUrl);
+        }
+        room.setDataValue('imageUrls', publicImageUrls); // make it JSON-visible
+
+        const roomPrice = await db.RoomPrice.findOne({
+            where: { type_id: room.type_id }
+        });
+
+        if(!roomPrice) {
+            return {
+                roomData: room.get({ plain: true }),
+                roomTypeData: roomType,
+                priceData: null,
+            };
+        }
+
+        const price = roomPrice?.special_price ?? roomPrice?.basic_price;
+        return {
+            roomData: room.get({ plain: true }),
+            roomTypeData: roomType,
+            priceData: {
+                price: price,
+                discount: roomPrice.discount,
+                start_date: roomPrice.start_date,
+                end_date: roomPrice.end_date,
+            }
+        };
+    },
+    updateRoom: async(roomid, userid, roomData = {}) => {
+        const room = await db.Room.findByPk(roomid);
+        if(!room) {
+            throw new Error("Room not found");
+        }
+
+        const roomType = await db.RoomType.findByPk(room.type_id);
+        if(!roomType) {
+            throw new Error("Room type not found");
+        }
+
+        const hotel = await db.Hotel.findByPk(roomType.hotel_id);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+
+        const ownerid = hotel.hotel_owner;
+        if(ownerid !== userid) {
+            throw new Error("You are not the owner of this hotel");
+        }
+
+        const allowedUpdates = {};
+        if(Object.prototype.hasOwnProperty.call(roomData, 'name')) allowedUpdates.name = roomData.name;
+        if(Object.prototype.hasOwnProperty.call(roomData, 'location')) allowedUpdates.location = roomData.location;
+        if(Object.prototype.hasOwnProperty.call(roomData, 'status')) allowedUpdates.status = roomData.status;
+        if(Object.prototype.hasOwnProperty.call(roomData, 'estimated_available_time')) {
+            allowedUpdates.estimated_available_time = roomData.estimated_available_time;
+        }
+        if(Object.prototype.hasOwnProperty.call(roomData, 'number_of_single_beds')) {
+            allowedUpdates.number_of_single_beds = roomData.number_of_single_beds;
+        }
+        if(Object.prototype.hasOwnProperty.call(roomData, 'number_of_double_beds')) {
+            allowedUpdates.number_of_double_beds = roomData.number_of_double_beds;
+        }
+        if(Object.prototype.hasOwnProperty.call(roomData, 'room_view')) allowedUpdates.room_view = roomData.room_view;
+        if(Object.prototype.hasOwnProperty.call(roomData, 'room_size')) allowedUpdates.room_size = roomData.room_size;
+        if(Object.prototype.hasOwnProperty.call(roomData, 'notes')) allowedUpdates.notes = roomData.notes;
+
+        await db.Room.update(allowedUpdates, { where: { room_id: room.room_id } });
     },
     getAllRooms: async() => {
         const rooms = await db.Room.findAll();

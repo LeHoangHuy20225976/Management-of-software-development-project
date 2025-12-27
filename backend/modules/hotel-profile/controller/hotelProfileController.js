@@ -111,6 +111,27 @@ const hotelProfileController = {
             return responseUtils.error(res, error.message);
         }
     },
+    viewRoom: async(req, res) => {
+        try {
+            const userid = req.user.user_id;
+            const roomid = req.params.room_id;
+            const room = await hotelProfileService.viewRoom(roomid, userid);
+            return responseUtils.ok(res, room);
+        } catch(error) {
+            return responseUtils.error(res, error.message);
+        }
+    },
+    updateRoom: async(req, res) => {
+        try {
+            const userid = req.user.user_id;
+            const roomid = req.params.room_id;
+            const { roomData } = req.body;
+            await hotelProfileService.updateRoom(roomid, userid, roomData ?? {});
+            return responseUtils.ok(res, {message: "Update room successfully"});
+        } catch(error) {
+            return responseUtils.error(res, error.message);
+        }
+    },
     getAllRooms: async(req, res) => {
         try {
             const rooms = await hotelProfileService.getAllRooms();

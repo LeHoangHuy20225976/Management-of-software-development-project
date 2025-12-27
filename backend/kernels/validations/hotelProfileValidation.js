@@ -72,6 +72,20 @@ const hotelProfileValidation = {
   viewHotel: [param('hotel_id').isInt({ min: 1 }).withMessage('hotel_id must be a positive integer')],
   viewRoomTypes: [param('hotel_id').isInt({ min: 1 }).withMessage('hotel_id must be a positive integer')],
   viewAllRooms: [param('hotel_id').isInt({ min: 1 }).withMessage('hotel_id must be a positive integer')],
+  viewRoom: [param('room_id').isInt({ min: 1 }).withMessage('room_id must be a positive integer')],
+  updateRoom: [
+    param('room_id').isInt({ min: 1 }).withMessage('room_id must be a positive integer'),
+
+    body('roomData.name').optional().isString(),
+    body('roomData.location').optional().isString(),
+    body('roomData.status').optional().isInt(),
+    body('roomData.estimated_available_time').optional().isISO8601(),
+    body('roomData.number_of_single_beds').optional().isInt({ min: 0 }),
+    body('roomData.number_of_double_beds').optional().isInt({ min: 0 }),
+    body('roomData.room_view').optional().isString(),
+    body('roomData.room_size').optional().isFloat({ min: 0 }),
+    body('roomData.notes').optional().isString(),
+  ],
 };
 
 module.exports = hotelProfileValidation;

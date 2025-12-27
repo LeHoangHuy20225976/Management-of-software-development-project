@@ -318,8 +318,12 @@ export const hotelManagerApi = {
     return apiClient.post<RoomType>(API_CONFIG.ENDPOINTS.ADD_ROOM, { roomData });
   },
 
-  async updateRoom(roomId: string, updates: Partial<RoomType>): Promise<RoomType> {
-    return apiClient.put<RoomType>(API_CONFIG.ENDPOINTS.ROOM_INVENTORY_UPDATE, { room_id: roomId, ...updates });
+  async updateRoom(roomId: string, updates: Partial<Room>): Promise<Room> {
+    return apiClient.put<Room>(
+      API_CONFIG.ENDPOINTS.UPDATE_ROOM,
+      { roomData: updates },
+      { room_id: roomId }
+    );
   },
 
   async deleteRoom(roomId: string): Promise<void> {
