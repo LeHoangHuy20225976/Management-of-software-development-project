@@ -10,6 +10,7 @@ import {
   getMockUser,
   updateMockUser,
   initializeMockData,
+  getMockHotels,
 } from '../utils/mockData';
 import type { Hotel, TourismSpot, Review, Booking, User, SearchFilters, RoomType, Payment, Room, Destination, Image, Coupon } from '@/types';
 
@@ -461,7 +462,15 @@ export const hotelManagerApi = {
   },
 
   // Facilities Management
-  async getFacilities(hotelId: string): Promise<{ id: number; name: string; icon: string; category: string; isActive: boolean }[]> {
+  async getFacilities(hotelId: string): Promise<
+    {
+      id: number;
+      name: string;
+      icon: string;
+      category: string;
+      isActive: boolean;
+    }[]
+  > {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
@@ -486,7 +495,16 @@ export const hotelManagerApi = {
     }));
   },
 
-  async updateFacilities(hotelId: string, facilities: { id: number; name: string; icon: string; category: string; isActive: boolean }[]): Promise<{ success: boolean }> {
+  async updateFacilities(
+    hotelId: string,
+    facilities: {
+      id: number;
+      name: string;
+      icon: string;
+      category: string;
+      isActive: boolean;
+    }[]
+  ): Promise<{ success: boolean }> {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
@@ -503,7 +521,15 @@ export const hotelManagerApi = {
   },
 
   // Images Management
-  async getImages(hotelId: string): Promise<{ id: number; url: string; type: string; caption: string; isThumbnail: boolean }[]> {
+  async getImages(hotelId: string): Promise<
+    {
+      id: number;
+      url: string;
+      type: string;
+      caption: string;
+      isThumbnail: boolean;
+    }[]
+  > {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
@@ -572,7 +598,10 @@ export const hotelManagerApi = {
       }
       return { success: true };
     }
-    return apiClient.put<any>('/hotel-profile/set-thumbnail/:hotel_id', { hotel_id: hotelId, image_id: imageId });
+    return apiClient.put<any>("/hotel-profile/set-thumbnail/:hotel_id", {
+      hotel_id: hotelId,
+      image_id: imageId,
+    });
   },
 };
 
@@ -583,9 +612,12 @@ export const paymentApi = {
   },
 
   async createPayment(data: {
-    booking_id: number;
-    bank_code?: string;
-    locale?: 'vn' | 'en';
+    bookingId: number;
+    amount: number;
+    paymentMethod: "vnpay" | "momo" | "cash" | "bank_transfer";
+    bankCode?: string;
+    orderInfo?: string;
+    returnUrl?: string;
   }): Promise<{ payment_id: number; payment_url?: string; status: string }> {
     return apiClient.post<any>(API_CONFIG.ENDPOINTS.PAYMENT_CREATE, data);
   },
@@ -613,7 +645,7 @@ export const paymentApi = {
   // Mark payment as completed (for mock/testing)
   async completePayment(paymentId: string): Promise<Payment> {
     // Real API would handle this via VNPay callback
-    throw new Error('Use VNPay callback for completing payments');
+    throw new Error("Use VNPay callback for completing payments");
   },
 };
 
@@ -1139,4 +1171,3 @@ export const paymentApiExtended = {
     );
   },
 };
-
