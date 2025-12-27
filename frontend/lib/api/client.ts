@@ -98,6 +98,12 @@ class ApiClient {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('❌ API Error:', { url, status: response.status, statusText: response.statusText, errorData });
+
+        // Log validation errors if present
+        if (errorData.data && Array.isArray(errorData.data)) {
+          console.error('Validation errors:', errorData.data);
+        }
+
         throw new Error(errorData.message || `API Error: ${response.status} ${response.statusText}`);
       }
 

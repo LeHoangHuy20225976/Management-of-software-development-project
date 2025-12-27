@@ -54,12 +54,6 @@ export const Header = () => {
           roleLabel: 'Quản lý khách sạn',
           roleColor: 'bg-purple-100 text-purple-700',
         };
-      case 'admin':
-        return {
-          dashboardUrl: '/admin/dashboard',
-          roleLabel: 'Quản trị viên',
-          roleColor: 'bg-red-100 text-red-700',
-        };
       case 'customer':
       default:
         return {
@@ -108,45 +102,6 @@ export const Header = () => {
           >
             <span className="mr-3">⚙️</span>
             Cài đặt khách sạn
-          </Link>
-        </>
-      );
-    }
-
-    if (user?.role === 'admin') {
-      return (
-        <>
-          <Link
-            href="/admin/dashboard"
-            className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
-            onClick={() => setShowUserMenu(false)}
-          >
-            <span className="mr-3">📊</span>
-            Bảng điều khiển
-          </Link>
-          <Link
-            href="/admin/users"
-            className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
-            onClick={() => setShowUserMenu(false)}
-          >
-            <span className="mr-3">👥</span>
-            Quản lý người dùng
-          </Link>
-          <Link
-            href="/admin/hotels"
-            className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
-            onClick={() => setShowUserMenu(false)}
-          >
-            <span className="mr-3">🏨</span>
-            Quản lý khách sạn
-          </Link>
-          <Link
-            href="/admin/settings"
-            className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
-            onClick={() => setShowUserMenu(false)}
-          >
-            <span className="mr-3">⚙️</span>
-            Cấu hình hệ thống
           </Link>
         </>
       );
@@ -230,33 +185,6 @@ export const Header = () => {
           <Link href="/hotel-manager/settings" onClick={() => setIsMenuOpen(false)}>
             <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
               ⚙️ Cài đặt khách sạn
-            </button>
-          </Link>
-        </>
-      );
-    }
-
-    if (user?.role === 'admin') {
-      return (
-        <>
-          <Link href="/admin/dashboard" onClick={() => setIsMenuOpen(false)}>
-            <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
-              📊 Bảng điều khiển
-            </button>
-          </Link>
-          <Link href="/admin/users" onClick={() => setIsMenuOpen(false)}>
-            <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
-              👥 Quản lý người dùng
-            </button>
-          </Link>
-          <Link href="/admin/hotels" onClick={() => setIsMenuOpen(false)}>
-            <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
-              🏨 Quản lý khách sạn
-            </button>
-          </Link>
-          <Link href="/admin/settings" onClick={() => setIsMenuOpen(false)}>
-            <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
-              ⚙️ Cấu hình hệ thống
             </button>
           </Link>
         </>

@@ -102,7 +102,7 @@ async function seedDatabase() {
         phone_number: "0901234570",
         gender: "Nam",
         date_of_birth: new Date("1988-11-05"),
-        role: "hotel_owner",
+        role: "hotel_manager",
         password: hashedPassword,
         profile_image: mockImages.avatars.user3,
       },
@@ -190,7 +190,7 @@ async function seedDatabase() {
 
     // 4. Tạo Hotels
     console.log("🏨 Tạo hotels...");
-    const hotelOwner = users.find((u) => u.role === "hotel_owner");
+    const hotelOwner = users.find((u) => u.role === "hotel_manager");
 
     const hotels = await db.Hotel.bulkCreate([
       {

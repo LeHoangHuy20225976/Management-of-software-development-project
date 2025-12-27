@@ -82,6 +82,7 @@ export const API_CONFIG = {
 
     // Payment Gateway (matches backend /payments/*)
     PAYMENT_CREATE: '/payments/create',
+    PAYMENT_CREATE_MOCK: '/payments/create-mock',
     PAYMENT_CONFIG: '/payments/config',
     PAYMENT_LIST: '/payments',
     PAYMENT_DETAILS: '/payments/:id',
@@ -137,22 +138,6 @@ export const API_CONFIG = {
     NOTIFICATION_WELCOME: '/notifications/welcome',
     NOTIFICATION_PAYMENT_CONFIRM: '/notifications/payment-confirmation',
 
-    // Admin (matches backend /admin/*)
-    ADMIN_DASHBOARD: '/admin/dashboard',
-    ADMIN_REVENUE_METRICS: '/admin/metrics/revenue',
-    ADMIN_BOOKING_KPIS: '/admin/metrics/bookings',
-    ADMIN_RECENT_ACTIVITY: '/admin/activity',
-    ADMIN_USERS: '/admin/users',
-    ADMIN_USER_BY_ID: '/admin/users/:id',
-    ADMIN_UPDATE_USER_ROLE: '/admin/users/:id/role',
-    ADMIN_UPDATE_USER: '/admin/users/:id',
-    ADMIN_DELETE_USER: '/admin/users/:id',
-    ADMIN_HOTEL_MANAGERS: '/admin/hotel-managers',
-    ADMIN_PENDING_HOTELS: '/admin/hotels/pending',
-    ADMIN_APPROVE_HOTEL: '/admin/hotels/:id/approve',
-    ADMIN_LOCK_HOTEL: '/admin/hotels/:id/lock',
-    ADMIN_UPDATE_HOTEL_STATUS: '/admin/hotels/:id/status',
-
     // Image Uploads (Hotel Profile)
     UPLOAD_HOTEL_IMAGES: '/hotel-profile/upload-images-for-hotel/:hotel_id',
     UPLOAD_ROOM_IMAGES: '/hotel-profile/upload-images-for-room/:room_id',
@@ -170,10 +155,32 @@ export const getApiUrl = (endpoint: string, params?: Record<string, string>): st
   // Direct URL without /api/v1 prefix (backend uses /auth/login, /auth/register, etc.)
   let url = `${API_CONFIG.BASE_URL}${endpoint}`;
 
+  const pathParams: Record<string, string> = {};
+  const queryParams: Record<string, string> = {};
+
+  // Separate path params (used in URL like :id) from query params
   if (params) {
     Object.keys(params).forEach(key => {
-      url = url.replace(`:${key}`, params[key]);
+      if (url.includes(`:${key}`)) {
+        pathParams[key] = params[key];
+      } else {
+        queryParams[key] = params[key];
+      }
     });
+
+    // Replace path parameters
+    Object.keys(pathParams).forEach(key => {
+      url = url.replace(`:${key}`, pathParams[key]);
+    });
+
+    // Append query parameters
+    const queryKeys = Object.keys(queryParams);
+    if (queryKeys.length > 0) {
+      const queryString = queryKeys
+        .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(queryParams[key])}`)
+        .join('&');
+      url += `?${queryString}`;
+    }
   }
 
   return url;

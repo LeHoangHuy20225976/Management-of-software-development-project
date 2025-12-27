@@ -22,8 +22,13 @@ export default function UserDashboardPage() {
   useEffect(() => {
     const loadBookings = async () => {
       try {
-        const bookings = await bookingsApi.getAll();
-        setUpcomingBookings(bookings.filter(b => b.status === 'accepted'));
+        const response = await bookingsApi.getAll();
+        console.log('Bookings response:', response);
+
+        // Backend may return { bookings: [...] } or direct array
+        const bookingsArray = Array.isArray(response) ? response : (response as any).bookings || [];
+
+        setUpcomingBookings(bookingsArray.filter((b: any) => b.status === 'accepted'));
       } catch (error) {
         console.error('Error loading bookings:', error);
       }

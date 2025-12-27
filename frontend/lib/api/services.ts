@@ -94,6 +94,17 @@ export const bookingsApi = {
   async calculatePrice(data: { room_id: number; check_in_date: string; check_out_date: string; people: number }): Promise<{ total_price: number }> {
     return apiClient.post<{ total_price: number }>(API_CONFIG.ENDPOINTS.CALCULATE_PRICE, data);
   },
+
+  async getAvailableRooms(hotelId: string, checkInDate: string, checkOutDate: string, guests: number): Promise<any[]> {
+    return apiClient.get<any[]>(
+      API_CONFIG.ENDPOINTS.AVAILABLE_ROOMS.replace(':hotelId', hotelId),
+      {
+        check_in_date: checkInDate,
+        check_out_date: checkOutDate,
+        guests: guests.toString()
+      }
+    );
+  },
 };
 
 // ============= USER API =============
@@ -572,12 +583,9 @@ export const paymentApi = {
   },
 
   async createPayment(data: {
-    bookingId: number;
-    amount: number;
-    paymentMethod: 'vnpay' | 'momo' | 'cash' | 'bank_transfer';
-    bankCode?: string;
-    orderInfo?: string;
-    returnUrl?: string;
+    booking_id: number;
+    bank_code?: string;
+    locale?: 'vn' | 'en';
   }): Promise<{ payment_id: number; payment_url?: string; status: string }> {
     return apiClient.post<any>(API_CONFIG.ENDPOINTS.PAYMENT_CREATE, data);
   },
@@ -805,8 +813,19 @@ export const notificationApi = {
     return apiClient.post<any>(API_CONFIG.ENDPOINTS.NOTIFICATION_TEST, { email });
   },
 
-  async sendBookingConfirmation(bookingId: number, email: string): Promise<{ success: boolean }> {
-    return apiClient.post<any>(API_CONFIG.ENDPOINTS.NOTIFICATION_BOOKING_CONFIRM, { bookingId, email });
+  async sendBookingConfirmation(bookingData: {
+    userEmail: string;
+    userName: string;
+    bookingId: number;
+    hotelName: string;
+    roomType: string;
+    roomName: string;
+    guests: number;
+    check_in_date: string;
+    check_out_date: string;
+    totalPrice: number;
+  }): Promise<{ success: boolean }> {
+    return apiClient.post<any>(API_CONFIG.ENDPOINTS.NOTIFICATION_BOOKING_CONFIRM, bookingData);
   },
 
   async sendBookingCancellation(bookingId: number, email: string): Promise<{ success: boolean }> {
@@ -899,159 +918,6 @@ export const chatApi = {
     // When backend implements this, replace with:
     // return apiClient.post<any>(API_CONFIG.ENDPOINTS.CHAT_SEND_MESSAGE, { conversationId, text });
     return null;
-  },
-};
-
-// ============= ADMIN API =============
-export interface AdminDashboard {
-  totalUsers: number;
-  totalHotels: number;
-  totalBookings: number;
-  totalRevenue: number;
-  pendingHotels: number;
-  activeBookings: number;
-  recentActivity: AdminActivity[];
-}
-
-export interface AdminActivity {
-  id: number;
-  type: string;
-  description: string;
-  timestamp: string;
-  userId?: number;
-  userName?: string;
-}
-
-export interface AdminUser {
-  user_id: number;
-  name: string;
-  email: string;
-  phone?: string;
-  role: 'customer' | 'hotel_manager' | 'admin';
-  status: 'active' | 'inactive' | 'banned';
-  created_at: string;
-  last_login?: string;
-  bookings_count?: number;
-}
-
-export interface AdminHotel {
-  hotel_id: number;
-  name: string;
-  city: string;
-  district: string;
-  status: 'pending' | 'approved' | 'rejected' | 'locked';
-  manager_name: string;
-  manager_email: string;
-  rooms_count: number;
-  created_at: string;
-}
-
-export const adminApi = {
-  // Dashboard
-  async getDashboard(): Promise<AdminDashboard> {
-    return apiClient.get<AdminDashboard>(API_CONFIG.ENDPOINTS.ADMIN_DASHBOARD);
-  },
-
-  async getRevenueMetrics(): Promise<any> {
-    return apiClient.get<any>(API_CONFIG.ENDPOINTS.ADMIN_REVENUE_METRICS);
-  },
-
-  async getBookingKPIs(): Promise<any> {
-    return apiClient.get<any>(API_CONFIG.ENDPOINTS.ADMIN_BOOKING_KPIS);
-  },
-
-  async getRecentActivity(): Promise<AdminActivity[]> {
-    return apiClient.get<AdminActivity[]>(API_CONFIG.ENDPOINTS.ADMIN_RECENT_ACTIVITY);
-  },
-
-  // User Management
-  async getAllUsers(): Promise<AdminUser[]> {
-    return apiClient.get<AdminUser[]>(API_CONFIG.ENDPOINTS.ADMIN_USERS);
-  },
-
-  async getUserById(id: string): Promise<AdminUser> {
-    return apiClient.get<AdminUser>(API_CONFIG.ENDPOINTS.ADMIN_USER_BY_ID, { id });
-  },
-
-  async updateUserRole(id: string, role: AdminUser['role']): Promise<AdminUser> {
-    return apiClient.patch<AdminUser>(API_CONFIG.ENDPOINTS.ADMIN_UPDATE_USER_ROLE, { role }, { id });
-  },
-
-  async updateUser(id: string, data: Partial<AdminUser>): Promise<AdminUser> {
-    return apiClient.put<AdminUser>(API_CONFIG.ENDPOINTS.ADMIN_UPDATE_USER, data, { id });
-  },
-
-  async deleteUser(id: string): Promise<{ success: boolean }> {
-    return apiClient.delete<any>(API_CONFIG.ENDPOINTS.ADMIN_DELETE_USER, { id });
-  },
-
-  // Hotel Manager Management
-  async getHotelManagers(): Promise<AdminUser[]> {
-    return apiClient.get<AdminUser[]>(API_CONFIG.ENDPOINTS.ADMIN_HOTEL_MANAGERS);
-  },
-
-  async getPendingHotels(): Promise<AdminHotel[]> {
-    return apiClient.get<AdminHotel[]>(API_CONFIG.ENDPOINTS.ADMIN_PENDING_HOTELS);
-  },
-
-  async approveHotel(id: string): Promise<AdminHotel> {
-    return apiClient.post<AdminHotel>(API_CONFIG.ENDPOINTS.ADMIN_APPROVE_HOTEL, {}, { id });
-  },
-
-  async lockHotel(id: string): Promise<AdminHotel> {
-    return apiClient.post<AdminHotel>(API_CONFIG.ENDPOINTS.ADMIN_LOCK_HOTEL, {}, { id });
-  },
-
-  async updateHotelStatus(id: string, status: AdminHotel['status']): Promise<AdminHotel> {
-    return apiClient.patch<AdminHotel>(API_CONFIG.ENDPOINTS.ADMIN_UPDATE_HOTEL_STATUS, { status }, { id });
-  },
-
-  // Admin settings - KEEP MOCK (backend doesn't have this)
-  async getSettings(): Promise<any> {
-    if (API_CONFIG.USE_MOCK_DATA) {
-      await mockDelay();
-      const settings = localStorage.getItem('adminSettings');
-      if (settings) return JSON.parse(settings);
-
-      const defaultSettings = {
-        siteName: 'Hotel Booking System',
-        siteEmail: 'admin@hotelbooking.com',
-        currency: 'VND',
-        timezone: 'Asia/Ho_Chi_Minh',
-        maintenanceMode: false,
-        bookingApprovalRequired: false,
-        defaultCommissionRate: 15,
-      };
-      localStorage.setItem('adminSettings', JSON.stringify(defaultSettings));
-      return defaultSettings;
-    }
-    // When backend implements this, replace with:
-    // return apiClient.get<any>(API_CONFIG.ENDPOINTS.ADMIN_SETTINGS);
-    return {};
-  },
-
-  async updateSettings(settings: any): Promise<any> {
-    if (API_CONFIG.USE_MOCK_DATA) {
-      await mockDelay();
-      localStorage.setItem('adminSettings', JSON.stringify(settings));
-      return settings;
-    }
-    // When backend implements this, replace with:
-    // return apiClient.put<any>(API_CONFIG.ENDPOINTS.ADMIN_UPDATE_SETTINGS, settings);
-    return settings;
-  },
-
-  // NEW: Create user (admin only)
-  async createUser(userData: {
-    name: string;
-    email: string;
-    phone_number: string;
-    gender: string;
-    date_of_birth: string;
-    role: 'customer' | 'hotel_manager' | 'admin';
-    password: string;
-  }): Promise<User> {
-    return apiClient.post<User>(API_CONFIG.ENDPOINTS.CREATE_USER, userData);
   },
 };
 
@@ -1273,3 +1139,4 @@ export const paymentApiExtended = {
     );
   },
 };
+
