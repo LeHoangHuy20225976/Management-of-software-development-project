@@ -26,6 +26,7 @@ export const API_CONFIG = {
 
     // Hotel Profile (matches backend /hotel-profile/*)
     ADD_HOTEL: '/hotel-profile/add-hotel',
+    HOTEL_MANAGER_HOTELS: '/hotel-profile/hotel-manager/hotels',
     VIEW_HOTEL: '/hotel-profile/view-hotel/:hotel_id',
     UPDATE_HOTEL: '/hotel-profile/update-hotel/:hotel_id',
     DELETE_HOTEL: '/hotel-profile/delete-hotel/:hotel_id',

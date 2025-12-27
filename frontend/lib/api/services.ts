@@ -298,6 +298,17 @@ export const searchApi = {
 
 // ============= HOTEL MANAGER API =============
 export const hotelManagerApi = {
+  async getMyHotels(): Promise<Hotel[]> {
+    if (API_CONFIG.USE_MOCK_DATA) {
+      ensureMockLayerReady();
+      await mockDelay();
+      const userHotels = getMockHotels();
+      return userHotels;
+    }
+
+    return apiClient.get<Hotel[]>(API_CONFIG.ENDPOINTS.HOTEL_MANAGER_HOTELS);
+  },
+
   // Rooms Management
   async getRooms(hotelId: string = 'h1'): Promise<RoomType[]> {
     return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ALL_ROOMS, { hotel_id: hotelId });

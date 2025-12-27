@@ -115,5 +115,10 @@ router.post(
   middlewares([authMiddleware, rbacMiddleware(["room:update"])]),
   upload.array("images", 10), // Max 10 images
   hotelProfileController.uploadImagesForRoom
-)
+);
+router.get(
+  "/hotel-manager/hotels",
+  middlewares([authMiddleware, rbacMiddleware(["hotel:update"])]),
+  hotelProfileController.getHotelForHotelOwner
+);
 module.exports = router;

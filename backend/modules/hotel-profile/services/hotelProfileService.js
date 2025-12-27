@@ -91,7 +91,7 @@ const hotelProfileService = {
                 hotel_owner: userid,
                 address: hotelData.address,
                 status: 1,
-                rating: 5.0,
+                rating: hotelData.rating ?? hotelData.rating ?? 3.0,
                 longitude: hotelData.longitude ? hotelData.longitude : null,
                 latitude: hotelData.latitude ?? hotelData.latitute ?? null,
                 description: hotelData.description ? hotelData.description : 'No description provided',
@@ -643,6 +643,12 @@ const hotelProfileService = {
                 image_url: imageUrl
             });
         }
+    },
+    async getHotelForHotelOwner(userid) {
+        const hotels =  await db.Hotel.findAll({
+            where: { hotel_owner: userid }
+        });
+        return hotels;
     }
 };
 module.exports = hotelProfileService;
