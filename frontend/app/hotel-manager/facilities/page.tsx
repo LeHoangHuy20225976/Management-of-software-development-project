@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { hotelManagerApiExtended } from '@/lib/api/services';
+import { API_CONFIG } from '@/lib/api/config';
 
 interface Facility {
   id: number;
@@ -86,11 +88,32 @@ export default function HotelManagerFacilitiesPage() {
 
   const handleSave = async () => {
     setIsSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    localStorage.setItem('hotelFacilities', JSON.stringify(facilities));
-    setSaveMessage('Đã lưu tiện nghi thành công!');
-    setIsSaving(false);
-    setTimeout(() => setSaveMessage(''), 3000);
+    try {
+      const hotelId = 'h1'; // TODO: Get from auth context
+      const activeFacilityNames = facilities
+        .filter(f => f.isActive)
+        .map(f => f.name);
+
+      if (API_CONFIG.USE_MOCK_DATA) {
+        // MOCK: Use localStorage
+        await new Promise(resolve => setTimeout(resolve, 800));
+        localStorage.setItem('hotelFacilities', JSON.stringify(facilities));
+      } else {
+        // REAL API: Send to backend
+        await hotelManagerApiExtended.addFacilities(hotelId, activeFacilityNames);
+        // Also save to localStorage for local state persistence
+        localStorage.setItem('hotelFacilities', JSON.stringify(facilities));
+      }
+
+      setSaveMessage('Đã lưu tiện nghi thành công!');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (error) {
+      console.error('Error saving facilities:', error);
+      setSaveMessage('❌ Lỗi khi lưu tiện nghi!');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAddFacility = () => {

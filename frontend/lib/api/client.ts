@@ -45,18 +45,28 @@ class ApiClient {
     // Debug log
     console.log('🌐 API Request:', { endpoint, url, method: options.method || 'GET' });
 
-    const defaultHeaders: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...options.headers as Record<string, string>,
-    };
+    // Don't set Content-Type for FormData (browser will auto-set with boundary)
+    const isFormData = options.body instanceof FormData;
+    const defaultHeaders: Record<string, string> = isFormData 
+      ? { ...options.headers as Record<string, string> }
+      : {
+          'Content-Type': 'application/json',
+          ...options.headers as Record<string, string>,
+        };
 
     try {
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
+
       const response = await fetch(url, {
         ...options,
         headers: defaultHeaders,
         credentials: 'include', // Include httpOnly cookies
-        signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       // Handle 401 Unauthorized - try to refresh token
       if (response.status === 401) {
@@ -174,33 +184,36 @@ class ApiClient {
   }
 
   async post<T>(endpoint: string, body: unknown, params?: Record<string, string>): Promise<T> {
+    const isFormData = body instanceof FormData;
     return this.request<T>(
       endpoint,
       {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: isFormData ? body : JSON.stringify(body),
       },
       params
     );
   }
 
   async put<T>(endpoint: string, body: unknown, params?: Record<string, string>): Promise<T> {
+    const isFormData = body instanceof FormData;
     return this.request<T>(
       endpoint,
       {
         method: 'PUT',
-        body: JSON.stringify(body),
+        body: isFormData ? body : JSON.stringify(body),
       },
       params
     );
   }
 
   async patch<T>(endpoint: string, body: unknown, params?: Record<string, string>): Promise<T> {
+    const isFormData = body instanceof FormData;
     return this.request<T>(
       endpoint,
       {
         method: 'PATCH',
-        body: JSON.stringify(body),
+        body: isFormData ? body : JSON.stringify(body),
       },
       params
     );

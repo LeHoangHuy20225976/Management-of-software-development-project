@@ -47,7 +47,7 @@ export default function AdminDashboardPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <h1 className="text-3xl font-bold text-black">Dashboard</h1>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i}>
@@ -62,8 +62,8 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">📊 Dashboard</h1>
-        <p className="text-gray-600">
+        <h1 className="text-3xl font-bold text-black">📊 Dashboard</h1>
+        <p className="text-black font-medium">
           {new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </div>
@@ -134,7 +134,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center space-x-4">
               <div className="text-4xl">⏳</div>
               <div>
-                <p className="font-bold text-gray-900">Khách sạn chờ duyệt</p>
+                <p className="font-bold text-black">Khách sạn chờ duyệt</p>
                 <p className="text-2xl font-bold text-yellow-600">{dashboard?.pendingHotels}</p>
               </div>
             </div>
@@ -146,8 +146,8 @@ export default function AdminDashboardPage() {
             <div className="flex items-center space-x-4">
               <div className="text-4xl">👥</div>
               <div>
-                <p className="font-bold text-gray-900">Quản lý người dùng</p>
-                <p className="text-sm text-gray-600">Xem, sửa, xóa tài khoản</p>
+                <p className="font-bold text-black">Quản lý người dùng</p>
+                <p className="text-sm text-black">Xem, sửa, xóa tài khoản</p>
               </div>
             </div>
           </Card>
@@ -158,8 +158,8 @@ export default function AdminDashboardPage() {
             <div className="flex items-center space-x-4">
               <div className="text-4xl">📈</div>
               <div>
-                <p className="font-bold text-gray-900">Báo cáo doanh thu</p>
-                <p className="text-sm text-gray-600">Thống kê chi tiết</p>
+                <p className="font-bold text-black">Báo cáo doanh thu</p>
+                <p className="text-sm text-black">Thống kê chi tiết</p>
               </div>
             </div>
           </Card>
@@ -168,7 +168,7 @@ export default function AdminDashboardPage() {
 
       {/* Recent Activity */}
       <Card>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">🕐 Hoạt động gần đây</h2>
+        <h2 className="text-xl font-bold text-black mb-4">🕐 Hoạt động gần đây</h2>
         <div className="space-y-4">
           {dashboard?.recentActivity.map((activity: AdminActivity) => (
             <div
@@ -177,12 +177,12 @@ export default function AdminDashboardPage() {
             >
               <div className="text-2xl">{getActivityIcon(activity.type)}</div>
               <div className="flex-1">
-                <p className="font-medium text-gray-900">{activity.description}</p>
+                <p className="font-medium text-black">{activity.description}</p>
                 {activity.userName && (
-                  <p className="text-sm text-gray-600">bởi {activity.userName}</p>
+                  <p className="text-sm text-black">bởi {activity.userName}</p>
                 )}
               </div>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-black font-medium">
                 {formatTimeAgo(activity.timestamp)}
               </span>
             </div>

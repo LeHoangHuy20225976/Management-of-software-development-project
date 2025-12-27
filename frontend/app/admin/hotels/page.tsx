@@ -83,7 +83,7 @@ export default function AdminHotelsPage() {
       pending: 'bg-yellow-100 text-yellow-800',
       approved: 'bg-green-100 text-green-800',
       rejected: 'bg-red-100 text-red-800',
-      locked: 'bg-gray-100 text-gray-800',
+      locked: 'bg-gray-100 text-black',
     };
     const labels: Record<AdminHotel['status'], string> = {
       pending: 'Chờ duyệt',
@@ -101,7 +101,7 @@ export default function AdminHotelsPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-900">Quản lý khách sạn</h1>
+        <h1 className="text-3xl font-bold text-black">Quản lý khách sạn</h1>
         <Card>
           <div className="animate-pulse space-y-4">
             {[1, 2, 3].map((i) => (
@@ -116,9 +116,9 @@ export default function AdminHotelsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">🏨 Quản lý khách sạn</h1>
-        <div className="text-gray-600">
-          Tổng: <strong>{hotels.length}</strong> khách sạn
+        <h1 className="text-3xl font-bold text-black">🏨 Quản lý khách sạn</h1>
+        <div className="text-black">
+          Tổng: <strong className="text-black">{hotels.length}</strong> khách sạn
         </div>
       </div>
 
@@ -152,8 +152,8 @@ export default function AdminHotelsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <div className="text-center">
-            <div className="text-3xl font-bold text-gray-900">{hotels.length}</div>
-            <div className="text-sm text-gray-600">Tổng cộng</div>
+            <div className="text-3xl font-bold text-black">{hotels.length}</div>
+            <div className="text-sm text-black font-medium">Tổng cộng</div>
           </div>
         </Card>
         <Card>
@@ -161,7 +161,7 @@ export default function AdminHotelsPage() {
             <div className="text-3xl font-bold text-yellow-600">
               {hotels.filter(h => h.status === 'pending').length}
             </div>
-            <div className="text-sm text-gray-600">Chờ duyệt</div>
+            <div className="text-sm text-black font-medium">Chờ duyệt</div>
           </div>
         </Card>
         <Card>
@@ -169,15 +169,15 @@ export default function AdminHotelsPage() {
             <div className="text-3xl font-bold text-green-600">
               {hotels.filter(h => h.status === 'approved').length}
             </div>
-            <div className="text-sm text-gray-600">Đã duyệt</div>
+            <div className="text-sm text-black font-medium">Đã duyệt</div>
           </div>
         </Card>
         <Card>
           <div className="text-center">
-            <div className="text-3xl font-bold text-gray-600">
+            <div className="text-3xl font-bold text-black">
               {hotels.filter(h => h.status === 'locked').length}
             </div>
-            <div className="text-sm text-gray-600">Đã khóa</div>
+            <div className="text-sm text-black font-medium">Đã khóa</div>
           </div>
         </Card>
       </div>
@@ -223,26 +223,26 @@ export default function AdminHotelsPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-lg font-bold text-gray-900">{hotel.name}</h3>
+                  <h3 className="text-lg font-bold text-black">{hotel.name}</h3>
                   {getStatusBadge(hotel.status)}
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500">Địa điểm:</span>
-                    <p className="font-medium text-gray-900">{hotel.district}, {hotel.city}</p>
+                    <span className="text-black font-medium">Địa điểm:</span>
+                    <p className="font-semibold text-black">{hotel.district}, {hotel.city}</p>
                   </div>
                   <div>
-                    <span className="text-gray-500">Quản lý:</span>
-                    <p className="font-medium text-gray-900">{hotel.manager_name}</p>
-                    <p className="text-gray-600 text-xs">{hotel.manager_email}</p>
+                    <span className="text-black font-medium">Quản lý:</span>
+                    <p className="font-semibold text-black">{hotel.manager_name}</p>
+                    <p className="text-black text-xs">{hotel.manager_email}</p>
                   </div>
                   <div>
-                    <span className="text-gray-500">Số phòng:</span>
-                    <p className="font-medium text-gray-900">{hotel.rooms_count} phòng</p>
+                    <span className="text-black font-medium">Số phòng:</span>
+                    <p className="font-semibold text-black">{hotel.rooms_count} phòng</p>
                   </div>
                   <div>
-                    <span className="text-gray-500">Ngày đăng ký:</span>
-                    <p className="font-medium text-gray-900">
+                    <span className="text-black font-medium">Ngày đăng ký:</span>
+                    <p className="font-medium text-black">
                       {new Date(hotel.created_at).toLocaleDateString('vi-VN')}
                     </p>
                   </div>
@@ -299,7 +299,7 @@ export default function AdminHotelsPage() {
       {filteredHotels.length === 0 && (
         <Card className="text-center py-12">
           <div className="text-6xl mb-4">🏨</div>
-          <p className="text-gray-600">Không có khách sạn nào</p>
+          <p className="text-black">Không có khách sạn nào</p>
         </Card>
       )}
     </div>

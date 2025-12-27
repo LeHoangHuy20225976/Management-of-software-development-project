@@ -1,14 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
-import { hotelManagerApi } from '@/lib/api/services';
+import { hotelManagerApi, hotelManagerApiExtended } from '@/lib/api/services';
+import { useAuth } from '@/lib/context/AuthContext';
 
 export default function HotelProfilePage() {
+  const router = useRouter();
+  const { logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletingHotel, setDeletingHotel] = useState(false);
+  const [hotelId, setHotelId] = useState<string>('h1');
   const [hotelInfo, setHotelInfo] = useState({
     name: '',
     description: '',
@@ -24,8 +32,9 @@ export default function HotelProfilePage() {
   useEffect(() => {
     const loadHotelInfo = async () => {
       try {
-        const hotelId = 'h1';
-        const info = await hotelManagerApi.getHotelInfo(hotelId);
+        const currentHotelId = 'h1'; // In production, get from auth context or URL
+        setHotelId(currentHotelId);
+        const info = await hotelManagerApi.getHotelInfo(currentHotelId);
         setHotelInfo({
           name: info.name || '',
           description: info.description || '',
@@ -48,7 +57,6 @@ export default function HotelProfilePage() {
 
   const handleSave = async () => {
     try {
-      const hotelId = 'h1';
       await hotelManagerApi.updateHotelInfo(hotelId, {
         name: hotelInfo.name,
         description: hotelInfo.description,
@@ -65,6 +73,27 @@ export default function HotelProfilePage() {
     } catch (error) {
       console.error('Error saving hotel info:', error);
       alert('❌ Có lỗi khi lưu thông tin!');
+    }
+  };
+
+  const handleDeleteHotel = async () => {
+    if (deleteConfirmText !== 'XÓA KHÁCH SẠN') {
+      alert('Vui lòng nhập đúng "XÓA KHÁCH SẠN" để xác nhận!');
+      return;
+    }
+
+    setDeletingHotel(true);
+    try {
+      await hotelManagerApiExtended.deleteHotel(hotelId);
+      alert('Khách sạn đã được xóa thành công!');
+      await logout();
+      router.push('/');
+    } catch (error) {
+      console.error('Error deleting hotel:', error);
+      alert('Không thể xóa khách sạn, vui lòng thử lại.');
+    } finally {
+      setDeletingHotel(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -250,6 +279,89 @@ export default function HotelProfilePage() {
           chính sách (policies) và giờ check-in/out nên lưu trong bảng <code>Settings</code> riêng.
         </p>
       </Card>
+
+      {/* Danger Zone - Delete Hotel */}
+      <Card className="border-red-200 bg-red-50">
+        <h3 className="text-xl font-bold text-red-800 mb-4">⚠️ Vùng nguy hiểm</h3>
+        <div className="p-4 bg-white rounded-lg border border-red-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-gray-900">Xóa khách sạn</p>
+              <p className="text-sm text-gray-600">
+                Xóa vĩnh viễn khách sạn và tất cả dữ liệu liên quan. Hành động này không thể hoàn tác.
+              </p>
+            </div>
+            <Button
+              variant="danger"
+              onClick={() => setShowDeleteModal(true)}
+            >
+              🗑️ Xóa khách sạn
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Delete Hotel Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+                <span className="text-3xl">⚠️</span>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Xóa khách sạn?</h3>
+              <p className="text-gray-600 text-sm">
+                Bạn sắp xóa vĩnh viễn khách sạn <strong>{hotelInfo.name}</strong>. 
+                Tất cả dữ liệu bao gồm phòng, đặt phòng và đánh giá sẽ bị xóa và không thể khôi phục.
+              </p>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Nhập <span className="text-red-600">XÓA KHÁCH SẠN</span> để xác nhận:
+              </label>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="XÓA KHÁCH SẠN"
+                className="text-center"
+              />
+            </div>
+
+            <div className="flex space-x-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmText('');
+                }}
+                disabled={deletingHotel}
+              >
+                Hủy
+              </Button>
+              <Button
+                variant="danger"
+                className="flex-1"
+                onClick={handleDeleteHotel}
+                disabled={deleteConfirmText !== 'XÓA KHÁCH SẠN' || deletingHotel}
+              >
+                {deletingHotel ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Đang xóa...
+                  </span>
+                ) : (
+                  'Xóa vĩnh viễn'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

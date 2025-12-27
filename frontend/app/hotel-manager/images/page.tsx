@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { hotelManagerApiExtended } from '@/lib/api/services';
+import { API_CONFIG } from '@/lib/api/config';
 
 interface HotelImage {
   id: number;
@@ -89,25 +91,55 @@ export default function HotelManagerImagesPage() {
 
   const handleUpload = async () => {
     if (uploadForm.files.length === 0) return;
-    
+
     setUploading(true);
-    
-    // Simulate upload delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const newImages: HotelImage[] = uploadForm.files.map((file, index) => ({
-      id: Date.now() + index,
-      url: URL.createObjectURL(file),
-      type: uploadForm.type,
-      caption: uploadForm.caption || file.name.replace(/\.[^/.]+$/, ''),
-      isThumbnail: false,
-      uploadedAt: new Date().toISOString().split('T')[0],
-    }));
-    
-    saveImages([...images, ...newImages]);
-    setUploadForm({ type: 'hotel', caption: '', files: [] });
-    setShowUploadModal(false);
-    setUploading(false);
+
+    try {
+      const hotelId = 'h1'; // TODO: Get from auth context
+
+      if (API_CONFIG.USE_MOCK_DATA) {
+        // MOCK: Use localStorage
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        const newImages: HotelImage[] = uploadForm.files.map((file, index) => ({
+          id: Date.now() + index,
+          url: URL.createObjectURL(file),
+          type: uploadForm.type,
+          caption: uploadForm.caption || file.name.replace(/\.[^/.]+$/, ''),
+          isThumbnail: false,
+          uploadedAt: new Date().toISOString().split('T')[0],
+        }));
+
+        saveImages([...images, ...newImages]);
+      } else {
+        // REAL API: Upload to backend
+        const uploadedImages = await hotelManagerApiExtended.uploadHotelImages(
+          hotelId,
+          uploadForm.files
+        );
+
+        // Convert backend response to HotelImage format
+        const newImages: HotelImage[] = uploadedImages.map((img: any, index: number) => ({
+          id: img.image_id || Date.now() + index,
+          url: img.url || img.image_url,
+          type: uploadForm.type,
+          caption: uploadForm.caption || img.caption || 'Hotel image',
+          isThumbnail: false,
+          uploadedAt: img.created_at || new Date().toISOString().split('T')[0],
+        }));
+
+        saveImages([...images, ...newImages]);
+        alert('✅ Upload thành công!');
+      }
+
+      setUploadForm({ type: 'hotel', caption: '', files: [] });
+      setShowUploadModal(false);
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      alert('❌ Lỗi khi upload ảnh! Vui lòng thử lại.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSetThumbnail = (id: number) => {

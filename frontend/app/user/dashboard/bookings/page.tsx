@@ -10,6 +10,8 @@ import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import type { Booking } from '@/types';
+import { bookingsApi } from '@/lib/api/services';
+import { API_CONFIG } from '@/lib/api/config';
 
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -20,16 +22,24 @@ export default function BookingsPage() {
     loadBookings();
   }, []);
 
-  const loadBookings = () => {
+  const loadBookings = async () => {
     try {
-      // Import mockData functions dynamically to avoid SSR issues
-      import('@/lib/utils/mockData').then(({ getMockBookings }) => {
+      setLoading(true);
+
+      if (API_CONFIG.USE_MOCK_DATA) {
+        // MOCK: Use localStorage
+        const { getMockBookings } = await import('@/lib/utils/mockData');
         const data = getMockBookings();
         setBookings(data);
-        setLoading(false);
-      });
+      } else {
+        // REAL API: Fetch from backend
+        const data = await bookingsApi.getAll();
+        setBookings(data);
+      }
     } catch (error) {
       console.error('Error loading bookings:', error);
+      alert('❌ Lỗi khi tải danh sách bookings!');
+    } finally {
       setLoading(false);
     }
   };

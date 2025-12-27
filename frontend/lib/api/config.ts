@@ -6,10 +6,11 @@
 export const API_CONFIG = {
   // Set to false when backend is ready
   // Can be controlled via NEXT_PUBLIC_USE_MOCK_DATA in .env.local
-  USE_MOCK_DATA: process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true' ? true : process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'false' ? false : true,
+  // Changed default to FALSE - now using real API
+  USE_MOCK_DATA: process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true' ? true : process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'false' ? false : false,
 
   // Backend API URL
-  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://26.230.157.234:4000',
+  BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
   API_VERSION: process.env.NEXT_PUBLIC_API_VERSION || 'v1',
 
   // API Endpoints
@@ -81,6 +82,7 @@ export const API_CONFIG = {
     PAYMENT_BY_BOOKING: '/payments/booking/:bookingId',
     PAYMENT_QUERY_STATUS: '/payments/:id/query',
     PAYMENT_REFUND: '/payments/:id/refund',
+    PAYMENT_CANCEL: '/payments/:id/cancel',
     VNPAY_RETURN: '/payments/vnpay-return',
     VNPAY_IPN: '/payments/vnpay-ipn',
 

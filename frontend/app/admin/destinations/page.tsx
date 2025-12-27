@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { destinationsApi } from '@/lib/api/services';
+import { useState, useEffect, useRef } from 'react';
+import { destinationsApi, destinationsApiExtended } from '@/lib/api/services';
 import type { Destination } from '@/types';
 
 export default function AdminDestinationsPage() {
@@ -10,7 +10,17 @@ export default function AdminDestinationsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
   const [editingDestination, setEditingDestination] = useState<Destination | null>(null);
+  const [selectedDestinationForImage, setSelectedDestinationForImage] = useState<Destination | null>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
+  const imagesInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [newDestinationThumbnail, setNewDestinationThumbnail] = useState<File | null>(null);
+  const [newThumbnailPreview, setNewThumbnailPreview] = useState<string>('');
   const [formData, setFormData] = useState({
     name: '',
     location: '',
@@ -42,11 +52,24 @@ export default function AdminDestinationsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate thumbnail for new destination
+    if (!editingDestination && !newDestinationThumbnail) {
+      alert('⚠️ Vui lòng chọn ảnh thumbnail cho điểm đến!');
+      return;
+    }
+    
     try {
       if (editingDestination) {
         await destinationsApi.update(String(editingDestination.destination_id), formData);
       } else {
-        await destinationsApi.create(formData);
+        // Create destination first
+        const newDestination = await destinationsApi.create(formData);
+        
+        // Then upload thumbnail
+        if (newDestinationThumbnail && newDestination.destination_id) {
+          await destinationsApiExtended.uploadThumbnail(String(newDestination.destination_id), newDestinationThumbnail);
+        }
       }
       setShowModal(false);
       setEditingDestination(null);
@@ -54,6 +77,7 @@ export default function AdminDestinationsPage() {
       loadDestinations();
     } catch (error) {
       console.error('Error saving destination:', error);
+      alert('❌ Có lỗi xảy ra khi lưu điểm đến. Vui lòng thử lại!');
     }
   };
 
@@ -94,12 +118,127 @@ export default function AdminDestinationsPage() {
       latitude: 0,
       longitude: 0,
     });
+    setNewDestinationThumbnail(null);
+    if (newThumbnailPreview) {
+      URL.revokeObjectURL(newThumbnailPreview);
+      setNewThumbnailPreview('');
+    }
+  };
+
+  const handleThumbnailUpload = async (destinationId: number, file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('Vui lòng chọn file ảnh!');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Kích thước ảnh tối đa là 10MB!');
+      return;
+    }
+
+    setUploadingThumbnail(true);
+    try {
+      await destinationsApiExtended.uploadThumbnail(String(destinationId), file);
+      alert('✅ Tải thumbnail thành công!');
+      loadDestinations();
+    } catch (error) {
+      console.error('Error uploading thumbnail:', error);
+      alert('❌ Có lỗi khi tải thumbnail. Vui lòng thử lại!');
+    } finally {
+      setUploadingThumbnail(false);
+    }
+  };
+
+  const handleImagesSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    
+    if (files.length > 10) {
+      alert('Tối đa 10 ảnh!');
+      return;
+    }
+
+    const invalidFiles = files.filter(file => !file.type.startsWith('image/'));
+    if (invalidFiles.length > 0) {
+      alert('Vui lòng chỉ chọn file ảnh!');
+      return;
+    }
+
+    const oversizedFiles = files.filter(file => file.size > 10 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      alert('Kích thước mỗi ảnh tối đa là 10MB!');
+      return;
+    }
+
+    setSelectedImages(files);
+    const previews = files.map(file => URL.createObjectURL(file));
+    setImagePreviews(previews);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    const newImages = selectedImages.filter((_, i) => i !== index);
+    const newPreviews = imagePreviews.filter((_, i) => i !== index);
+    URL.revokeObjectURL(imagePreviews[index]);
+    setSelectedImages(newImages);
+    setImagePreviews(newPreviews);
+  };
+
+  const handleUploadImages = async () => {
+    if (!selectedDestinationForImage || selectedImages.length === 0) {
+      return;
+    }
+
+    setUploadingImages(true);
+    try {
+      for (const image of selectedImages) {
+        await destinationsApiExtended.uploadImage(String(selectedDestinationForImage.destination_id), image);
+      }
+      alert('✅ Tải ảnh thành công!');
+      setShowImageModal(false);
+      setSelectedImages([]);
+      imagePreviews.forEach(preview => URL.revokeObjectURL(preview));
+      setImagePreviews([]);
+      setSelectedDestinationForImage(null);
+      loadDestinations();
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      alert('❌ Có lỗi khi tải ảnh. Vui lòng thử lại!');
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const openImageModal = (destination: Destination) => {
+    setSelectedDestinationForImage(destination);
+    setShowImageModal(true);
+    setSelectedImages([]);
+    setImagePreviews([]);
   };
 
   const openAddModal = () => {
     setEditingDestination(null);
     resetForm();
     setShowModal(true);
+  };
+
+  const handleNewThumbnailSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Vui lòng chọn file ảnh!');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Kích thước ảnh tối đa là 10MB!');
+      return;
+    }
+
+    setNewDestinationThumbnail(file);
+    if (newThumbnailPreview) {
+      URL.revokeObjectURL(newThumbnailPreview);
+    }
+    setNewThumbnailPreview(URL.createObjectURL(file));
   };
 
   const filteredDestinations = destinations.filter(d => {
@@ -132,7 +271,7 @@ export default function AdminDestinationsPage() {
       nature: 'bg-emerald-100 text-emerald-800',
       historical: 'bg-amber-100 text-amber-800',
     };
-    return colors[type] || 'bg-gray-100 text-gray-800';
+    return colors[type] || 'bg-gray-100 text-black';
   };
 
   if (loading) {
@@ -148,8 +287,8 @@ export default function AdminDestinationsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Quản lý Điểm đến Du lịch</h1>
-          <p className="text-gray-600 mt-1">Quản lý các điểm đến, địa điểm du lịch trong hệ thống</p>
+          <h1 className="text-2xl font-bold text-black">Quản lý Điểm đến Du lịch</h1>
+          <p className="text-black mt-1">Quản lý các điểm đến, địa điểm du lịch trong hệ thống</p>
         </div>
         <button
           onClick={openAddModal}
@@ -166,25 +305,25 @@ export default function AdminDestinationsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="text-2xl font-bold text-blue-600">{destinations.length}</div>
-          <div className="text-sm text-gray-600">Tổng số điểm đến</div>
+          <div className="text-sm text-black font-medium">Tổng số điểm đến</div>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="text-2xl font-bold text-green-600">
             {destinations.filter(d => d.type === 'beach').length}
           </div>
-          <div className="text-sm text-gray-600">Bãi biển</div>
+          <div className="text-sm text-black font-medium">Bãi biển</div>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="text-2xl font-bold text-purple-600">
             {destinations.filter(d => d.type === 'cultural').length}
           </div>
-          <div className="text-sm text-gray-600">Văn hóa</div>
+          <div className="text-sm text-black font-medium">Văn hóa</div>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="text-2xl font-bold text-amber-600">
             {destinations.filter(d => d.type === 'historical').length}
           </div>
-          <div className="text-sm text-gray-600">Lịch sử</div>
+          <div className="text-sm text-black font-medium">Lịch sử</div>
         </div>
       </div>
 
@@ -198,9 +337,9 @@ export default function AdminDestinationsPage() {
                 placeholder="Tìm kiếm điểm đến..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
               />
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
@@ -208,7 +347,7 @@ export default function AdminDestinationsPage() {
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
-            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
           >
             <option value="all">Tất cả loại</option>
             {destinationTypes.map(type => (
@@ -224,22 +363,22 @@ export default function AdminDestinationsPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider bg-gray-50">
                   Điểm đến
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider bg-gray-50">
                   Loại
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider bg-gray-50">
                   Vị trí
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider bg-gray-50">
                   Phí vào cửa
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-black uppercase tracking-wider bg-gray-50">
                   Đánh giá
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-semibold text-black uppercase tracking-wider bg-gray-50">
                   Thao tác
                 </th>
               </tr>
@@ -258,7 +397,7 @@ export default function AdminDestinationsPage() {
                           />
                         ) : (
                           <div className="h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center">
-                            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
@@ -266,8 +405,8 @@ export default function AdminDestinationsPage() {
                         )}
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">{destination.name}</div>
-                        <div className="text-sm text-gray-500 line-clamp-1 max-w-xs">{destination.description}</div>
+                        <div className="text-sm font-medium text-black">{destination.name}</div>
+                        <div className="text-sm text-black line-clamp-1 max-w-xs">{destination.description}</div>
                       </div>
                     </div>
                   </td>
@@ -276,10 +415,10 @@ export default function AdminDestinationsPage() {
                       {getTypeLabel(destination.type)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-black">
                     {destination.location}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-black">
                     {destination.entry_fee ? `${destination.entry_fee.toLocaleString('vi-VN')}₫` : 'Miễn phí'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -287,7 +426,7 @@ export default function AdminDestinationsPage() {
                       <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
-                      <span className="ml-1 text-sm text-gray-600">{destination.rating?.toFixed(1) || '0.0'}</span>
+                      <span className="ml-1 text-sm text-black font-medium">{destination.rating?.toFixed(1) || '0.0'}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -296,6 +435,13 @@ export default function AdminDestinationsPage() {
                       className="text-blue-600 hover:text-blue-900 mr-3"
                     >
                       Sửa
+                    </button>
+                    <button
+                      onClick={() => openImageModal(destination)}
+                      className="text-green-600 hover:text-green-900 mr-3"
+                      title="Quản lý hình ảnh"
+                    >
+                      🖼️
                     </button>
                     <button
                       onClick={() => handleDelete(destination.destination_id)}
@@ -312,11 +458,11 @@ export default function AdminDestinationsPage() {
 
         {filteredDestinations.length === 0 && (
           <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="mx-auto h-12 w-12 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Không có điểm đến nào</h3>
-            <p className="mt-1 text-sm text-gray-500">Bắt đầu bằng cách thêm điểm đến mới.</p>
+            <h3 className="mt-2 text-sm font-medium text-black">Không có điểm đến nào</h3>
+            <p className="mt-1 text-sm text-black">Bắt đầu bằng cách thêm điểm đến mới.</p>
           </div>
         )}
       </div>
@@ -327,12 +473,12 @@ export default function AdminDestinationsPage() {
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b sticky top-0 bg-white">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">
+                <h2 className="text-xl font-bold text-black">
                   {editingDestination ? 'Chỉnh sửa điểm đến' : 'Thêm điểm đến mới'}
                 </h2>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-black hover:text-black"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -344,22 +490,22 @@ export default function AdminDestinationsPage() {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tên điểm đến *</label>
+                  <label className="block text-sm font-medium text-black mb-1">Tên điểm đến *</label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Loại hình *</label>
+                  <label className="block text-sm font-medium text-black mb-1">Loại hình *</label>
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   >
                     {destinationTypes.map(type => (
                       <option key={type} value={type}>{getTypeLabel(type)}</option>
@@ -368,78 +514,104 @@ export default function AdminDestinationsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Vị trí *</label>
+                  <label className="block text-sm font-medium text-black mb-1">Vị trí *</label>
                   <input
                     type="text"
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                     placeholder="Ví dụ: Đà Nẵng, Việt Nam"
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phí vào cửa (VNĐ)</label>
+                  <label className="block text-sm font-medium text-black mb-1">Phí vào cửa (VNĐ)</label>
                   <input
                     type="number"
                     value={formData.entry_fee}
                     onChange={(e) => setFormData({ ...formData, entry_fee: Number(e.target.value) })}
                     min="0"
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phương tiện di chuyển</label>
+                  <label className="block text-sm font-medium text-black mb-1">Phương tiện di chuyển</label>
                   <input
                     type="text"
                     value={formData.transportation}
                     onChange={(e) => setFormData({ ...formData, transportation: e.target.value })}
                     placeholder="Ví dụ: Xe bus, Taxi, Máy bay"
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Vĩ độ (Latitude)</label>
+                  <label className="block text-sm font-medium text-black mb-1">Vĩ độ (Latitude)</label>
                   <input
                     type="number"
                     step="any"
                     value={formData.latitude}
                     onChange={(e) => setFormData({ ...formData, latitude: Number(e.target.value) })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Kinh độ (Longitude)</label>
+                  <label className="block text-sm font-medium text-black mb-1">Kinh độ (Longitude)</label>
                   <input
                     type="number"
                     step="any"
                     value={formData.longitude}
                     onChange={(e) => setFormData({ ...formData, longitude: Number(e.target.value) })}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                   />
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
+                  <label className="block text-sm font-medium text-black mb-1">Mô tả</label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={4}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
                     placeholder="Mô tả chi tiết về điểm đến..."
                   />
                 </div>
+
+                {/* Thumbnail Upload for New Destination */}
+                {!editingDestination && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-black mb-1">Ảnh đại diện (Thumbnail) *</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleNewThumbnailSelect}
+                      className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-black"
+                      required
+                    />
+                    <p className="text-sm text-black mt-1">Kích thước tối đa: 10MB. Ảnh đại diện là bắt buộc.</p>
+                    
+                    {newThumbnailPreview && (
+                      <div className="mt-3">
+                        <img
+                          src={newThumbnailPreview}
+                          alt="Preview"
+                          className="h-32 w-48 object-cover rounded-lg border-2 border-blue-200"
+                        />
+                        <p className="text-sm text-black mt-1">Xem trước ảnh thumbnail</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2 border rounded-lg hover:bg-gray-50 text-black"
                 >
                   Hủy
                 </button>
@@ -451,6 +623,155 @@ export default function AdminDestinationsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Image Upload Modal */}
+      {showImageModal && selectedDestinationForImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b sticky top-0 bg-white">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-black">
+                  Quản lý hình ảnh: {selectedDestinationForImage.name}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowImageModal(false);
+                    setSelectedDestinationForImage(null);
+                    setSelectedImages([]);
+                    imagePreviews.forEach(preview => URL.revokeObjectURL(preview));
+                    setImagePreviews([]);
+                  }}
+                  className="text-black hover:text-black"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Thumbnail Upload */}
+              <div>
+                <h3 className="text-lg font-bold text-black mb-3">Thumbnail (Ảnh đại diện)</h3>
+                {selectedDestinationForImage.thumbnail && (
+                  <div className="mb-3">
+                    <img
+                      src={selectedDestinationForImage.thumbnail}
+                      alt="Current thumbnail"
+                      className="h-32 w-48 object-cover rounded-lg border-2 border-gray-200"
+                    />
+                    <p className="text-sm text-black mt-1">Thumbnail hiện tại</p>
+                  </div>
+                )}
+                <input
+                  ref={thumbnailInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleThumbnailUpload(selectedDestinationForImage.destination_id, file);
+                    }
+                  }}
+                  className="hidden"
+                  disabled={uploadingThumbnail}
+                />
+                <button
+                  onClick={() => thumbnailInputRef.current?.click()}
+                  disabled={uploadingThumbnail}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                >
+                  {uploadingThumbnail ? '⏳ Đang tải lên...' : '📷 Tải lên Thumbnail mới'}
+                </button>
+                <p className="text-sm text-black mt-2">Kích thước tối đa: 10MB</p>
+              </div>
+
+              {/* Multiple Images Upload */}
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-bold text-black mb-3">Ảnh bổ sung (Gallery)</h3>
+                <div className="space-y-4">
+                  <div>
+                    <input
+                      ref={imagesInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImagesSelect}
+                      className="hidden"
+                      disabled={uploadingImages}
+                    />
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => imagesInputRef.current?.click()}
+                        disabled={uploadingImages}
+                        className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-400"
+                      >
+                        📷 Chọn ảnh
+                      </button>
+                      {selectedImages.length > 0 && (
+                        <button
+                          onClick={handleUploadImages}
+                          disabled={uploadingImages}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+                        >
+                          {uploadingImages ? '⏳ Đang tải lên...' : `📤 Tải lên ${selectedImages.length} ảnh`}
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-sm text-black mt-2">
+                      Tối đa 10 ảnh, mỗi ảnh tối đa 10MB. Đã chọn: {selectedImages.length} ảnh
+                    </p>
+                  </div>
+
+                  {/* Image Previews */}
+                  {imagePreviews.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={preview}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveImage(index)}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            disabled={uploadingImages}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                          <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                            {(selectedImages[index].size / 1024 / 1024).toFixed(2)} MB
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t bg-gray-50">
+              <button
+                onClick={() => {
+                  setShowImageModal(false);
+                  setSelectedDestinationForImage(null);
+                  setSelectedImages([]);
+                  imagePreviews.forEach(preview => URL.revokeObjectURL(preview));
+                  setImagePreviews([]);
+                }}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              >
+                Đóng
+              </button>
+            </div>
           </div>
         </div>
       )}
