@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ChatbotWrapper } from "@/components/layout/ChatbotWrapper";
-import { MockDataInitializer } from "@/components/MockDataInitializer";
 import { AuthProvider } from "@/lib/context/AuthContext";
 
 const geistSans = Geist({
@@ -31,7 +30,6 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <MockDataInitializer />
           {children}
           <ChatbotWrapper />
         </AuthProvider>

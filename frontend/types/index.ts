@@ -29,6 +29,10 @@ export interface Hotel {
   images?: string[];
   basePrice?: number;
   amenities?: string[];
+  facilities?: Array<{
+    facility_id: number;
+    name: string;
+  }>;
   reviewCount?: number;
   policies?: {
     checkIn?: string;
@@ -49,6 +53,11 @@ export interface RoomType {
   // Sequelize timestamps
   createdAt?: string;
   updatedAt?: string;
+  // Backend-added fields
+  services?: Array<{
+    service_id: number;
+    name: string;
+  }>;
   // Frontend-only fields (computed/extended)
   id?: string;
   hotelId?: string;

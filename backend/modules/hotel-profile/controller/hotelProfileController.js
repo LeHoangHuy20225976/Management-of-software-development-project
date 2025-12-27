@@ -156,6 +156,15 @@ const hotelProfileController = {
         } catch(error) {
             return responseUtils.error(res, error.message);
         }
+    },
+    getAllReviewsForHotel: async(req, res) => {
+        try {
+            const hotelId = req.params.hotel_id;
+            const reviews = await hotelProfileService.getAllReviewsForHotel(hotelId);
+            return responseUtils.ok(res, reviews);
+        } catch(error) {
+            return responseUtils.error(res, error.message);
+        }
     }
 };
 module.exports = hotelProfileController;

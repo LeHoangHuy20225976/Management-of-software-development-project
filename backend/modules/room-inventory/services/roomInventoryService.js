@@ -1,4 +1,4 @@
-const { Room, RoomType, RoomLog, Booking, Hotel } = require('../../../models');
+const { Room, RoomType, RoomLog, Booking, Hotel, ServicePossessing, RoomService } = require('../../../models');
 const { Op } = require('sequelize');
 const { sequelize } = require('../../../models');
 
@@ -184,6 +184,24 @@ class RoomInventoryService {
       ],
       order: [['type_id', 'ASC']]
     });
+
+    // Get services for each room type
+    for (const roomType of roomTypes) {
+      const servicePossessing = await ServicePossessing.findAll({
+        where: { type_id: roomType.type_id },
+        include: [{
+          model: RoomService,
+          attributes: ['service_id', 'name']
+        }]
+      });
+
+      const services = servicePossessing.map(sp => ({
+        service_id: sp.RoomService.service_id,
+        name: sp.RoomService.name
+      }));
+
+      roomType.setDataValue('services', services);
+    }
 
     return roomTypes;
   }
