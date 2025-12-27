@@ -126,6 +126,10 @@ export interface Review {
   images?: string[];
   helpful?: number;
   verified?: boolean;
+  hotelName?: string;
+  hotelImage?: string;
+  destinationName?: string;
+  destinationImage?: string;
   reply?: {
     content: string;
     date: string;
@@ -291,14 +295,22 @@ export interface Payment {
 
 // Coupon / Voucher type for discount codes
 export interface Coupon {
-  id: string;
+  coupon_id: number;
   code: string;
-  discount: number;
-  hotelId: string;
-  hotelName: string;
-  expiryDate: string;
-  minBookingAmount?: number;
+  description?: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  minOrder: number;
   maxDiscount?: number;
+  expiryDate: string;
+  usageCount?: number;
+  maxUsage?: number;
+  // Legacy fields for backward compatibility
+  id?: string;
+  discount?: number;
+  hotelId?: string;
+  hotelName?: string;
+  minBookingAmount?: number;
   usageLimit?: number;
   usedCount?: number;
 }

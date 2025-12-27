@@ -7,8 +7,9 @@ import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
 import { HotelChat } from '@/components/hotel/HotelChat';
 import { Button } from '@/components/common/Button';
-import { hotelsApi } from '@/lib/api/services';
-import type { Hotel, RoomType, RoomPrice } from '@/types';
+import { hotelsApi, reviewsApi } from '@/lib/api/services';
+import { useAuth } from '@/lib/context/AuthContext';
+import type { Hotel, RoomType, RoomPrice, Review } from '@/types';
 
 interface RoomTypeWithPrice extends RoomType {
   price?: RoomPrice;
@@ -21,9 +22,20 @@ export default function HotelDetailPage({
 }) {
   const resolvedParams = use(params);
   const router = useRouter();
+  const { user } = useAuth();
   const [hotel, setHotel] = useState<Hotel | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomTypeWithPrice[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Reviews state
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
+  const [reviewForm, setReviewForm] = useState({
+    rating: 5,
+    title: '',
+    comment: '',
+  });
 
   // Search criteria
   const [searchDates, setSearchDates] = useState({
@@ -154,7 +166,77 @@ export default function HotelDetailPage({
       }
     };
     loadHotel();
+    loadReviews();
   }, [resolvedParams.hotel_id]);
+
+  const loadReviews = async () => {
+    try {
+      const data = await reviewsApi.getAll(resolvedParams.hotel_id);
+      setReviews(data);
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (!reviewForm.comment || reviewForm.rating < 1 || reviewForm.rating > 5) {
+      alert('Vui lòng điền đầy đủ thông tin đánh giá!');
+      return;
+    }
+
+    try {
+      if (editingReview) {
+        // Update existing review
+        await reviewsApi.update(editingReview.review_id.toString(), {
+          rating: reviewForm.rating,
+          title: reviewForm.title,
+          comment: reviewForm.comment,
+        });
+        alert('✅ Cập nhật đánh giá thành công!');
+      } else {
+        // Create new review
+        await reviewsApi.create({
+          hotel_id: Number(resolvedParams.hotel_id),
+          rating: reviewForm.rating,
+          title: reviewForm.title,
+          comment: reviewForm.comment,
+        });
+        alert('✅ Thêm đánh giá thành công!');
+      }
+
+      // Reset form and reload reviews
+      setReviewForm({ rating: 5, title: '', comment: '' });
+      setShowReviewForm(false);
+      setEditingReview(null);
+      await loadReviews();
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      alert('❌ Lỗi khi gửi đánh giá!');
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: number) => {
+    if (!confirm('Bạn có chắc muốn xóa đánh giá này?')) return;
+
+    try {
+      await reviewsApi.delete(reviewId.toString());
+      alert('✅ Xóa đánh giá thành công!');
+      await loadReviews();
+    } catch (error) {
+      console.error('Error deleting review:', error);
+      alert('❌ Lỗi khi xóa đánh giá!');
+    }
+  };
+
+  const handleEditReview = (review: Review) => {
+    setEditingReview(review);
+    setReviewForm({
+      rating: review.rating,
+      title: review.title || '',
+      comment: review.comment,
+    });
+    setShowReviewForm(true);
+  };
 
   if (loading) {
     return (
@@ -496,6 +578,188 @@ export default function HotelDetailPage({
                   <strong>Hotline:</strong> {hotel.contact_phone}
                 </p>
               </Card>
+            )}
+          </div>
+
+          {/* Reviews Section */}
+          <div className="mt-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                ⭐ Đánh giá từ khách hàng ({reviews.length})
+              </h2>
+              {user && (
+                <Button
+                  onClick={() => {
+                    setShowReviewForm(!showReviewForm);
+                    setEditingReview(null);
+                    setReviewForm({ rating: 5, title: '', comment: '' });
+                  }}
+                  variant="primary"
+                  size="sm"
+                >
+                  ✍️ Viết đánh giá
+                </Button>
+              )}
+            </div>
+
+            {/* Review Form */}
+            {showReviewForm && (
+              <Card className="mb-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">
+                  {editingReview ? 'Chỉnh sửa đánh giá' : 'Đánh giá của bạn'}
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Đánh giá sao
+                    </label>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                          className={`text-3xl ${
+                            star <= reviewForm.rating
+                              ? 'text-yellow-400'
+                              : 'text-gray-300'
+                          }`}
+                        >
+                          ⭐
+                        </button>
+                      ))}
+                      <span className="ml-2 text-gray-600">
+                        {reviewForm.rating}/5
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tiêu đề (tùy chọn)
+                    </label>
+                    <input
+                      type="text"
+                      value={reviewForm.title}
+                      onChange={(e) =>
+                        setReviewForm({ ...reviewForm, title: e.target.value })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Ví dụ: Khách sạn tuyệt vời!"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nội dung đánh giá *
+                    </label>
+                    <textarea
+                      value={reviewForm.comment}
+                      onChange={(e) =>
+                        setReviewForm({ ...reviewForm, comment: e.target.value })
+                      }
+                      rows={5}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Chia sẻ trải nghiệm của bạn tại khách sạn..."
+                    />
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button onClick={handleSubmitReview} variant="primary">
+                      {editingReview ? 'Cập nhật' : 'Gửi đánh giá'}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setShowReviewForm(false);
+                        setEditingReview(null);
+                        setReviewForm({ rating: 5, title: '', comment: '' });
+                      }}
+                      variant="outline"
+                    >
+                      Hủy
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {/* Reviews List */}
+            {reviews.length === 0 ? (
+              <Card className="text-center py-12">
+                <div className="text-6xl mb-4">💬</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  Chưa có đánh giá nào
+                </h3>
+                <p className="text-gray-600">
+                  Hãy là người đầu tiên đánh giá khách sạn này!
+                </p>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {reviews.map((review) => (
+                  <Card key={review.review_id} className="p-6">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-bold text-gray-900">
+                            {review.userName || 'Khách hàng'}
+                          </span>
+                          <div className="flex">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <span
+                                key={i}
+                                className={
+                                  i < review.rating
+                                    ? 'text-yellow-400'
+                                    : 'text-gray-300'
+                                }
+                              >
+                                ⭐
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        {review.title && (
+                          <h4 className="font-semibold text-gray-900 mb-2">
+                            {review.title}
+                          </h4>
+                        )}
+                        <p className="text-sm text-gray-600">
+                          {new Date(review.createdAt || new Date()).toLocaleDateString('vi-VN')}
+                        </p>
+                      </div>
+                      {user && user.user_id === review.user_id && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditReview(review)}
+                          >
+                            ✏️ Sửa
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => handleDeleteReview(review.review_id)}
+                          >
+                            🗑️ Xóa
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-gray-700 whitespace-pre-line">
+                      {review.comment}
+                    </p>
+                    {review.reply && (
+                      <div className="mt-4 pl-6 border-l-4 border-blue-200 bg-blue-50 p-4 rounded">
+                        <p className="text-sm font-semibold text-blue-900 mb-1">
+                          📢 Phản hồi từ khách sạn:
+                        </p>
+                        <p className="text-sm text-blue-800">{review.reply.content}</p>
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
             )}
           </div>
 

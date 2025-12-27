@@ -45,7 +45,8 @@ export default function TourismDetailPage({
         
         // Load reviews for this destination from API
         try {
-          const allReviews = await reviewsApi.getAll();
+          // Note: reviewsApi.getAll now requires hotelId, use empty string for destinations
+          const allReviews = await reviewsApi.getAll('');
           const destinationReviews = allReviews.filter(
             r => r.destination_id === Number(resolvedParams.destination_id)
           );

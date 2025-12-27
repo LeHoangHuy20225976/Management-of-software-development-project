@@ -52,7 +52,7 @@ export default function AdminRevenuePage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-900">Báo cáo doanh thu</h1>
+        <h1 className="text-3xl font-bold text-black">Báo cáo doanh thu</h1>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i}>
@@ -67,7 +67,7 @@ export default function AdminRevenuePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">💰 Báo cáo doanh thu</h1>
+        <h1 className="text-3xl font-bold text-black">💰 Báo cáo doanh thu</h1>
         <div className="flex gap-2">
           <Button
             variant={viewMode === 'daily' ? 'primary' : 'outline'}
@@ -116,40 +116,40 @@ export default function AdminRevenuePage() {
 
       {/* Booking KPIs */}
       <Card>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">📊 Thống kê đặt phòng</h2>
+        <h2 className="text-xl font-bold text-black mb-4">📊 Thống kê đặt phòng</h2>
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
           <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className="text-3xl font-bold text-gray-900">{bookingKPIs?.totalBookings.toLocaleString()}</div>
-            <div className="text-sm text-gray-600">Tổng đơn</div>
+            <div className="text-3xl font-bold text-black">{bookingKPIs?.totalBookings.toLocaleString()}</div>
+            <div className="text-sm text-black font-medium">Tổng đơn</div>
           </div>
           <div className="text-center p-4 bg-green-50 rounded-lg">
             <div className="text-3xl font-bold text-green-600">{bookingKPIs?.completedBookings.toLocaleString()}</div>
-            <div className="text-sm text-gray-600">Hoàn thành</div>
+            <div className="text-sm text-black font-medium">Hoàn thành</div>
           </div>
           <div className="text-center p-4 bg-yellow-50 rounded-lg">
             <div className="text-3xl font-bold text-yellow-600">{bookingKPIs?.pendingBookings.toLocaleString()}</div>
-            <div className="text-sm text-gray-600">Đang xử lý</div>
+            <div className="text-sm text-black font-medium">Đang xử lý</div>
           </div>
           <div className="text-center p-4 bg-red-50 rounded-lg">
             <div className="text-3xl font-bold text-red-600">{bookingKPIs?.cancelledBookings.toLocaleString()}</div>
-            <div className="text-sm text-gray-600">Đã hủy</div>
+            <div className="text-sm text-black font-medium">Đã hủy</div>
           </div>
           <div className="text-center p-4 bg-blue-50 rounded-lg">
             <div className="text-3xl font-bold text-blue-600">{bookingKPIs?.occupancyRate}%</div>
-            <div className="text-sm text-gray-600">Tỷ lệ lấp đầy</div>
+            <div className="text-sm text-black font-medium">Tỷ lệ lấp đầy</div>
           </div>
           <div className="text-center p-4 bg-purple-50 rounded-lg">
             <div className="text-3xl font-bold text-purple-600">
               {bookingKPIs ? Math.round((bookingKPIs.completedBookings / bookingKPIs.totalBookings) * 100) : 0}%
             </div>
-            <div className="text-sm text-gray-600">Tỷ lệ thành công</div>
+            <div className="text-sm text-black font-medium">Tỷ lệ thành công</div>
           </div>
         </div>
       </Card>
 
       {/* Revenue Chart (Simple Bar Chart) */}
       <Card>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
+        <h2 className="text-xl font-bold text-black mb-4">
           📈 Biểu đồ doanh thu {viewMode === 'daily' ? '(30 ngày gần nhất)' : '(12 tháng)'}
         </h2>
         
@@ -159,7 +159,7 @@ export default function AdminRevenuePage() {
               const percentage = maxRevenue > 0 ? (day.revenue / maxRevenue) * 100 : 0;
               return (
                 <div key={day.date} className="flex items-center gap-4">
-                  <div className="w-20 text-sm text-gray-600">
+                  <div className="w-20 text-sm text-black font-medium">
                     {new Date(day.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
                   </div>
                   <div className="flex-1 bg-gray-100 rounded-full h-6 overflow-hidden">
@@ -168,7 +168,7 @@ export default function AdminRevenuePage() {
                       style={{ width: `${percentage}%` }}
                     />
                   </div>
-                  <div className="w-32 text-right text-sm font-medium text-gray-900">
+                  <div className="w-32 text-right text-sm font-medium text-black">
                     {formatCurrency(day.revenue).replace('₫', '')}
                   </div>
                 </div>
@@ -183,7 +183,7 @@ export default function AdminRevenuePage() {
               const monthNames = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
               return (
                 <div key={month.month} className="flex items-center gap-4">
-                  <div className="w-20 text-sm text-gray-600 font-medium">
+                  <div className="w-20 text-sm text-black font-semibold">
                     {monthNames[month.month - 1]}
                   </div>
                   <div className="flex-1 bg-gray-100 rounded-full h-8 overflow-hidden">
@@ -192,7 +192,7 @@ export default function AdminRevenuePage() {
                       style={{ width: `${percentage}%` }}
                     />
                   </div>
-                  <div className="w-36 text-right text-sm font-medium text-gray-900">
+                  <div className="w-36 text-right text-sm font-medium text-black">
                     {formatCurrency(month.revenue).replace('₫', '')}
                   </div>
                 </div>
@@ -205,12 +205,12 @@ export default function AdminRevenuePage() {
       {/* Quick Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
-          <h3 className="text-lg font-bold text-gray-900 mb-4">🎯 Mục tiêu tháng này</h3>
+          <h3 className="text-lg font-bold text-black mb-4">🎯 Mục tiêu tháng này</h3>
           <div className="space-y-4">
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Doanh thu</span>
-                <span className="font-medium">75%</span>
+                <span className="text-black font-medium">Doanh thu</span>
+                <span className="font-semibold text-black">75%</span>
               </div>
               <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
                 <div className="h-full bg-green-500 rounded-full" style={{ width: '75%' }}></div>
@@ -218,8 +218,8 @@ export default function AdminRevenuePage() {
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Số đơn đặt</span>
-                <span className="font-medium">82%</span>
+                <span className="text-black font-medium">Số đơn đặt</span>
+                <span className="font-semibold text-black">82%</span>
               </div>
               <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
                 <div className="h-full bg-blue-500 rounded-full" style={{ width: '82%' }}></div>
@@ -227,7 +227,7 @@ export default function AdminRevenuePage() {
             </div>
             <div>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Tỷ lệ lấp đầy</span>
+                <span className="text-black font-medium">Tỷ lệ lấp đầy</span>
                 <span className="font-medium">78%</span>
               </div>
               <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
@@ -238,22 +238,22 @@ export default function AdminRevenuePage() {
         </Card>
 
         <Card>
-          <h3 className="text-lg font-bold text-gray-900 mb-4">📋 Tóm tắt nhanh</h3>
+          <h3 className="text-lg font-bold text-black mb-4">📋 Tóm tắt nhanh</h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <span className="text-gray-600">Doanh thu hôm nay</span>
+              <span className="text-black font-medium">Doanh thu hôm nay</span>
               <span className="font-bold text-green-600">
                 {formatCurrency(revenueData?.daily[revenueData.daily.length - 1]?.revenue || 0)}
               </span>
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <span className="text-gray-600">Doanh thu hôm qua</span>
-              <span className="font-bold text-gray-900">
+              <span className="text-black font-medium">Doanh thu hôm qua</span>
+              <span className="font-bold text-black">
                 {formatCurrency(revenueData?.daily[revenueData.daily.length - 2]?.revenue || 0)}
               </span>
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <span className="text-gray-600">So với hôm qua</span>
+              <span className="text-black font-medium">So với hôm qua</span>
               <span className="font-bold text-green-600">+12%</span>
             </div>
           </div>

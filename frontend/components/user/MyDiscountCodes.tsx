@@ -9,28 +9,43 @@ import { formatDate } from '@/lib/utils/format';
 
 const mockCoupons: Coupon[] = [
   {
+    coupon_id: 1,
     id: '1',
     hotelId: '1',
     hotelName: 'Vinpearl Resort & Spa Nha Trang Bay',
+    discountType: 'percentage',
+    discountValue: 15,
     discount: 15,
+    minOrder: 500000,
     expiryDate: '2025-12-31',
     code: 'VINPEARL15',
+    description: 'Giảm 15% cho đặt phòng tại Vinpearl',
   },
   {
+    coupon_id: 2,
     id: '2',
     hotelId: '2',
     hotelName: 'InterContinental Danang Sun Peninsula Resort',
+    discountType: 'percentage',
+    discountValue: 20,
     discount: 20,
+    minOrder: 1000000,
     expiryDate: '2026-01-15',
     code: 'ICDANANG20',
+    description: 'Giảm 20% cho đặt phòng tại InterContinental',
   },
   {
+    coupon_id: 3,
     id: '3',
     hotelId: '3',
     hotelName: 'JW Marriott Phu Quoc Emerald Bay Resort & Spa',
+    discountType: 'percentage',
+    discountValue: 10,
     discount: 10,
+    minOrder: 800000,
     expiryDate: '2025-11-30',
     code: 'JWPHUQUOC10',
+    description: 'Giảm 10% cho đặt phòng tại JW Marriott',
   },
 ];
 

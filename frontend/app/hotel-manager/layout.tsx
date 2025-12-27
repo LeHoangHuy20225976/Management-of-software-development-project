@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Card } from '@/components/common/Card';
 import { HotelLogo } from '@/components/hotel/HotelLogo';
 import { ROUTES } from '@/lib/routes';
 import { cn } from '@/lib/utils/cn';
+import { useAuth } from '@/lib/context/AuthContext';
 
 const menuItems = [
   { name: 'Dashboard', href: '/hotel-manager/dashboard', icon: '📊' },
@@ -26,13 +27,11 @@ export default function HotelManagerLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
+  const { logout } = useAuth();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm('Bạn có chắc muốn đăng xuất?')) {
-      localStorage.removeItem('hotel_auth_token');
-      localStorage.removeItem('hotelManager');
-      router.push('/hotel-manager/login');
+      await logout();
     }
   };
 

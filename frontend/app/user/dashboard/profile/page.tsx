@@ -59,7 +59,7 @@ export default function UserProfilePage() {
       try {
         const [bookings, reviews] = await Promise.all([
           bookingsApi.getAll(),
-          reviewsApi.getAll(),
+          reviewsApi.getAll(''), // Empty hotelId for user's all reviews
         ]);
         setStats({
           bookings: bookings.length,

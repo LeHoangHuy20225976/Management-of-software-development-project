@@ -10,6 +10,9 @@ const minioConfig = {
   useSSL: process.env.MINIO_USE_SSL === "true",
   accessKey: process.env.MINIO_ACCESS_KEY || "minioadmin",
   secretKey: process.env.MINIO_SECRET_KEY || "minioadmin",
+  // Public URL for frontend to access images
+  publicEndPoint: process.env.MINIO_PUBLIC_ENDPOINT || "localhost",
+  publicPort: parseInt(process.env.MINIO_PUBLIC_PORT || "9002", 10),
 };
 
 // Create MinIO client instance
