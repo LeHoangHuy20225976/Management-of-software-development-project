@@ -20,6 +20,7 @@ type DisplayRoom = {
   maxGuests: number;
   quantity: number;
   availability: boolean;
+  amenities?: string[];
 };
 
 export default function HotelRoomsPage() {
@@ -39,6 +40,7 @@ export default function HotelRoomsPage() {
           maxGuests: room.max_guests,
           quantity: room.quantity ?? 0,
           availability: Boolean(room.availability),
+          amenities: room.amenities ?? [],
         }));
         setRooms(normalized);
       } catch (error) {

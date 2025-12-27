@@ -418,6 +418,50 @@ image_url: string
 
 ---
 
+## 16. Payment Table
+
+**Database:** `Payment`
+```sql
+payment_id SERIAL PRIMARY KEY
+booking_id INTEGER REFERENCES Booking(booking_id) NOT NULL
+amount BIGINT NOT NULL
+payment_method VARCHAR(50) DEFAULT 'vnpay'
+status VARCHAR(50) DEFAULT 'pending'
+vnp_txn_ref VARCHAR(100) UNIQUE
+vnp_transaction_no VARCHAR(100)
+vnp_response_code VARCHAR(10)
+vnp_bank_code VARCHAR(50)
+vnp_pay_date VARCHAR(20)
+vnp_order_info TEXT
+payment_url TEXT
+ip_address VARCHAR(50)
+created_at TIMESTAMP
+updated_at TIMESTAMP
+```
+
+**TypeScript:** `Payment`
+```typescript
+payment_id: number
+booking_id: number
+amount: number
+payment_method: 'vnpay' | 'momo' | 'cash' | 'bank_transfer'
+status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'cancelled'
+vnp_txn_ref: string | null
+vnp_transaction_no: string | null
+vnp_response_code: string | null
+vnp_bank_code: string | null
+vnp_pay_date: string | null
+vnp_order_info: string | null
+payment_url: string | null
+ip_address: string | null
+created_at: string
+updated_at: string
+```
+
+✅ **Status:** Đã match chính xác với database
+
+---
+
 ## Lưu ý quan trọng
 
 ### 1. Primary Key Naming

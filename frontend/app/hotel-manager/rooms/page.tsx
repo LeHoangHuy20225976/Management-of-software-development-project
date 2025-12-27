@@ -14,6 +14,12 @@ type DisplayRoom = {
   maxGuests: number;
   availability: boolean;
   quantity: number;
+  size?: string;
+  beds?: string;
+  price?: number;
+  available?: number;
+  total?: number;
+  amenities?: string[];
 };
 
 const convertRoomType = (roomType: RoomType): DisplayRoom => ({
@@ -23,6 +29,12 @@ const convertRoomType = (roomType: RoomType): DisplayRoom => ({
   maxGuests: roomType.max_guests,
   availability: Boolean(roomType.availability),
   quantity: roomType.quantity ?? 0,
+  size: roomType.size ? `${roomType.size}m²` : undefined,
+  beds: roomType.beds ?? undefined,
+  price: roomType.basePrice ?? 0,
+  available: roomType.available ?? roomType.quantity ?? 0,
+  total: roomType.quantity ?? 0,
+  amenities: roomType.amenities ?? [],
 });
 
 export default function HotelRoomsPage() {
@@ -95,13 +107,27 @@ export default function HotelRoomsPage() {
   const occupancyRate =
     totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
+  // Format currency helper
+  const formatCurrency = (amount: number | undefined) => {
+    if (amount === undefined || amount === 0) return 'Liên hệ';
+    return amount.toLocaleString('vi-VN') + '₫';
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-900">Quản lý phòng</h1>
-        <Link href="/hotel-manager/rooms/create">
-          <Button>+ Thêm loại phòng mới</Button>
-        </Link>
+        <div className="flex gap-3">
+          <Link href="/hotel-manager/rooms/inventory">
+            <Button variant="outline">📅 Lịch phòng trống</Button>
+          </Link>
+          <Link href="/hotel-manager/rooms/types">
+            <Button variant="outline">📋 Quản lý loại phòng</Button>
+          </Link>
+          <Link href="/hotel-manager/rooms/create">
+            <Button>+ Thêm loại phòng mới</Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}
@@ -201,7 +227,7 @@ export default function HotelRoomsPage() {
 
                   <div className="space-y-1 text-sm text-gray-800 mb-3">
                     <p>
-                      📏 {room.size} • 🛏️ {room.beds} • 👥 {room.maxGuests}{' '}
+                      📏 {room.size || 'N/A'} • 🛏️ {room.beds || 'N/A'} • 👥 {room.maxGuests}{' '}
                       khách
                     </p>
                     <p className="font-semibold text-[#0071c2] text-lg">
@@ -211,10 +237,10 @@ export default function HotelRoomsPage() {
                       Trống:{' '}
                       <span
                         className={`font-semibold ${
-                          room.available > 0 ? 'text-green-600' : 'text-red-600'
+                          (room.available ?? 0) > 0 ? 'text-green-600' : 'text-red-600'
                         }`}
                       >
-                        {room.available}/{room.total}
+                        {room.available ?? 0}/{room.total ?? 0}
                       </span>
                     </p>
                   </div>

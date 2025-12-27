@@ -25,7 +25,7 @@ type NewRuleState = {
   startDate: string;
   endDate: string;
   price: string;
-  type: PricingRule['type'];
+  type: 'seasonal' | 'weekend' | 'holiday';
 };
 
 export default function PricingPage() {

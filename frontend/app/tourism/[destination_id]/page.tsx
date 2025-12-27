@@ -6,8 +6,10 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
-import { tourismApi } from '@/lib/api/services';
-import type { TourismSpot } from '@/types';
+import { destinationsApi } from '@/lib/api/services';
+import { useAuth } from '@/lib/context/AuthContext';
+import { getMockReviews } from '@/lib/utils/mockData';
+import type { TourismSpot, Review } from '@/types';
 
 export default function TourismDetailPage({
   params,
@@ -15,16 +17,25 @@ export default function TourismDetailPage({
   params: Promise<{ destination_id: string }>;
 }) {
   const resolvedParams = use(params);
+  const { user, isAuthenticated } = useAuth();
   const [destination, setDestination] = useState<TourismSpot | null>(null);
   const [relatedSpots, setRelatedSpots] = useState<TourismSpot[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Review form state
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewTitle, setReviewTitle] = useState('');
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         const [spot, allSpots] = await Promise.all([
-          tourismApi.getById(String(resolvedParams.destination_id)),
-          tourismApi.getAll(),
+          destinationsApi.getById(String(resolvedParams.destination_id)),
+          destinationsApi.getAll(),
         ]);
         setDestination(spot);
         setRelatedSpots(
@@ -32,6 +43,13 @@ export default function TourismDetailPage({
             .filter((s) => s.destination_id !== spot?.destination_id)
             .slice(0, 3)
         );
+        
+        // Load reviews for this destination
+        const allReviews = getMockReviews();
+        const destinationReviews = allReviews.filter(
+          r => r.destination_id === Number(resolvedParams.destination_id)
+        );
+        setReviews(destinationReviews);
       } catch (error) {
         console.error('Error loading tourism spot:', error);
       } finally {
@@ -40,6 +58,41 @@ export default function TourismDetailPage({
     };
     loadData();
   }, [resolvedParams.destination_id]);
+
+  // Handle submit review
+  const handleSubmitReview = async () => {
+    if (!reviewComment.trim()) {
+      alert('Vui lòng nhập nội dung đánh giá!');
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      const newReview = await destinationsApi.addReview(
+        String(resolvedParams.destination_id),
+        {
+          user_id: user?.user_id || 0,
+          rating: reviewRating,
+          comment: reviewComment,
+          title: reviewTitle,
+          userName: user?.name || 'Khách',
+          userAvatar: user?.profile_image || undefined,
+        }
+      );
+      
+      setReviews([newReview, ...reviews]);
+      setShowReviewForm(false);
+      setReviewRating(5);
+      setReviewTitle('');
+      setReviewComment('');
+      alert('Cảm ơn bạn đã đánh giá!');
+    } catch (error) {
+      console.error('Submit review error:', error);
+      alert('Không thể gửi đánh giá, vui lòng thử lại.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -305,7 +358,166 @@ export default function TourismDetailPage({
               </div>
             </div>
           </div>
+          {/* Reviews Section */}
+          <section className="mt-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-3xl font-bold text-gray-900">
+                Đánh giá từ du khách ({reviews.length})
+              </h2>
+              {isAuthenticated ? (
+                <Button onClick={() => setShowReviewForm(!showReviewForm)}>
+                  {showReviewForm ? 'Hủy' : '✍️ Viết đánh giá'}
+                </Button>
+              ) : (
+                <Link href="/login">
+                  <Button variant="outline">Đăng nhập để đánh giá</Button>
+                </Link>
+              )}
+            </div>
 
+            {/* Review Form */}
+            {showReviewForm && (
+              <Card className="mb-6">
+                <h3 className="text-xl font-bold text-gray-900 mb-4">Viết đánh giá của bạn</h3>
+                
+                {/* Rating Stars */}
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Đánh giá sao *</label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewRating(star)}
+                        className={`text-3xl transition-transform hover:scale-110 ${star <= reviewRating ? 'text-yellow-400' : 'text-gray-300'}`}
+                      >
+                        ⭐
+                      </button>
+                    ))}
+                    <span className="ml-2 text-gray-600 self-center">{reviewRating}/5 sao</span>
+                  </div>
+                </div>
+
+                {/* Title */}
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Tiêu đề (tùy chọn)</label>
+                  <input
+                    type="text"
+                    value={reviewTitle}
+                    onChange={(e) => setReviewTitle(e.target.value)}
+                    placeholder="VD: Trải nghiệm tuyệt vời!"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2]"
+                  />
+                </div>
+
+                {/* Comment */}
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Nội dung đánh giá *</label>
+                  <textarea
+                    value={reviewComment}
+                    onChange={(e) => setReviewComment(e.target.value)}
+                    placeholder="Chia sẻ trải nghiệm của bạn tại đây..."
+                    rows={4}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] resize-none"
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleSubmitReview}
+                    disabled={submittingReview || !reviewComment.trim()}
+                  >
+                    {submittingReview ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Đang gửi...
+                      </span>
+                    ) : (
+                      'Gửi đánh giá'
+                    )}
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowReviewForm(false)}>
+                    Hủy
+                  </Button>
+                </div>
+              </Card>
+            )}
+
+            {/* Reviews List */}
+            {reviews.length === 0 ? (
+              <Card className="text-center py-8">
+                <div className="text-5xl mb-4">💬</div>
+                <p className="text-gray-600">Chưa có đánh giá nào. Hãy là người đầu tiên đánh giá!</p>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {reviews.map((review) => (
+                  <Card key={review.review_id}>
+                    <div className="flex items-start gap-4">
+                      <div className="flex-shrink-0">
+                        {review.userAvatar ? (
+                          <img
+                            src={review.userAvatar}
+                            alt={review.userName}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0071c2] to-[#005999] flex items-center justify-center text-white font-bold">
+                            {(review.userName || 'K').charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <h4 className="font-bold text-gray-900">{review.userName || 'Khách'}</h4>
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <span className="text-yellow-400">{'⭐'.repeat(review.rating)}</span>
+                              <span>•</span>
+                              <span>{new Date(review.date_created).toLocaleDateString('vi-VN')}</span>
+                              {review.verified && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-green-600">✓ Đã xác minh</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {review.title && (
+                          <h5 className="font-semibold text-gray-900 mb-1">{review.title}</h5>
+                        )}
+                        <p className="text-gray-700">{review.comment}</p>
+                        {review.images && review.images.length > 0 && (
+                          <div className="flex gap-2 mt-3">
+                            {review.images.map((img, idx) => (
+                              <img
+                                key={idx}
+                                src={img}
+                                alt={`Review image ${idx + 1}`}
+                                className="w-20 h-20 object-cover rounded-lg"
+                              />
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-4 mt-3 text-sm">
+                          <button className="text-gray-500 hover:text-[#0071c2] flex items-center gap-1">
+                            👍 Hữu ích ({review.helpful || 0})
+                          </button>
+                          <button className="text-gray-500 hover:text-red-500">
+                            🚩 Báo cáo
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </section>
           <section className="mt-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-6">
               Điểm đến liên quan
