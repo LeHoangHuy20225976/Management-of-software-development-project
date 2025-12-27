@@ -4,8 +4,14 @@
  * Mock data is stored in localStorage for persistence
  */
 
-import { API_CONFIG } from './config';
-import { apiClient } from './client';
+import { API_CONFIG } from "./config";
+import { apiClient } from "./client";
+import {
+  mockTourismSpots,
+  mockReviews as defaultMockReviews,
+  mockBookings as defaultMockBookings,
+  mockUser as defaultMockUser,
+} from "../mock/data";
 import {
   getMockUser,
   updateMockUser,
@@ -14,10 +20,11 @@ import {
 import type { Hotel, TourismSpot, Review, Booking, User, SearchFilters, RoomType, Payment, Room, Destination, Image, Coupon } from '@/types';
 
 // Helper to simulate API delay for mock data
-const mockDelay = (ms: number = 500) => new Promise(resolve => setTimeout(resolve, ms));
+const mockDelay = (ms: number = 500) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
 const ensureMockLayerReady = () => {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return;
   }
   initializeMockData();
@@ -182,7 +189,7 @@ export const couponsApi = {
       ensureMockLayerReady();
       await mockDelay();
       // Get coupons from localStorage or return default coupons
-      const cached = localStorage.getItem('userCoupons');
+      const cached = localStorage.getItem("userCoupons");
       if (cached) {
         return JSON.parse(cached);
       }
@@ -190,73 +197,79 @@ export const couponsApi = {
       const defaultCoupons: Coupon[] = [
         {
           coupon_id: 1,
-          code: 'WELCOME2024',
-          description: 'Giảm 10% cho đơn đặt phòng đầu tiên',
-          discountType: 'percentage',
+          code: "WELCOME2024",
+          description: "Giảm 10% cho đơn đặt phòng đầu tiên",
+          discountType: "percentage",
           discountValue: 10,
           minOrder: 500000,
           maxDiscount: 200000,
-          expiryDate: '2025-03-31',
+          expiryDate: "2025-03-31",
           usageCount: 0,
           maxUsage: 1,
         },
         {
           coupon_id: 2,
-          code: 'NEWYEAR25',
-          description: 'Giảm 500K cho đơn từ 2 triệu',
-          discountType: 'fixed',
+          code: "NEWYEAR25",
+          description: "Giảm 500K cho đơn từ 2 triệu",
+          discountType: "fixed",
           discountValue: 500000,
           minOrder: 2000000,
-          expiryDate: '2025-01-31',
+          expiryDate: "2025-01-31",
           usageCount: 0,
           maxUsage: 2,
         },
         {
           coupon_id: 3,
-          code: 'SUMMER2024',
-          description: 'Giảm 15% cho kỳ nghỉ hè',
-          discountType: 'percentage',
+          code: "SUMMER2024",
+          description: "Giảm 15% cho kỳ nghỉ hè",
+          discountType: "percentage",
           discountValue: 15,
           minOrder: 1000000,
           maxDiscount: 500000,
-          expiryDate: '2024-09-30',
+          expiryDate: "2024-09-30",
           usageCount: 1,
           maxUsage: 1,
         },
       ];
-      localStorage.setItem('userCoupons', JSON.stringify(defaultCoupons));
+      localStorage.setItem("userCoupons", JSON.stringify(defaultCoupons));
       return defaultCoupons;
     }
 
     // Real API - backend may need to implement this endpoint
     try {
-      return await apiClient.get<Coupon[]>('/coupons/user');
+      return await apiClient.get<Coupon[]>("/coupons/user");
     } catch {
-      console.warn('Coupons API endpoint not available, returning empty array');
+      console.warn("Coupons API endpoint not available, returning empty array");
       return [];
     }
   },
 
-  async validateCoupon(code: string, orderAmount: number): Promise<{ valid: boolean; discount?: number; message?: string }> {
+  async validateCoupon(
+    code: string,
+    orderAmount: number
+  ): Promise<{ valid: boolean; discount?: number; message?: string }> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
       const coupons = await this.getAll();
-      const coupon = coupons.find(c => c.code === code);
-      
+      const coupon = coupons.find((c) => c.code === code);
+
       if (!coupon) {
-        return { valid: false, message: 'Mã giảm giá không tồn tại' };
+        return { valid: false, message: "Mã giảm giá không tồn tại" };
       }
-      
+
       if (new Date(coupon.expiryDate) < new Date()) {
-        return { valid: false, message: 'Mã giảm giá đã hết hạn' };
+        return { valid: false, message: "Mã giảm giá đã hết hạn" };
       }
-      
+
       if (orderAmount < coupon.minOrder) {
-        return { valid: false, message: `Đơn hàng tối thiểu ${coupon.minOrder.toLocaleString()}đ` };
+        return {
+          valid: false,
+          message: `Đơn hàng tối thiểu ${coupon.minOrder.toLocaleString()}đ`,
+        };
       }
-      
+
       let discount = 0;
-      if (coupon.discountType === 'percentage') {
+      if (coupon.discountType === "percentage") {
         discount = (orderAmount * coupon.discountValue) / 100;
         if (coupon.maxDiscount) {
           discount = Math.min(discount, coupon.maxDiscount);
@@ -264,11 +277,15 @@ export const couponsApi = {
       } else {
         discount = coupon.discountValue;
       }
-      
+
       return { valid: true, discount };
     }
 
-    return apiClient.post<{ valid: boolean; discount?: number; message?: string }>('/coupons/validate', { code, orderAmount });
+    return apiClient.post<{
+      valid: boolean;
+      discount?: number;
+      message?: string;
+    }>("/coupons/validate", { code, orderAmount });
   },
 };
 
@@ -450,7 +467,15 @@ export const hotelManagerApi = {
   },
 
   // Facilities Management
-  async getFacilities(hotelId: string): Promise<{ id: number; name: string; icon: string; category: string; isActive: boolean }[]> {
+  async getFacilities(hotelId: string): Promise<
+    {
+      id: number;
+      name: string;
+      icon: string;
+      category: string;
+      isActive: boolean;
+    }[]
+  > {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
@@ -475,11 +500,23 @@ export const hotelManagerApi = {
     }));
   },
 
-  async updateFacilities(hotelId: string, facilities: { id: number; name: string; icon: string; category: string; isActive: boolean }[]): Promise<{ success: boolean }> {
+  async updateFacilities(
+    hotelId: string,
+    facilities: {
+      id: number;
+      name: string;
+      icon: string;
+      category: string;
+      isActive: boolean;
+    }[]
+  ): Promise<{ success: boolean }> {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
-      localStorage.setItem(`hotelFacilities_${hotelId}`, JSON.stringify(facilities));
+      localStorage.setItem(
+        `hotelFacilities_${hotelId}`,
+        JSON.stringify(facilities)
+      );
       return { success: true };
     }
     const selected = facilities.filter((f) => f.isActive).map((f) => ({ facility_id: f.id }));
@@ -492,7 +529,15 @@ export const hotelManagerApi = {
   },
 
   // Images Management
-  async getImages(hotelId: string): Promise<{ id: number; url: string; type: string; caption: string; isThumbnail: boolean }[]> {
+  async getImages(hotelId: string): Promise<
+    {
+      id: number;
+      url: string;
+      type: string;
+      caption: string;
+      isThumbnail: boolean;
+    }[]
+  > {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
@@ -502,10 +547,17 @@ export const hotelManagerApi = {
       }
       return [];
     }
-    return apiClient.get<any[]>(API_CONFIG.ENDPOINTS.VIEW_HOTEL, { hotel_id: hotelId }).then(data => (data as any).images || []);
+    return apiClient
+      .get<any[]>(API_CONFIG.ENDPOINTS.VIEW_HOTEL, { hotel_id: hotelId })
+      .then((data) => (data as any).images || []);
   },
 
-  async uploadImages(hotelId: string, files: File[], imageType: string, caption: string): Promise<{ id: number; url: string; type: string; caption: string }[]> {
+  async uploadImages(
+    hotelId: string,
+    files: File[],
+    imageType: string,
+    caption: string
+  ): Promise<{ id: number; url: string; type: string; caption: string }[]> {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
@@ -515,7 +567,7 @@ export const hotelManagerApi = {
         type: imageType,
         caption: caption,
         isThumbnail: false,
-        uploadedAt: new Date().toISOString().split('T')[0],
+        uploadedAt: new Date().toISOString().split("T")[0],
       }));
       const cached = localStorage.getItem(`hotelImages_${hotelId}`);
       const existingImages = cached ? JSON.parse(cached) : [];
@@ -525,13 +577,20 @@ export const hotelManagerApi = {
     }
     // Real API: Use FormData for file upload
     const formData = new FormData();
-    files.forEach(file => formData.append('images', file));
-    formData.append('type', imageType);
-    formData.append('caption', caption);
-    return apiClient.postFormData<any[]>(API_CONFIG.ENDPOINTS.UPLOAD_HOTEL_IMAGES, { hotel_id: hotelId }, formData);
+    files.forEach((file) => formData.append("images", file));
+    formData.append("type", imageType);
+    formData.append("caption", caption);
+    return apiClient.postFormData<any[]>(
+      API_CONFIG.ENDPOINTS.UPLOAD_HOTEL_IMAGES,
+      { hotel_id: hotelId },
+      formData
+    );
   },
 
-  async deleteImage(hotelId: string, imageId: number): Promise<{ success: boolean }> {
+  async deleteImage(
+    hotelId: string,
+    imageId: number
+  ): Promise<{ success: boolean }> {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
@@ -539,14 +598,22 @@ export const hotelManagerApi = {
       if (cached) {
         const images = JSON.parse(cached);
         const filtered = images.filter((img: any) => img.id !== imageId);
-        localStorage.setItem(`hotelImages_${hotelId}`, JSON.stringify(filtered));
+        localStorage.setItem(
+          `hotelImages_${hotelId}`,
+          JSON.stringify(filtered)
+        );
       }
       return { success: true };
     }
-    return apiClient.delete<any>('/hotel-profile/delete-image/:image_id', { image_id: String(imageId) });
+    return apiClient.delete<any>("/hotel-profile/delete-image/:image_id", {
+      image_id: String(imageId),
+    });
   },
 
-  async setThumbnail(hotelId: string, imageId: number): Promise<{ success: boolean }> {
+  async setThumbnail(
+    hotelId: string,
+    imageId: number
+  ): Promise<{ success: boolean }> {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
@@ -555,13 +622,19 @@ export const hotelManagerApi = {
         const images = JSON.parse(cached);
         const updatedImages = images.map((img: any) => ({
           ...img,
-          isThumbnail: img.id === imageId
+          isThumbnail: img.id === imageId,
         }));
-        localStorage.setItem(`hotelImages_${hotelId}`, JSON.stringify(updatedImages));
+        localStorage.setItem(
+          `hotelImages_${hotelId}`,
+          JSON.stringify(updatedImages)
+        );
       }
       return { success: true };
     }
-    return apiClient.put<any>('/hotel-profile/set-thumbnail/:hotel_id', { hotel_id: hotelId, image_id: imageId });
+    return apiClient.put<any>("/hotel-profile/set-thumbnail/:hotel_id", {
+      hotel_id: hotelId,
+      image_id: imageId,
+    });
   },
 };
 
@@ -574,7 +647,7 @@ export const paymentApi = {
   async createPayment(data: {
     bookingId: number;
     amount: number;
-    paymentMethod: 'vnpay' | 'momo' | 'cash' | 'bank_transfer';
+    paymentMethod: "vnpay" | "momo" | "cash" | "bank_transfer";
     bankCode?: string;
     orderInfo?: string;
     returnUrl?: string;
@@ -605,7 +678,7 @@ export const paymentApi = {
   // Mark payment as completed (for mock/testing)
   async completePayment(paymentId: string): Promise<Payment> {
     // Real API would handle this via VNPay callback
-    throw new Error('Use VNPay callback for completing payments');
+    throw new Error("Use VNPay callback for completing payments");
   },
 };
 
@@ -624,7 +697,10 @@ export const roomInventoryApi = {
     const params: Record<string, string> = { hotelId };
     if (checkIn) params.checkIn = checkIn;
     if (checkOut) params.checkOut = checkOut;
-    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.ROOM_AVAILABLE, params);
+    return apiClient.get<RoomType[]>(
+      API_CONFIG.ENDPOINTS.ROOM_AVAILABLE,
+      params
+    );
   },
 
   async getRoomType(typeId: string): Promise<RoomType | null> {
@@ -719,7 +795,7 @@ export const userProfileApi = {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to upload image');
+      throw new Error("Failed to upload image");
     }
 
     return response.json();
@@ -927,8 +1003,8 @@ export interface AdminUser {
   name: string;
   email: string;
   phone?: string;
-  role: 'customer' | 'hotel_manager' | 'admin';
-  status: 'active' | 'inactive' | 'banned';
+  role: "customer" | "hotel_manager" | "admin";
+  status: "active" | "inactive" | "banned";
   created_at: string;
   last_login?: string;
   bookings_count?: number;
@@ -939,7 +1015,7 @@ export interface AdminHotel {
   name: string;
   city: string;
   district: string;
-  status: 'pending' | 'approved' | 'rejected' | 'locked';
+  status: "pending" | "approved" | "rejected" | "locked";
   manager_name: string;
   manager_email: string;
   rooms_count: number;
