@@ -5,6 +5,7 @@ const hotelProfileValidation = {
     body('hotelData.hotelName').notEmpty().withMessage('Hotel name is required'),
     body('hotelData.address').notEmpty().withMessage('Address is required'),
     body('hotelData.contact_phone').notEmpty().withMessage('Contact phone is required'),
+    body('hotelData.rating').optional().isFloat({ min: 0, max: 5 }).withMessage('Rating must be between 0 and 5'),
     body('hotelData.longitude').optional().isFloat().withMessage('Longitude must be a number'),
     body('hotelData.latitute').optional().isFloat().withMessage('Latitute must be a number'),
     body('hotelData.description').optional(),

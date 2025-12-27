@@ -142,6 +142,15 @@ const hotelProfileController = {
         } catch(error) {
             return responseUtils.error(res, error.message);
         }
+    },
+    getHotelForHotelOwner: async(req, res) => {
+        try {
+            const userid = req.user.user_id;
+            const hotels =  await hotelProfileService.getHotelForHotelOwner(userid);
+            return responseUtils.ok(res, hotels);
+        } catch(error) {
+            return responseUtils.error(res, error.message);
+        }
     }
 };
 module.exports = hotelProfileController;

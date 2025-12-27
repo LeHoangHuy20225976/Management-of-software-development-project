@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { hotelManagerApi } from '@/lib/api/services';
+import { API_CONFIG, getApiUrl } from '@/lib/api/config';
 
 export default function HotelProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
