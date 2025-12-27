@@ -31,10 +31,13 @@ export const API_CONFIG = {
     UPDATE_HOTEL: '/hotel-profile/update-hotel/:hotel_id',
     DELETE_HOTEL: '/hotel-profile/delete-hotel/:hotel_id',
     ADD_FACILITY: '/hotel-profile/add-facility/:hotel_id',
+    VIEW_FACILITIES: '/hotel-profile/view-facilities/:hotel_id',
     
     // Room Type Management
     ADD_ROOM_TYPE: '/hotel-profile/add-room-type',
     VIEW_ROOM_TYPES: '/hotel-profile/view-room-types/:hotel_id',
+    VIEW_ROOM_TYPE: '/hotel-profile/view-room-type/:type_id',
+    UPDATE_ROOM_TYPE: '/hotel-profile/update-room-type/:type_id',
     
     // Room Management
     ADD_ROOM: '/hotel-profile/add-room',

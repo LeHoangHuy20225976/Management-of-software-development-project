@@ -448,6 +448,40 @@ const hotelProfileService = {
         console.log("Room types with prices: ", roomTypes.RoomPrice);
         return roomTypes;
     },
+    getFacilitiesForHotel: async(hotelid, userid) => {
+        const hotel = await db.Hotel.findByPk(hotelid);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+        if(hotel.hotel_owner !== userid) {
+            throw new Error("You are not the owner of this hotel");
+        }
+
+        const facilities = await db.HotelFacilities.findAll({
+            attributes: ['facility_id', 'name']
+        });
+
+        const facilitiesPossessing = await db.FacilitiesPossessing.findAll({
+            where: { hotel_id: hotel.hotel_id },
+            include: [{
+                model: db.HotelFacilities,
+                as: 'HotelFacility',
+                attributes: ['facility_id', 'name']
+            }]
+        });
+
+        const hotelFacilities = facilitiesPossessing.map(fp => ({
+            facility_id: fp.HotelFacility.facility_id,
+            name: fp.HotelFacility.name,
+            description: fp.description ?? null,
+        }));
+
+        return {
+            hotel_id: Number(hotelid),
+            facilities,
+            hotel_facilities: hotelFacilities,
+        };
+    },
     getAllRoomsForHotel: async(hotelid) => {
         const hotel = await db.Hotel.findByPk(hotelid);
         if(!hotel) {
@@ -632,6 +666,70 @@ const hotelProfileService = {
         if(Object.prototype.hasOwnProperty.call(roomData, 'notes')) allowedUpdates.notes = roomData.notes;
 
         await db.Room.update(allowedUpdates, { where: { room_id: room.room_id } });
+    },
+    viewRoomType: async(typeid, userid) => {
+        const roomType = await db.RoomType.findByPk(typeid);
+        if(!roomType) {
+            throw new Error("Room type not found");
+        }
+        const hotel = await db.Hotel.findByPk(roomType.hotel_id);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+        if(hotel.hotel_owner !== userid) {
+            throw new Error("You are not the owner of this hotel");
+        }
+
+        const roomPrice = await db.RoomPrice.findOne({
+            where: { type_id: roomType.type_id }
+        });
+
+        if(!roomPrice) {
+            return {
+                typeData: roomType,
+                priceData: null,
+            };
+        }
+
+        return {
+            typeData: roomType,
+            priceData: {
+                basic_price: roomPrice.basic_price,
+                special_price: roomPrice.special_price,
+                discount: roomPrice.discount,
+                event: roomPrice.event,
+                start_date: roomPrice.start_date,
+                end_date: roomPrice.end_date,
+            }
+        };
+    },
+    updateRoomType: async(typeid, userid, typeData = {}) => {
+        const roomType = await db.RoomType.findByPk(typeid);
+        if(!roomType) {
+            throw new Error("Room type not found");
+        }
+        const hotel = await db.Hotel.findByPk(roomType.hotel_id);
+        if(!hotel) {
+            throw new Error("Hotel not found");
+        }
+        if(hotel.hotel_owner !== userid) {
+            throw new Error("You are not the owner of this hotel");
+        }
+
+        if(Object.prototype.hasOwnProperty.call(typeData, 'type')) {
+            roomType.type = typeData.type;
+        }
+        if(Object.prototype.hasOwnProperty.call(typeData, 'availability')) {
+            roomType.availability = typeData.availability;
+        }
+        if(Object.prototype.hasOwnProperty.call(typeData, 'max_guests')) {
+            roomType.max_guests = typeData.max_guests;
+        }
+        if(Object.prototype.hasOwnProperty.call(typeData, 'description')) {
+            roomType.description = typeData.description;
+        }
+
+        await roomType.save();
     },
     getAllRooms: async() => {
         const rooms = await db.Room.findAll();

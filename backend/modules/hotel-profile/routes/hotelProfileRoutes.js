@@ -98,6 +98,12 @@ router.get(
   hotelProfileController.getAllTypeForHotel
 );
 router.get(
+  "/view-facilities/:hotel_id",
+  middlewares([authMiddleware, rbacMiddleware(["hotel:update"])]),
+  validate([hotelProfileValidation.viewFacilities]),
+  hotelProfileController.getFacilitiesForHotel
+);
+router.get(
   "/view-all-rooms/:hotel_id",
   validate([hotelProfileValidation.viewAllRooms]),
   hotelProfileController.getAllRoomsForHotel
@@ -113,6 +119,18 @@ router.put(
   middlewares([authMiddleware, rbacMiddleware(["room:update"])]),
   validate([hotelProfileValidation.updateRoom]),
   hotelProfileController.updateRoom
+);
+router.get(
+  "/view-room-type/:type_id",
+  middlewares([authMiddleware, rbacMiddleware(["room:update"])]),
+  validate([hotelProfileValidation.viewRoomType]),
+  hotelProfileController.viewRoomType
+);
+router.put(
+  "/update-room-type/:type_id",
+  middlewares([authMiddleware, rbacMiddleware(["room:update"])]),
+  validate([hotelProfileValidation.updateRoomType]),
+  hotelProfileController.updateRoomType
 );
 router.get("/all-rooms", hotelProfileController.getAllRooms);
 router.get("/all-hotels", hotelProfileController.getAllHotels);
