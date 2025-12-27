@@ -194,6 +194,16 @@ export default function HotelLoginPage() {
                   </Link>
                 </p>
               </div>
+
+              <div className="mt-4 pt-4 border-t border-gray-100 text-center">
+                <Link
+                  href="/hotel-manager/attendance"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-[#0071c2] transition-colors"
+                >
+                  <span className="text-xl">📷</span>
+                  Check-in nhân viên (Face ID)
+                </Link>
+              </div>
             </Card>
 
             {/* Benefits */}
