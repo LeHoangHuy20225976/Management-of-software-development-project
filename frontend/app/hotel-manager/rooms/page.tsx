@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { hotelManagerApi } from '@/lib/api/services';
+import { apiClient } from '@/lib/api/client';
+import { API_CONFIG } from '@/lib/api/config';
 import type { RoomType } from '@/types';
 
 type DisplayRoom = {
@@ -31,7 +33,23 @@ const convertRoomType = (roomType: RoomType): DisplayRoom => ({
   quantity: roomType.quantity ?? 0,
   size: roomType.size ? `${roomType.size}m²` : undefined,
   beds: roomType.beds ?? undefined,
-  price: roomType.basePrice ?? 0,
+  // Display: prefer `special_price` if present, otherwise `basic_price` (values might be BIGINT strings).
+  price: (() => {
+    const rt = roomType as any;
+    const priceData = rt?.priceData ?? rt?.RoomPrice ?? rt?.roomPrice ?? null;
+    const toNumberOrNull = (v: unknown): number | null => {
+      if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+      if (typeof v === 'string' && v.trim() !== '') {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+      }
+      return null;
+    };
+    const special = toNumberOrNull(priceData?.special_price);
+    const basic = toNumberOrNull(priceData?.basic_price);
+    const fallback = toNumberOrNull(priceData?.price);
+    return special ?? basic ?? fallback ?? 0;
+  })(),
   available: roomType.available ?? roomType.quantity ?? 0,
   total: roomType.quantity ?? 0,
   amenities: roomType.amenities ?? [],
@@ -41,15 +59,42 @@ export default function HotelRoomsPage() {
   const [rooms, setRooms] = useState<DisplayRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'available' | 'full'>('all');
+  const [hotels, setHotels] = useState<Array<Record<string, unknown>>>([]);
+  const [selectedHotelId, setSelectedHotelId] = useState<string>('');
 
   useEffect(() => {
-    loadRooms();
+    const loadHotels = async () => {
+      try {
+        const myHotels = await hotelManagerApi.getMyHotels();
+        const normalized = (myHotels as unknown as Array<Record<string, unknown>>) ?? [];
+        setHotels(normalized);
+        const firstId = normalized.length
+          ? String((normalized[0] as any).hotel_id ?? (normalized[0] as any).id)
+          : '';
+        setSelectedHotelId(firstId);
+      } catch (error) {
+        console.error('Error loading hotels:', error);
+        alert('Lỗi khi tải danh sách khách sạn!');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadHotels();
   }, []);
 
-  const loadRooms = async () => {
+  useEffect(() => {
+    if (!selectedHotelId) return;
+    loadRooms(selectedHotelId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedHotelId]);
+
+  const loadRooms = async (hotelId: string) => {
     try {
-      const hotelId = 'h1';
-      const roomTypes = await hotelManagerApi.getRooms(hotelId);
+      setLoading(true);
+      const roomTypes = await apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ROOM_TYPES, {
+        hotel_id: hotelId,
+      });
 
       const displayRooms = roomTypes.map((rt) => convertRoomType(rt));
 
@@ -68,9 +113,10 @@ export default function HotelRoomsPage() {
     }
 
     try {
-      await hotelManagerApi.deleteRoom(roomId);
-      alert('✅ Xóa phòng thành công!');
-      loadRooms(); // Reload list
+      alert('Backend chưa hỗ trợ xoá loại phòng ở màn này.');
+      return;
+      // alert('✅ Xóa phòng thành công!');
+      // loadRooms(); // Reload list
     } catch (error) {
       console.error('Error deleting room:', error);
       alert('❌ Có lỗi khi xóa phòng!');
@@ -200,6 +246,31 @@ export default function HotelRoomsPage() {
           Tạm ngưng ({rooms.filter((r) => !r.availability).length})
         </Button>
       </div>
+
+      <Card>
+        <div className="flex flex-col md:flex-row md:items-center gap-3">
+          <div className="text-sm font-semibold text-gray-900">Khách sạn</div>
+          <select
+            value={selectedHotelId}
+            onChange={(e) => setSelectedHotelId(e.target.value)}
+            className="w-full md:w-[420px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] text-gray-900 disabled:bg-gray-100"
+            disabled={hotels.length === 0}
+          >
+            {hotels.length === 0 ? (
+              <option value="">Chưa có khách sạn</option>
+            ) : (
+              hotels.map((h) => (
+                <option
+                  key={String((h as any).hotel_id ?? (h as any).id)}
+                  value={String((h as any).hotel_id ?? (h as any).id)}
+                >
+                  {String((h as any).name ?? 'Unnamed hotel')}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
+      </Card>
 
       {/* Rooms List */}
       {filteredRooms.length > 0 ? (
