@@ -222,6 +222,37 @@ class ApiClient {
   async delete<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' }, params);
   }
+
+  async postFormData<T>(endpoint: string, params: Record<string, string>, formData: FormData): Promise<T> {
+    const url = getApiUrl(endpoint, params);
+
+    console.log('🌐 API FormData Request:', { endpoint, url });
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `API Error: ${response.status} ${response.statusText}`);
+      }
+
+      const responseData = await response.json();
+      
+      if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+        return responseData.data as T;
+      }
+      
+      return responseData as T;
+    } catch (error) {
+      console.error('API FormData Request Error:', error);
+      throw error;
+    }
+  }
 }
 
 export const apiClient = new ApiClient();

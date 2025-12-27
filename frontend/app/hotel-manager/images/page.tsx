@@ -1,8 +1,7 @@
 'use client';
 
+import { hotelManagerApi } from '@/lib/api/services';
 import { useState, useEffect, useRef } from 'react';
-import { hotelManagerApiExtended } from '@/lib/api/services';
-import { API_CONFIG } from '@/lib/api/config';
 
 interface HotelImage {
   id: number;
@@ -24,14 +23,73 @@ const imageTypes = [
 ];
 
 const defaultImages: HotelImage[] = [
-  { id: 1, url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800', type: 'hotel', caption: 'Toàn cảnh khách sạn', isThumbnail: true, uploadedAt: '2024-12-20' },
-  { id: 2, url: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800', type: 'lobby', caption: 'Sảnh chính', isThumbnail: false, uploadedAt: '2024-12-20' },
-  { id: 3, url: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800', type: 'room', caption: 'Phòng Deluxe King', isThumbnail: false, roomId: 1, uploadedAt: '2024-12-21' },
-  { id: 4, url: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800', type: 'room', caption: 'Phòng Suite', isThumbnail: false, roomId: 2, uploadedAt: '2024-12-21' },
-  { id: 5, url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800', type: 'facility', caption: 'Hồ bơi vô cực', isThumbnail: false, uploadedAt: '2024-12-22' },
-  { id: 6, url: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800', type: 'exterior', caption: 'Mặt tiền khách sạn', isThumbnail: false, uploadedAt: '2024-12-22' },
-  { id: 7, url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800', type: 'restaurant', caption: 'Nhà hàng chính', isThumbnail: false, uploadedAt: '2024-12-23' },
-  { id: 8, url: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800', type: 'room', caption: 'Phòng Standard Twin', isThumbnail: false, roomId: 3, uploadedAt: '2024-12-23' },
+  {
+    id: 1,
+    url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800',
+    type: 'hotel',
+    caption: 'Toàn cảnh khách sạn',
+    isThumbnail: true,
+    uploadedAt: '2024-12-20',
+  },
+  {
+    id: 2,
+    url: 'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800',
+    type: 'lobby',
+    caption: 'Sảnh chính',
+    isThumbnail: false,
+    uploadedAt: '2024-12-20',
+  },
+  {
+    id: 3,
+    url: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800',
+    type: 'room',
+    caption: 'Phòng Deluxe King',
+    isThumbnail: false,
+    roomId: 1,
+    uploadedAt: '2024-12-21',
+  },
+  {
+    id: 4,
+    url: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800',
+    type: 'room',
+    caption: 'Phòng Suite',
+    isThumbnail: false,
+    roomId: 2,
+    uploadedAt: '2024-12-21',
+  },
+  {
+    id: 5,
+    url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800',
+    type: 'facility',
+    caption: 'Hồ bơi vô cực',
+    isThumbnail: false,
+    uploadedAt: '2024-12-22',
+  },
+  {
+    id: 6,
+    url: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800',
+    type: 'exterior',
+    caption: 'Mặt tiền khách sạn',
+    isThumbnail: false,
+    uploadedAt: '2024-12-22',
+  },
+  {
+    id: 7,
+    url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800',
+    type: 'restaurant',
+    caption: 'Nhà hàng chính',
+    isThumbnail: false,
+    uploadedAt: '2024-12-23',
+  },
+  {
+    id: 8,
+    url: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=800',
+    type: 'room',
+    caption: 'Phòng Standard Twin',
+    isThumbnail: false,
+    roomId: 3,
+    uploadedAt: '2024-12-23',
+  },
 ];
 
 export default function HotelManagerImagesPage() {
@@ -42,8 +100,12 @@ export default function HotelManagerImagesPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [loading, setLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
+  // TODO: Get actual hotel ID from auth context or props
+  const hotelId = '1';
+
   const [uploadForm, setUploadForm] = useState({
     type: 'hotel' as HotelImage['type'],
     caption: '',
@@ -51,17 +113,27 @@ export default function HotelManagerImagesPage() {
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem('hotelImages');
-    if (saved) {
-      setImages(JSON.parse(saved));
-    } else {
-      setImages(defaultImages);
-    }
-  }, []);
+    const loadImages = async () => {
+      try {
+        const savedImages = await hotelManagerApi.getImages(hotelId);
+        if (savedImages && savedImages.length > 0) {
+          setImages(savedImages as HotelImage[]);
+        } else {
+          setImages(defaultImages);
+        }
+      } catch (error) {
+        console.error('Error loading images:', error);
+        setImages(defaultImages);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadImages();
+  }, [hotelId]);
 
-  const saveImages = (newImages: HotelImage[]) => {
+  const saveImages = async (newImages: HotelImage[]) => {
     setImages(newImages);
-    localStorage.setItem('hotelImages', JSON.stringify(newImages));
+    // Images will be saved via API calls when adding/deleting
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -78,15 +150,18 @@ export default function HotelManagerImagesPage() {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFiles(Array.from(e.dataTransfer.files));
     }
   };
 
   const handleFiles = (files: File[]) => {
-    const imageFiles = files.filter(f => f.type.startsWith('image/'));
-    setUploadForm(prev => ({ ...prev, files: [...prev.files, ...imageFiles] }));
+    const imageFiles = files.filter((f) => f.type.startsWith('image/'));
+    setUploadForm((prev) => ({
+      ...prev,
+      files: [...prev.files, ...imageFiles],
+    }));
   };
 
   const handleUpload = async () => {
@@ -94,90 +169,72 @@ export default function HotelManagerImagesPage() {
 
     setUploading(true);
 
+    // Simulate upload delay
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    const newImages: HotelImage[] = uploadForm.files.map((file, index) => ({
+      id: Date.now() + index,
+      url: URL.createObjectURL(file),
+      type: uploadForm.type,
+      caption: uploadForm.caption || file.name.replace(/\.[^/.]+$/, ''),
+      isThumbnail: false,
+      uploadedAt: new Date().toISOString().split('T')[0],
+    }));
+
+    saveImages([...images, ...newImages]);
+    setUploadForm({ type: 'hotel', caption: '', files: [] });
+    setShowUploadModal(false);
+    setUploading(false);
+  };
+
+  const handleSetThumbnail = async (id: number) => {
     try {
-      const hotelId = 'h1'; // TODO: Get from auth context
-
-      if (API_CONFIG.USE_MOCK_DATA) {
-        // MOCK: Use localStorage
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        const newImages: HotelImage[] = uploadForm.files.map((file, index) => ({
-          id: Date.now() + index,
-          url: URL.createObjectURL(file),
-          type: uploadForm.type,
-          caption: uploadForm.caption || file.name.replace(/\.[^/.]+$/, ''),
-          isThumbnail: false,
-          uploadedAt: new Date().toISOString().split('T')[0],
-        }));
-
-        saveImages([...images, ...newImages]);
-      } else {
-        // REAL API: Upload to backend
-        const uploadedImages = await hotelManagerApiExtended.uploadHotelImages(
-          hotelId,
-          uploadForm.files
-        );
-
-        // Convert backend response to HotelImage format
-        const newImages: HotelImage[] = uploadedImages.map((img: any, index: number) => ({
-          id: img.image_id || Date.now() + index,
-          url: img.url || img.image_url,
-          type: uploadForm.type,
-          caption: uploadForm.caption || img.caption || 'Hotel image',
-          isThumbnail: false,
-          uploadedAt: img.created_at || new Date().toISOString().split('T')[0],
-        }));
-
-        saveImages([...images, ...newImages]);
-        alert('✅ Upload thành công!');
-      }
-
-      setUploadForm({ type: 'hotel', caption: '', files: [] });
-      setShowUploadModal(false);
+      await hotelManagerApi.setThumbnail(hotelId, id);
+      const updated = images.map((img) => ({
+        ...img,
+        isThumbnail: img.id === id,
+      }));
+      setImages(updated);
     } catch (error) {
-      console.error('Error uploading images:', error);
-      alert('❌ Lỗi khi upload ảnh! Vui lòng thử lại.');
-    } finally {
-      setUploading(false);
+      console.error('Error setting thumbnail:', error);
     }
   };
 
-  const handleSetThumbnail = (id: number) => {
-    const updated = images.map(img => ({
-      ...img,
-      isThumbnail: img.id === id,
-    }));
-    saveImages(updated);
-  };
-
-  const handleDeleteImage = (id: number) => {
+  const handleDeleteImage = async (id: number) => {
     if (confirm('Bạn có chắc muốn xóa ảnh này?')) {
-      saveImages(images.filter(img => img.id !== id));
-      setSelectedImage(null);
+      try {
+        await hotelManagerApi.deleteImage(hotelId, id);
+        setImages(images.filter((img) => img.id !== id));
+        setSelectedImage(null);
+      } catch (error) {
+        console.error('Error deleting image:', error);
+        alert('Lỗi khi xóa ảnh!');
+      }
     }
   };
 
   const handleUpdateCaption = (id: number, caption: string) => {
-    const updated = images.map(img => 
+    const updated = images.map((img) =>
       img.id === id ? { ...img, caption } : img
     );
-    saveImages(updated);
+    setImages(updated);
     setShowEditModal(false);
     setSelectedImage(null);
   };
 
-  const filteredImages = selectedType === 'all' 
-    ? images 
-    : images.filter(img => img.type === selectedType);
+  const filteredImages =
+    selectedType === 'all'
+      ? images
+      : images.filter((img) => img.type === selectedType);
 
-  const thumbnailImage = images.find(img => img.isThumbnail);
+  const thumbnailImage = images.find((img) => img.isThumbnail);
 
   const getTypeName = (type: string) => {
-    return imageTypes.find(t => t.id === type)?.name || type;
+    return imageTypes.find((t) => t.id === type)?.name || type;
   };
 
   const removeUploadFile = (index: number) => {
-    setUploadForm(prev => ({
+    setUploadForm((prev) => ({
       ...prev,
       files: prev.files.filter((_, i) => i !== index),
     }));
@@ -189,14 +246,26 @@ export default function HotelManagerImagesPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Quản lý Hình ảnh</h1>
-          <p className="text-gray-600 mt-1">Tải lên và quản lý hình ảnh khách sạn của bạn</p>
+          <p className="text-gray-600 mt-1">
+            Tải lên và quản lý hình ảnh khách sạn của bạn
+          </p>
         </div>
         <button
           onClick={() => setShowUploadModal(true)}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
           </svg>
           Tải ảnh lên
         </button>
@@ -206,8 +275,12 @@ export default function HotelManagerImagesPage() {
       {thumbnailImage && (
         <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
           <div className="p-4 border-b bg-gray-50">
-            <h3 className="font-semibold text-gray-900">Ảnh đại diện khách sạn</h3>
-            <p className="text-sm text-gray-500">Ảnh này sẽ hiển thị trong kết quả tìm kiếm</p>
+            <h3 className="font-semibold text-gray-900">
+              Ảnh đại diện khách sạn
+            </h3>
+            <p className="text-sm text-gray-500">
+              Ảnh này sẽ hiển thị trong kết quả tìm kiếm
+            </p>
           </div>
           <div className="p-4">
             <div className="relative aspect-video max-w-2xl rounded-lg overflow-hidden">
@@ -217,8 +290,12 @@ export default function HotelManagerImagesPage() {
                 className="w-full h-full object-cover"
               />
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                <span className="text-white font-medium">{thumbnailImage.caption}</span>
-                <span className="ml-2 px-2 py-1 bg-green-500 text-white text-xs rounded-full">Ảnh đại diện</span>
+                <span className="text-white font-medium">
+                  {thumbnailImage.caption}
+                </span>
+                <span className="ml-2 px-2 py-1 bg-green-500 text-white text-xs rounded-full">
+                  Ảnh đại diện
+                </span>
               </div>
             </div>
           </div>
@@ -227,28 +304,34 @@ export default function HotelManagerImagesPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-        <div 
+        <div
           onClick={() => setSelectedType('all')}
           className={`bg-white p-4 rounded-lg shadow-sm border cursor-pointer transition-all ${
             selectedType === 'all' ? 'ring-2 ring-blue-500' : 'hover:shadow-md'
           }`}
         >
-          <div className="text-2xl font-bold text-blue-600">{images.length}</div>
+          <div className="text-2xl font-bold text-blue-600">
+            {images.length}
+          </div>
           <div className="text-sm text-gray-600">Tất cả</div>
         </div>
-        {imageTypes.map(type => {
-          const count = images.filter(img => img.type === type.id).length;
+        {imageTypes.map((type) => {
+          const count = images.filter((img) => img.type === type.id).length;
           return (
             <div
               key={type.id}
               onClick={() => setSelectedType(type.id)}
               className={`bg-white p-4 rounded-lg shadow-sm border cursor-pointer transition-all ${
-                selectedType === type.id ? 'ring-2 ring-blue-500' : 'hover:shadow-md'
+                selectedType === type.id
+                  ? 'ring-2 ring-blue-500'
+                  : 'hover:shadow-md'
               }`}
             >
               <div className="flex items-center gap-2">
                 <span className="text-xl">{type.icon}</span>
-                <span className="text-2xl font-bold text-gray-700">{count}</span>
+                <span className="text-2xl font-bold text-gray-700">
+                  {count}
+                </span>
               </div>
               <div className="text-sm text-gray-600">{type.name}</div>
             </div>
@@ -260,8 +343,12 @@ export default function HotelManagerImagesPage() {
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
         <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
           <h3 className="font-semibold text-gray-900">
-            {selectedType === 'all' ? 'Tất cả hình ảnh' : `Hình ảnh ${getTypeName(selectedType)}`}
-            <span className="ml-2 text-sm font-normal text-gray-500">({filteredImages.length} ảnh)</span>
+            {selectedType === 'all'
+              ? 'Tất cả hình ảnh'
+              : `Hình ảnh ${getTypeName(selectedType)}`}
+            <span className="ml-2 text-sm font-normal text-gray-500">
+              ({filteredImages.length} ảnh)
+            </span>
           </h3>
         </div>
 
@@ -269,8 +356,12 @@ export default function HotelManagerImagesPage() {
           {filteredImages.length === 0 ? (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">📷</div>
-              <h3 className="text-lg font-medium text-gray-900">Chưa có hình ảnh nào</h3>
-              <p className="text-gray-500 mt-1">Tải lên hình ảnh để hiển thị tại đây</p>
+              <h3 className="text-lg font-medium text-gray-900">
+                Chưa có hình ảnh nào
+              </h3>
+              <p className="text-gray-500 mt-1">
+                Tải lên hình ảnh để hiển thị tại đây
+              </p>
               <button
                 onClick={() => setShowUploadModal(true)}
                 className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -280,7 +371,7 @@ export default function HotelManagerImagesPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {filteredImages.map(image => (
+              {filteredImages.map((image) => (
                 <div
                   key={image.id}
                   className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer border"
@@ -291,11 +382,13 @@ export default function HotelManagerImagesPage() {
                     alt={image.caption}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  
+
                   {/* Overlay */}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all">
                     <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                      <p className="text-white text-sm truncate">{image.caption}</p>
+                      <p className="text-white text-sm truncate">
+                        {image.caption}
+                      </p>
                     </div>
                   </div>
 
@@ -349,7 +442,9 @@ export default function HotelManagerImagesPage() {
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b sticky top-0 bg-white">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Tải hình ảnh lên</h2>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Tải hình ảnh lên
+                </h2>
                 <button
                   onClick={() => {
                     setShowUploadModal(false);
@@ -357,8 +452,18 @@ export default function HotelManagerImagesPage() {
                   }}
                   className="text-gray-400 hover:text-gray-600"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -383,7 +488,9 @@ export default function HotelManagerImagesPage() {
                   type="file"
                   multiple
                   accept="image/*"
-                  onChange={(e) => e.target.files && handleFiles(Array.from(e.target.files))}
+                  onChange={(e) =>
+                    e.target.files && handleFiles(Array.from(e.target.files))
+                  }
                   className="hidden"
                 />
                 <div className="text-5xl mb-4">📁</div>
@@ -403,7 +510,10 @@ export default function HotelManagerImagesPage() {
                   </h4>
                   <div className="grid grid-cols-4 gap-3">
                     {uploadForm.files.map((file, index) => (
-                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
+                      <div
+                        key={index}
+                        className="relative aspect-square rounded-lg overflow-hidden"
+                      >
                         <img
                           src={URL.createObjectURL(file)}
                           alt={file.name}
@@ -413,8 +523,18 @@ export default function HotelManagerImagesPage() {
                           onClick={() => removeUploadFile(index)}
                           className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
                           </svg>
                         </button>
                       </div>
@@ -426,13 +546,20 @@ export default function HotelManagerImagesPage() {
               {/* Upload Options */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Loại ảnh</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Loại ảnh
+                  </label>
                   <select
                     value={uploadForm.type}
-                    onChange={(e) => setUploadForm({ ...uploadForm, type: e.target.value as HotelImage['type'] })}
+                    onChange={(e) =>
+                      setUploadForm({
+                        ...uploadForm,
+                        type: e.target.value as HotelImage['type'],
+                      })
+                    }
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
-                    {imageTypes.map(type => (
+                    {imageTypes.map((type) => (
                       <option key={type.id} value={type.id}>
                         {type.icon} {type.name}
                       </option>
@@ -441,11 +568,15 @@ export default function HotelManagerImagesPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả (tùy chọn)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Mô tả (tùy chọn)
+                  </label>
                   <input
                     type="text"
                     value={uploadForm.caption}
-                    onChange={(e) => setUploadForm({ ...uploadForm, caption: e.target.value })}
+                    onChange={(e) =>
+                      setUploadForm({ ...uploadForm, caption: e.target.value })
+                    }
                     placeholder="Ví dụ: Phòng Deluxe view biển"
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
@@ -470,16 +601,41 @@ export default function HotelManagerImagesPage() {
               >
                 {uploading ? (
                   <>
-                    <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin w-5 h-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Đang tải lên...
                   </>
                 ) : (
                   <>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                      />
                     </svg>
                     Tải lên {uploadForm.files.length} ảnh
                   </>
@@ -499,8 +655,18 @@ export default function HotelManagerImagesPage() {
               onClick={() => setSelectedImage(null)}
               className="absolute -top-12 right-0 text-white hover:text-gray-300"
             >
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-8 h-8"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
 
@@ -516,16 +682,22 @@ export default function HotelManagerImagesPage() {
               <div className="p-6">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900">{selectedImage.caption}</h3>
+                    <h3 className="text-xl font-semibold text-gray-900">
+                      {selectedImage.caption}
+                    </h3>
                     <div className="flex items-center gap-3 mt-2 text-sm text-gray-500">
-                      <span className="px-2 py-1 bg-gray-100 rounded">{getTypeName(selectedImage.type)}</span>
+                      <span className="px-2 py-1 bg-gray-100 rounded">
+                        {getTypeName(selectedImage.type)}
+                      </span>
                       <span>Tải lên: {selectedImage.uploadedAt}</span>
                       {selectedImage.isThumbnail && (
-                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded">⭐ Ảnh đại diện</span>
+                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded">
+                          ⭐ Ảnh đại diện
+                        </span>
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex gap-2">
                     <button
                       onClick={() => setShowEditModal(true)}
@@ -560,7 +732,9 @@ export default function HotelManagerImagesPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
             <div className="p-6 border-b">
-              <h3 className="text-lg font-bold text-gray-900">Chỉnh sửa mô tả</h3>
+              <h3 className="text-lg font-bold text-gray-900">
+                Chỉnh sửa mô tả
+              </h3>
             </div>
             <div className="p-6">
               <input
@@ -580,7 +754,9 @@ export default function HotelManagerImagesPage() {
               </button>
               <button
                 onClick={() => {
-                  const input = document.getElementById('editCaption') as HTMLInputElement;
+                  const input = document.getElementById(
+                    'editCaption'
+                  ) as HTMLInputElement;
                   handleUpdateCaption(selectedImage.id, input.value);
                 }}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"

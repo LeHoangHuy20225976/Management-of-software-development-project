@@ -6,9 +6,8 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
-import { destinationsApi } from '@/lib/api/services';
+import { destinationsApi, reviewsApi } from '@/lib/api/services';
 import { useAuth } from '@/lib/context/AuthContext';
-import { getMockReviews } from '@/lib/utils/mockData';
 import type { TourismSpot, Review } from '@/types';
 
 export default function TourismDetailPage({
@@ -44,12 +43,17 @@ export default function TourismDetailPage({
             .slice(0, 3)
         );
         
-        // Load reviews for this destination
-        const allReviews = getMockReviews();
-        const destinationReviews = allReviews.filter(
-          r => r.destination_id === Number(resolvedParams.destination_id)
-        );
-        setReviews(destinationReviews);
+        // Load reviews for this destination from API
+        try {
+          // Note: reviewsApi.getAll now requires hotelId, use empty string for destinations
+          const allReviews = await reviewsApi.getAll('');
+          const destinationReviews = allReviews.filter(
+            r => r.destination_id === Number(resolvedParams.destination_id)
+          );
+          setReviews(destinationReviews);
+        } catch (reviewError) {
+          console.error('Error loading reviews:', reviewError);
+        }
       } catch (error) {
         console.error('Error loading tourism spot:', error);
       } finally {

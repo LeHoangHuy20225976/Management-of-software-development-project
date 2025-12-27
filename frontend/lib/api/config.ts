@@ -4,7 +4,7 @@
  */
 
 export const API_CONFIG = {
-  // Set to false when backend is ready
+  // Set to false to use real backend API
   // Can be controlled via NEXT_PUBLIC_USE_MOCK_DATA in .env.local
   // Changed default to FALSE - now using real API
   USE_MOCK_DATA: process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true' ? true : process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'false' ? false : false,

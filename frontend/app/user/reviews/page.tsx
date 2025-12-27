@@ -9,104 +9,65 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import Link from 'next/link';
-
-interface Review {
-  review_id: string;
-  user_id?: string;
-  destination_id?: number | null;
-  hotel_id?: number | null;
-  room_id?: number | null;
-  hotelName?: string;
-  hotelImage?: string;
-  rating: number;
-  title?: string;
-  comment: string;
-  images?: string[];
-  date_created: string;
-  helpful?: number;
-  reply?: string;
-}
+import { reviewsApi } from '@/lib/api/services';
+import { useAuth } from '@/lib/context/AuthContext';
+import type { Review } from '@/types';
 
 export default function UserReviewsPage() {
+  const { user } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'with_reply' | 'no_reply'>(
     'all'
   );
 
   useEffect(() => {
-    // Load reviews from localStorage
-    const storedReviews = localStorage.getItem('userReviews');
-    if (storedReviews) {
-      setReviews(JSON.parse(storedReviews));
-    } else {
-      // Initialize with mock data
-      const mockReviews: Review[] = [
-        {
-          review_id: '1',
-          hotel_id: 1,
-          hotelName: 'Grand Hotel Saigon',
-          hotelImage:
-            'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400',
-          rating: 5,
-          title: 'Trải nghiệm tuyệt vời!',
-          comment:
-            'Khách sạn rất đẹp, phòng sạch sẽ, nhân viên thân thiện. View từ phòng nhìn ra thành phố rất đẹp. Bữa sáng buffet đa dạng và ngon. Chắc chắn sẽ quay lại!',
-          images: [],
-          date_created: '2025-11-25',
-          helpful: 12,
-          reply:
-            'Cảm ơn quý khách đã dành thời gian đánh giá! Chúng tôi rất vui khi quý khách hài lòng với dịch vụ. Hy vọng được đón tiếp quý khách trong lần tới!',
-        },
-        {
-          review_id: '2',
-          hotel_id: 2,
-          hotelName: 'Hanoi Pearl Hotel',
-          hotelImage:
-            'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400',
-          rating: 4,
-          title: 'Tốt nhưng có thể cải thiện',
-          comment:
-            'Vị trí khách sạn thuận tiện, gần phố cổ. Phòng đẹp và sạch sẽ. Tuy nhiên wifi hơi chậm, hy vọng khách sạn sẽ cải thiện điểm này.',
-          images: [],
-          date_created: '2025-11-15',
-          helpful: 5,
-        },
-        {
-          review_id: '3',
-          hotel_id: 3,
-          hotelName: 'Da Nang Beach Resort',
-          hotelImage:
-            'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400',
-          rating: 5,
-          title: 'Hoàn hảo cho kỳ nghỉ gia đình',
-          comment:
-            'Resort view biển tuyệt đẹp! Hồ bơi rộng rãi, bãi biển riêng sạch sẽ. Con tôi rất thích khu vui chơi trẻ em. Staff nhiệt tình và chu đáo.',
-          images: [],
-          date_created: '2025-10-28',
-          helpful: 18,
-          reply:
-            'Cảm ơn gia đình quý khách! Rất vui khi các bé thích resort. Mong được phục vụ gia đình quý khách trong những chuyến đi tiếp theo!',
-        },
-      ];
-      localStorage.setItem('userReviews', JSON.stringify(mockReviews));
-      setReviews(mockReviews);
-    }
-  }, []);
+    const loadReviews = async () => {
+      try {
+        const allReviews = await reviewsApi.getAll(''); // Empty hotelId for user's all reviews
+        // Filter reviews by current user
+        const userReviews = allReviews.filter(
+          r => r.user_id === user?.user_id
+        );
+        setReviews(userReviews);
+      } catch (error) {
+        console.error('Error loading reviews:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadReviews();
+  }, [user]);
 
   const filteredReviews = reviews.filter((review) => {
     if (filter === 'all') return true;
-    if (filter === 'with_reply') return !!review.reply;
-    if (filter === 'no_reply') return !review.reply;
+    if (filter === 'with_reply') return !!(review as any).reply;
+    if (filter === 'no_reply') return !(review as any).reply;
     return true;
   });
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Bạn có chắc muốn xóa đánh giá này?')) {
-      const newReviews = reviews.filter((r) => r.review_id !== id);
-      setReviews(newReviews);
-      localStorage.setItem('userReviews', JSON.stringify(newReviews));
+      try {
+        await reviewsApi.delete(id);
+        setReviews(reviews.filter((r) => String(r.review_id) !== id));
+      } catch (error) {
+        console.error('Error deleting review:', error);
+        alert('Không thể xóa đánh giá. Vui lòng thử lại.');
+      }
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0071c2] mx-auto"></div>
+          <p className="mt-4 text-gray-600">Đang tải đánh giá...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -239,7 +200,7 @@ export default function UserReviewsPage() {
                       <Button
                         variant="danger"
                         size="sm"
-                        onClick={() => handleDelete(review.review_id)}
+                        onClick={() => handleDelete(String(review.review_id))}
                       >
                         🗑️ Xóa
                       </Button>
@@ -275,7 +236,7 @@ export default function UserReviewsPage() {
                           📝 Phản hồi từ khách sạn:
                         </span>
                       </div>
-                      <p className="text-gray-700">{review.reply}</p>
+                      <p className="text-gray-700">{review.reply.content}</p>
                     </div>
                   )}
                 </div>

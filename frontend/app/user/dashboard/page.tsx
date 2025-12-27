@@ -11,7 +11,7 @@ import { Button } from '@/components/common/Button';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import { ROUTES } from '@/lib/routes';
 import { useEffect, useState } from 'react';
-import { getMockBookings } from '@/lib/utils/mockData';
+import { bookingsApi } from '@/lib/api/services';
 import { useAuth } from '@/lib/context/AuthContext';
 import type { Booking } from '@/types';
 
@@ -20,8 +20,15 @@ export default function UserDashboardPage() {
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
 
   useEffect(() => {
-    const bookings = getMockBookings();
-    setUpcomingBookings(bookings.filter(b => b.status === 'accepted'));
+    const loadBookings = async () => {
+      try {
+        const bookings = await bookingsApi.getAll();
+        setUpcomingBookings(bookings.filter(b => b.status === 'accepted'));
+      } catch (error) {
+        console.error('Error loading bookings:', error);
+      }
+    };
+    loadBookings();
   }, []);
 
   const displayName = user?.name || 'User';
