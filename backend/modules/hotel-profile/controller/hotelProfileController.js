@@ -145,6 +145,7 @@ const hotelProfileController = {
     },
     getHotelForHotelOwner: async(req, res) => {
         try {
+            console.log("getHotelForHotelOwner is called");
             const userid = req.user.user_id;
             const hotels =  await hotelProfileService.getHotelForHotelOwner(userid);
             return responseUtils.ok(res, hotels);

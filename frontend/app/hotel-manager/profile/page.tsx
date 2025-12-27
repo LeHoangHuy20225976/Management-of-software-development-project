@@ -1,22 +1,34 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { hotelManagerApi, hotelManagerApiExtended } from '@/lib/api/services';
 import { useAuth } from '@/lib/context/AuthContext';
+import { API_CONFIG, getApiUrl } from '@/lib/api/config';
 
 export default function HotelProfilePage() {
   const router = useRouter();
   const { logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string>('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deletingHotel, setDeletingHotel] = useState(false);
-  const [hotelId, setHotelId] = useState<string>('h1');
+  const [hotelId, setHotelId] = useState<string>('');
+  const [hotels, setHotels] = useState<Array<Record<string, unknown>>>([]);
+  const [selectedHotelId, setSelectedHotelId] = useState<string>('');
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+
+  const selectedHotel = useMemo(() => {
+    if (!selectedHotelId) return null;
+    return hotels.find((h) => String((h as any).hotel_id ?? (h as any).id) === selectedHotelId) ?? null;
+  }, [hotels, selectedHotelId]);
+
   const [hotelInfo, setHotelInfo] = useState({
     name: '',
     description: '',
@@ -24,30 +36,25 @@ export default function HotelProfilePage() {
     contact_phone: '',
     rating: 0,
     status: 1,
-    longitude: 0,
-    latitude: 0,
+    longitude: '',
+    latitude: '',
     thumbnail: '',
   });
 
   useEffect(() => {
     const loadHotelInfo = async () => {
       try {
-        const currentHotelId = 'h1'; // In production, get from auth context or URL
-        setHotelId(currentHotelId);
-        const info = await hotelManagerApi.getHotelInfo(currentHotelId);
-        setHotelInfo({
-          name: info.name || '',
-          description: info.description || '',
-          address: info.address || '',
-          contact_phone: info.contact_phone || '',
-          rating: info.rating ?? 0,
-          status: info.status ?? 1,
-          longitude: info.longitude ?? 0,
-          latitude: info.latitude ?? 0,
-          thumbnail: info.thumbnail || '',
-        });
+        setError('');
+        const myHotels = await hotelManagerApi.getMyHotels();
+        const normalized = (myHotels as unknown as Array<Record<string, unknown>>) ?? [];
+        setHotels(normalized);
+        const firstId = normalized.length
+          ? String((normalized[0] as any).hotel_id ?? (normalized[0] as any).id)
+          : '';
+        setSelectedHotelId(firstId);
       } catch (error) {
         console.error('Error loading hotel info:', error);
+        setError(error instanceof Error ? error.message : 'Không thể tải danh sách khách sạn');
       } finally {
         setLoading(false);
       }
@@ -55,23 +62,91 @@ export default function HotelProfilePage() {
     loadHotelInfo();
   }, []);
 
+  useEffect(() => {
+    if (!selectedHotel) return;
+
+    setHotelId(String((selectedHotel as any).hotel_id ?? (selectedHotel as any).id));
+    setThumbnailFile(null);
+    setIsEditing(false);
+
+    setHotelInfo({
+      name: String((selectedHotel as any).name ?? ''),
+      description: String((selectedHotel as any).description ?? ''),
+      address: String((selectedHotel as any).address ?? ''),
+      contact_phone: String((selectedHotel as any).contact_phone ?? ''),
+      rating: Number((selectedHotel as any).rating ?? 0),
+      status: Number((selectedHotel as any).status ?? 1),
+      longitude:
+        (selectedHotel as any).longitude === null || (selectedHotel as any).longitude === undefined
+          ? ''
+          : String((selectedHotel as any).longitude),
+      latitude:
+        (selectedHotel as any).latitude === null || (selectedHotel as any).latitude === undefined
+          ? ''
+          : String((selectedHotel as any).latitude),
+      thumbnail: String((selectedHotel as any).thumbnail ?? ''),
+    });
+  }, [selectedHotel]);
+
   const handleSave = async () => {
     try {
-      await hotelManagerApi.updateHotelInfo(hotelId, {
-        name: hotelInfo.name,
-        description: hotelInfo.description,
+      if (!hotelId) {
+        setError('Chưa chọn khách sạn để cập nhật');
+        return;
+      }
+
+      setSaving(true);
+      setError('');
+
+      const longitudeNumber = hotelInfo.longitude.trim() === '' ? undefined : Number(hotelInfo.longitude);
+      const latitudeNumber = hotelInfo.latitude.trim() === '' ? undefined : Number(hotelInfo.latitude);
+
+      const hotelData: Record<string, unknown> = {
+        hotelName: hotelInfo.name,
         address: hotelInfo.address,
-        contact_phone: hotelInfo.contact_phone,
-        rating: hotelInfo.rating,
         status: hotelInfo.status,
-        longitude: hotelInfo.longitude,
-        latitude: hotelInfo.latitude,
-        thumbnail: hotelInfo.thumbnail,
+        description: hotelInfo.description,
+        contact_phone: hotelInfo.contact_phone,
+      };
+
+      if (longitudeNumber !== undefined && !Number.isNaN(longitudeNumber)) {
+        hotelData.longitude = longitudeNumber;
+      }
+      if (latitudeNumber !== undefined && !Number.isNaN(latitudeNumber)) {
+        hotelData.latitude = latitudeNumber;
+      }
+
+      if (!thumbnailFile && hotelInfo.thumbnail.trim() !== '') {
+        hotelData.thumbnail = hotelInfo.thumbnail.trim();
+      }
+
+      const formData = new FormData();
+      formData.append('hotelData', JSON.stringify(hotelData));
+      if (thumbnailFile) {
+        formData.append('thumbnail', thumbnailFile);
+      }
+
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.UPDATE_HOTEL, { hotel_id: hotelId }), {
+        method: 'PUT',
+        credentials: 'include',
+        body: formData,
+        signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
       });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.message || `API Error: ${response.status} ${response.statusText}`);
+      }
+
+      const myHotels = await hotelManagerApi.getMyHotels();
+      setHotels((myHotels as unknown as Array<Record<string, unknown>>) ?? []);
       alert('✅ Cập nhật thông tin thành công!');
       setIsEditing(false);
+      setSaving(false);
     } catch (error) {
       console.error('Error saving hotel info:', error);
+      setError(error instanceof Error ? error.message : 'Có lỗi khi lưu thông tin');
+      setSaving(false);
       alert('❌ Có lỗi khi lưu thông tin!');
     }
   };
@@ -123,6 +198,32 @@ export default function HotelProfilePage() {
           <p className="text-gray-700">Đang tải thông tin...</p>
         ) : (
           <div className="space-y-4">
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 text-sm font-medium">{error}</p>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Chọn khách sạn
+              </label>
+              <select
+                value={selectedHotelId}
+                onChange={(e) => setSelectedHotelId(e.target.value)}
+                disabled={isEditing || saving}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] text-gray-900 disabled:bg-gray-100"
+              >
+                {hotels.map((h) => (
+                  <option
+                    key={String((h as any).hotel_id ?? (h as any).id)}
+                    value={String((h as any).hotel_id ?? (h as any).id)}
+                  >
+                    {String((h as any).name ?? 'Unnamed hotel')}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
                 Tên khách sạn
@@ -148,6 +249,18 @@ export default function HotelProfilePage() {
                 disabled={!isEditing}
                 rows={4}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] text-gray-900 disabled:bg-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Hoặc upload thumbnail (ưu tiên file)
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                disabled={!isEditing}
+                onChange={(e) => setThumbnailFile(e.target.files?.[0] ?? null)}
               />
             </div>
 
@@ -244,7 +357,7 @@ export default function HotelProfilePage() {
                   onChange={(e) =>
                     setHotelInfo({
                       ...hotelInfo,
-                      longitude: Number(e.target.value),
+                      longitude: e.target.value,
                     })
                   }
                   disabled={!isEditing}
@@ -261,7 +374,7 @@ export default function HotelProfilePage() {
                   onChange={(e) =>
                     setHotelInfo({
                       ...hotelInfo,
-                      latitude: Number(e.target.value),
+                      latitude: e.target.value,
                     })
                   }
                   disabled={!isEditing}

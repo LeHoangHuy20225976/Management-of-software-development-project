@@ -118,7 +118,7 @@ router.post(
 );
 router.get(
   "/hotel-manager/hotels",
-  middlewares([authMiddleware, rbacMiddleware(["hotel:view"])]),
+  middlewares([authMiddleware, rbacMiddleware(["hotel:update"])]),
   hotelProfileController.getHotelForHotelOwner
 );
 module.exports = router;
