@@ -139,6 +139,7 @@ const hotelProfileService = {
         // get type_id from the roomtype be created to add price
         const NOW = new Date();
         const priceData = typeData.priceData;
+        console.log("Price data: ", priceData);
         await db.RoomPrice.create({
             type_id: newRoomType.type_id,
             start_date: NOW,
@@ -409,9 +410,14 @@ const hotelProfileService = {
         if(!hotel) {
             throw new Error("Hotel not found");
         }
+        // get all room types join with room prices for hotel
         const roomTypes = await db.RoomType.findAll({
-            where: { hotel_id: hotelid}
-        })
+            where: {hotel_id: hotelid},
+            include: [{
+                model: db.RoomPrice,
+                as: 'roomPrice'
+            }]
+        });
         return roomTypes;
     },
     getAllRoomsForHotel: async(hotelid) => {

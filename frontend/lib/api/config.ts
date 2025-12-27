@@ -102,6 +102,7 @@ export const API_CONFIG = {
 
     // Pricing Engine
     GET_PRICE: '/pricing-engine/get-price/:type_id',
+    PRICING_PRICE_FOR_DATE: '/pricing/date/:typeId',
 
     // User Profile Extended
     DELETE_PROFILE: '/users/profile',

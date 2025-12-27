@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card } from '@/components/common/Card';
@@ -10,23 +10,41 @@ import { hotelManagerApi } from '@/lib/api/services';
 import { apiClient } from '@/lib/api/client';
 import { API_CONFIG } from '@/lib/api/config';
 
+type RoomTypeLike = {
+  type_id: number;
+  type: string;
+};
+
+const normalizeType = (value: string) => value.trim().toLowerCase();
+
 export default function CreateRoomPage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [loadingHotels, setLoadingHotels] = useState(true);
   const [hotels, setHotels] = useState<Array<Record<string, unknown>>>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     hotel_id: '',
     type: '',
     max_guests: 1,
     availability: true,
-    description: '',
+    typeDescription: '',
     basic_price: 0,
     special_price: '',
     discount: 0,
     event: '',
+    roomName: '',
+    roomLocation: '',
+    number_of_single_beds: 0,
+    number_of_double_beds: 0,
+    room_view: '',
+    room_size: '',
+    notes: '',
   });
 
   useEffect(() => {
@@ -50,6 +68,91 @@ export default function CreateRoomPage() {
     loadHotels();
   }, []);
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+
+    if (files.length > 10) {
+      alert('Tối đa 10 ảnh!');
+      return;
+    }
+
+    const invalidFiles = files.filter((file) => !file.type.startsWith('image/'));
+    if (invalidFiles.length > 0) {
+      alert('Vui lòng chỉ chọn file ảnh!');
+      return;
+    }
+
+    const oversizedFiles = files.filter((file) => file.size > 5 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      alert('Kích thước mỗi ảnh tối đa là 5MB!');
+      return;
+    }
+
+    setSelectedImages(files);
+    const previews = files.map((file) => URL.createObjectURL(file));
+    setImagePreviews(previews);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    const nextImages = selectedImages.filter((_, i) => i !== index);
+    const nextPreviews = imagePreviews.filter((_, i) => i !== index);
+    URL.revokeObjectURL(imagePreviews[index]);
+    setSelectedImages(nextImages);
+    setImagePreviews(nextPreviews);
+  };
+
+  const resolveOrCreateTypeId = async (): Promise<number> => {
+    const hotelId = formData.hotel_id;
+    const typeName = formData.type.trim();
+
+    const types = await apiClient.get<RoomTypeLike[]>(API_CONFIG.ENDPOINTS.VIEW_ROOM_TYPES, {
+      hotel_id: hotelId,
+    });
+
+    const existing = types.find((t) => normalizeType(t.type) === normalizeType(typeName));
+    if (existing) return existing.type_id;
+
+    if (!Number.isFinite(formData.basic_price) || formData.basic_price <= 0) {
+      throw new Error('Vui lòng nhập giá cơ bản hợp lệ để tạo loại phòng');
+    }
+
+    const specialPrice =
+      formData.special_price.trim() === '' ? undefined : Number(formData.special_price);
+    if (specialPrice !== undefined && Number.isNaN(specialPrice)) {
+      throw new Error('Giá đặc biệt không hợp lệ');
+    }
+
+    const priceData: Record<string, unknown> = {
+      basic_price: formData.basic_price,
+      discount: formData.discount,
+      event: formData.event,
+    };
+    if (specialPrice !== undefined) {
+      priceData.special_price = specialPrice;
+    }
+
+    await apiClient.post(API_CONFIG.ENDPOINTS.ADD_ROOM_TYPE, {
+      typeData: {
+        hotel_id: Number(hotelId),
+        type: typeName,
+        availability: formData.availability,
+        max_guests: formData.max_guests,
+        description: formData.typeDescription,
+        priceData,
+      },
+    });
+
+    const typesAfter = await apiClient.get<RoomTypeLike[]>(API_CONFIG.ENDPOINTS.VIEW_ROOM_TYPES, {
+      hotel_id: hotelId,
+    });
+
+    const created = typesAfter.find((t) => normalizeType(t.type) === normalizeType(typeName));
+    if (!created) {
+      throw new Error('Tạo loại phòng thành công nhưng không tìm thấy type_id');
+    }
+    return created.type_id;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -63,56 +166,51 @@ export default function CreateRoomPage() {
       return;
     }
 
-    if (!Number.isFinite(formData.basic_price) || formData.basic_price <= 0) {
-      alert('Vui lòng nhập giá cơ bản hợp lệ!');
+    if (!formData.roomName.trim()) {
+      alert('Vui lòng nhập tên phòng!');
       return;
     }
 
-    if (!Number.isFinite(formData.discount) || formData.discount < 0) {
-      alert('Giảm giá không hợp lệ!');
-      return;
-    }
-
-    if (!Number.isFinite(formData.max_guests) || formData.max_guests < 1) {
-      alert('Số khách tối đa không hợp lệ!');
+    if (!formData.roomLocation.trim()) {
+      alert('Vui lòng nhập vị trí phòng!');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const specialPrice =
-        formData.special_price.trim() === '' ? undefined : Number(formData.special_price);
+      const typeId = await resolveOrCreateTypeId();
 
-      if (specialPrice !== undefined && Number.isNaN(specialPrice)) {
-        alert('Giá đặc biệt không hợp lệ!');
-        return;
-      }
-
-      // Backend validator uses `.optional().isFloat()` so do NOT send `null` for optional floats.
-      const priceData: Record<string, unknown> = {
-        basic_price: formData.basic_price,
-        discount: formData.discount,
-        event: formData.event,
+      const roomData: Record<string, unknown> = {
+        type_id: typeId,
+        name: formData.roomName.trim(),
+        location: formData.roomLocation.trim(),
+        number_of_single_beds: formData.number_of_single_beds,
+        number_of_double_beds: formData.number_of_double_beds,
       };
-      if (specialPrice !== undefined) {
-        priceData.special_price = specialPrice;
+
+      if (formData.room_view.trim()) roomData.room_view = formData.room_view.trim();
+
+      const roomSize =
+        formData.room_size.trim() === '' ? undefined : Number(formData.room_size.trim());
+      if (roomSize !== undefined) {
+        if (Number.isNaN(roomSize)) {
+          throw new Error('Diện tích phòng không hợp lệ');
+        }
+        roomData.room_size = roomSize;
       }
 
-      await apiClient.post(API_CONFIG.ENDPOINTS.ADD_ROOM_TYPE, {
-        typeData: {
-          hotel_id: Number(formData.hotel_id),
-          type: formData.type.trim(),
-          availability: formData.availability,
-          max_guests: formData.max_guests,
-          description: formData.description,
-          priceData,
-        },
-      });
+      if (formData.notes.trim()) roomData.notes = formData.notes.trim();
 
-      alert('Tạo loại phòng thành công!');
-      router.push('/hotel-manager/rooms/types');
+      const form = new FormData();
+      form.append('roomData', JSON.stringify(roomData));
+      selectedImages.forEach((image) => form.append('images', image));
+
+      await apiClient.postFormData(API_CONFIG.ENDPOINTS.ADD_ROOM, {}, form);
+
+      alert('Thêm phòng thành công!');
+      router.push('/hotel-manager/rooms');
     } catch (error) {
-      console.error('Error creating room type:', error);
+      console.error('Error creating room:', error);
       alert(error instanceof Error ? error.message : 'Có lỗi xảy ra, vui lòng thử lại!');
     } finally {
       setIsSubmitting(false);
@@ -123,17 +221,19 @@ export default function CreateRoomPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Thêm loại phòng mới</h1>
-          <p className="text-gray-800 mt-1">Tạo loại phòng mới cho khách sạn</p>
+          <h1 className="text-3xl font-bold text-gray-900">Thêm phòng mới</h1>
+          <p className="text-gray-800 mt-1">
+            Chọn khách sạn → chọn/nhập loại phòng → thêm phòng
+          </p>
         </div>
-        <Link href="/hotel-manager/rooms/types">
+        <Link href="/hotel-manager/rooms">
           <Button variant="outline">Quay lại</Button>
         </Link>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Card>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Thông tin cơ bản</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Khách sạn & loại phòng</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
@@ -161,26 +261,24 @@ export default function CreateRoomPage() {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Tên loại phòng *
-              </label>
-              <Input
-                required
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                placeholder="VD: Deluxe Room"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Số khách tối đa *
+                  Loại phòng (type) *
+                </label>
+                <Input
+                  required
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  placeholder="VD: Deluxe"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Số khách tối đa (max_guests)
                 </label>
                 <Input
                   type="number"
-                  required
                   value={formData.max_guests}
                   onChange={(e) =>
                     setFormData({ ...formData, max_guests: Number(e.target.value) })
@@ -188,9 +286,12 @@ export default function CreateRoomPage() {
                   min={1}
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Giá cơ bản *
+                  Giá cơ bản (basic_price) *
                 </label>
                 <Input
                   type="number"
@@ -202,6 +303,31 @@ export default function CreateRoomPage() {
                   min={0}
                 />
               </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Giá đặc biệt (special_price)
+                </label>
+                <Input
+                  type="number"
+                  value={formData.special_price}
+                  onChange={(e) => setFormData({ ...formData, special_price: e.target.value })}
+                  min={0}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Giảm giá (discount)
+                </label>
+                <Input
+                  type="number"
+                  value={formData.discount}
+                  onChange={(e) => setFormData({ ...formData, discount: Number(e.target.value) })}
+                  min={0}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-end">
                 <label className="flex items-center gap-2 text-sm font-semibold text-gray-900">
                   <input
@@ -215,34 +341,9 @@ export default function CreateRoomPage() {
                   Đang mở bán
                 </label>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Giá đặc biệt (tuỳ chọn)
-                </label>
-                <Input
-                  type="number"
-                  value={formData.special_price}
-                  onChange={(e) => setFormData({ ...formData, special_price: e.target.value })}
-                  min={0}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Giảm giá (%)
-                </label>
-                <Input
-                  type="number"
-                  value={formData.discount}
-                  onChange={(e) => setFormData({ ...formData, discount: Number(e.target.value) })}
-                  min={0}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Sự kiện (tuỳ chọn)
+                  Sự kiện (event)
                 </label>
                 <Input
                   value={formData.event}
@@ -254,30 +355,169 @@ export default function CreateRoomPage() {
 
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Mô tả
+                Mô tả loại phòng (description)
               </label>
               <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={4}
-                placeholder="Mô tả chi tiết về loại phòng..."
+                value={formData.typeDescription}
+                onChange={(e) => setFormData({ ...formData, typeDescription: e.target.value })}
+                rows={3}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] text-gray-900"
               />
             </div>
           </div>
         </Card>
 
+        <Card>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Thông tin phòng</h2>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Tên phòng (name) *
+                </label>
+                <Input
+                  required
+                  value={formData.roomName}
+                  onChange={(e) => setFormData({ ...formData, roomName: e.target.value })}
+                  placeholder="VD: Deluxe 101"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Vị trí (location) *
+                </label>
+                <Input
+                  required
+                  value={formData.roomLocation}
+                  onChange={(e) => setFormData({ ...formData, roomLocation: e.target.value })}
+                  placeholder="VD: Tầng 1 - Hướng biển"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Giường đơn (number_of_single_beds)
+                </label>
+                <Input
+                  type="number"
+                  value={formData.number_of_single_beds}
+                  onChange={(e) =>
+                    setFormData({ ...formData, number_of_single_beds: Number(e.target.value) })
+                  }
+                  min={0}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Giường đôi (number_of_double_beds)
+                </label>
+                <Input
+                  type="number"
+                  value={formData.number_of_double_beds}
+                  onChange={(e) =>
+                    setFormData({ ...formData, number_of_double_beds: Number(e.target.value) })
+                  }
+                  min={0}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  View (room_view)
+                </label>
+                <Input
+                  value={formData.room_view}
+                  onChange={(e) => setFormData({ ...formData, room_view: e.target.value })}
+                  placeholder="VD: Sea view"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Diện tích (room_size)
+                </label>
+                <Input
+                  type="number"
+                  value={formData.room_size}
+                  onChange={(e) => setFormData({ ...formData, room_size: e.target.value })}
+                  min={0}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Ghi chú (notes)
+                </label>
+                <Input
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="Tuỳ chọn"
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Ảnh phòng (tuỳ chọn)</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Chọn ảnh (tối đa 10 ảnh, mỗi ảnh tối đa 5MB)
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                Chọn ảnh
+              </Button>
+              <p className="text-sm text-gray-600 mt-2">Đã chọn: {selectedImages.length} ảnh</p>
+            </div>
+
+            {imagePreviews.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {imagePreviews.map((preview, index) => (
+                  <div key={preview} className="relative group">
+                    <img
+                      src={preview}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg border-2 border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
+
         <div className="flex justify-end space-x-3">
-          <Link href="/hotel-manager/rooms/types">
+          <Link href="/hotel-manager/rooms">
             <Button variant="outline" type="button" disabled={isSubmitting}>
               Huỷ
             </Button>
           </Link>
           <Button type="submit" disabled={isSubmitting || loadingHotels || hotels.length === 0}>
-            {isSubmitting ? 'Đang tạo...' : 'Tạo loại phòng'}
+            {isSubmitting ? 'Đang tạo...' : 'Thêm phòng'}
           </Button>
         </div>
       </form>
     </div>
   );
 }
+

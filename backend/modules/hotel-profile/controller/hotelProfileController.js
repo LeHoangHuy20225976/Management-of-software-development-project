@@ -14,8 +14,10 @@ const hotelProfileController = {
     },
     addTypeForHotel: async(req, res) => {
         try {
+            console.log("addTypeForHotel is called");
             const userid = req.user.user_id;
             const { typeData } = req.body;
+            console.log("Type data in controller:", typeData);
             await hotelProfileService.addTypeForHotel(typeData, userid);
             return responseUtils.ok(res, {message: `Add room type successfully`});
         } catch (error) {
@@ -81,8 +83,10 @@ const hotelProfileController = {
     },
     updatePriceForRoomType: async(req, res) => {
         try {
+            console.log("updatePriceForRoomType is called");
             const userid = req.user.user_id;
             const { priceData} = req.body;
+            console.log("Price data in controller:", priceData);
             await hotelProfileService.updatePriceForRoomType(priceData, userid);
             return responseUtils.ok(res, {message: "Update price successfully"});
         } catch (error) {
