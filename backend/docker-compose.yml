@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: hotel_dev_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: "03082004"
+      POSTGRES_PASSWORD: 03082004
     ports:
       - "55432:5432"
     volumes:
