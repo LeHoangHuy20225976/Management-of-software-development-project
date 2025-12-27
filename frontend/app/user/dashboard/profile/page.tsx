@@ -12,8 +12,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
 import { authApi } from '@/lib/api/auth';
-import { userApi, userProfileApi } from '@/lib/api/services';
-import { getMockBookings, getMockReviews } from '@/lib/utils/mockData';
+import { userApi, userProfileApi, bookingsApi, reviewsApi } from '@/lib/api/services';
 
 export default function UserProfilePage() {
   const { user, logout } = useAuth();
@@ -55,13 +54,22 @@ export default function UserProfilePage() {
       setProfileImage(user.profile_image || null);
     }
 
-    // Load stats (mock data for now)
-    const bookings = getMockBookings();
-    const reviews = getMockReviews();
-    setStats({
-      bookings: bookings.length,
-      reviews: reviews.length,
-    });
+    // Load stats from API
+    const loadStats = async () => {
+      try {
+        const [bookings, reviews] = await Promise.all([
+          bookingsApi.getAll(),
+          reviewsApi.getAll(),
+        ]);
+        setStats({
+          bookings: bookings.length,
+          reviews: reviews.length,
+        });
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    };
+    loadStats();
   }, [user]);
 
   // Handle profile image upload

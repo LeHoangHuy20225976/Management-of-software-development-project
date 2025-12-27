@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
+import { bookingsApi } from '@/lib/api/services';
 import type { Booking } from '@/types';
 
 export default function BookingsPage() {
@@ -20,16 +21,13 @@ export default function BookingsPage() {
     loadBookings();
   }, []);
 
-  const loadBookings = () => {
+  const loadBookings = async () => {
     try {
-      // Import mockData functions dynamically to avoid SSR issues
-      import('@/lib/utils/mockData').then(({ getMockBookings }) => {
-        const data = getMockBookings();
-        setBookings(data);
-        setLoading(false);
-      });
+      const data = await bookingsApi.getAll();
+      setBookings(data);
     } catch (error) {
       console.error('Error loading bookings:', error);
+    } finally {
       setLoading(false);
     }
   };

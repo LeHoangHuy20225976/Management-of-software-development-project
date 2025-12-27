@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { hotelManagerApi } from '@/lib/api/services';
 
 interface HotelImage {
   id: number;
@@ -40,7 +41,11 @@ export default function HotelManagerImagesPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [loading, setLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // TODO: Get actual hotel ID from auth context or props
+  const hotelId = '1';
   
   const [uploadForm, setUploadForm] = useState({
     type: 'hotel' as HotelImage['type'],
@@ -49,17 +54,27 @@ export default function HotelManagerImagesPage() {
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem('hotelImages');
-    if (saved) {
-      setImages(JSON.parse(saved));
-    } else {
-      setImages(defaultImages);
-    }
-  }, []);
+    const loadImages = async () => {
+      try {
+        const savedImages = await hotelManagerApi.getImages(hotelId);
+        if (savedImages && savedImages.length > 0) {
+          setImages(savedImages as HotelImage[]);
+        } else {
+          setImages(defaultImages);
+        }
+      } catch (error) {
+        console.error('Error loading images:', error);
+        setImages(defaultImages);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadImages();
+  }, [hotelId]);
 
-  const saveImages = (newImages: HotelImage[]) => {
+  const saveImages = async (newImages: HotelImage[]) => {
     setImages(newImages);
-    localStorage.setItem('hotelImages', JSON.stringify(newImages));
+    // Images will be saved via API calls when adding/deleting
   };
 
   const handleDrag = (e: React.DragEvent) => {
@@ -92,36 +107,55 @@ export default function HotelManagerImagesPage() {
     
     setUploading(true);
     
-    // Simulate upload delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const newImages: HotelImage[] = uploadForm.files.map((file, index) => ({
-      id: Date.now() + index,
-      url: URL.createObjectURL(file),
-      type: uploadForm.type,
-      caption: uploadForm.caption || file.name.replace(/\.[^/.]+$/, ''),
-      isThumbnail: false,
-      uploadedAt: new Date().toISOString().split('T')[0],
-    }));
-    
-    saveImages([...images, ...newImages]);
-    setUploadForm({ type: 'hotel', caption: '', files: [] });
-    setShowUploadModal(false);
-    setUploading(false);
+    try {
+      const uploadedImages = await hotelManagerApi.uploadImages(
+        hotelId, 
+        uploadForm.files, 
+        uploadForm.type, 
+        uploadForm.caption
+      );
+      
+      const newImages: HotelImage[] = uploadedImages.map((img) => ({
+        ...img,
+        type: img.type as HotelImage['type'],
+        isThumbnail: false,
+        uploadedAt: new Date().toISOString().split('T')[0],
+      }));
+      
+      setImages(prev => [...prev, ...newImages]);
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      alert('Lỗi khi tải ảnh lên!');
+    } finally {
+      setUploadForm({ type: 'hotel', caption: '', files: [] });
+      setShowUploadModal(false);
+      setUploading(false);
+    }
   };
 
-  const handleSetThumbnail = (id: number) => {
-    const updated = images.map(img => ({
-      ...img,
-      isThumbnail: img.id === id,
-    }));
-    saveImages(updated);
+  const handleSetThumbnail = async (id: number) => {
+    try {
+      await hotelManagerApi.setThumbnail(hotelId, id);
+      const updated = images.map(img => ({
+        ...img,
+        isThumbnail: img.id === id,
+      }));
+      setImages(updated);
+    } catch (error) {
+      console.error('Error setting thumbnail:', error);
+    }
   };
 
-  const handleDeleteImage = (id: number) => {
+  const handleDeleteImage = async (id: number) => {
     if (confirm('Bạn có chắc muốn xóa ảnh này?')) {
-      saveImages(images.filter(img => img.id !== id));
-      setSelectedImage(null);
+      try {
+        await hotelManagerApi.deleteImage(hotelId, id);
+        setImages(images.filter(img => img.id !== id));
+        setSelectedImage(null);
+      } catch (error) {
+        console.error('Error deleting image:', error);
+        alert('Lỗi khi xóa ảnh!');
+      }
     }
   };
 
@@ -129,7 +163,7 @@ export default function HotelManagerImagesPage() {
     const updated = images.map(img => 
       img.id === id ? { ...img, caption } : img
     );
-    saveImages(updated);
+    setImages(updated);
     setShowEditModal(false);
     setSelectedImage(null);
   };
