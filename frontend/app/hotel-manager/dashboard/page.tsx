@@ -18,7 +18,7 @@ export default function HotelManagerDashboardPage() {
   const [hotelId, setHotelId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check authentication
+    // DISABLED: Authentication check for testing
     // const hotelAuthToken = localStorage.getItem('hotel_auth_token');
     // if (!hotelAuthToken) {
     //   router.push('/hotel-manager/login');

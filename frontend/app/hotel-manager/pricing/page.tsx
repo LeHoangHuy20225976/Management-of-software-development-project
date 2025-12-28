@@ -5,7 +5,7 @@ import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { formatCurrency } from '@/lib/utils/format';
-import { hotelManagerApi } from '@/lib/api/services';
+import { hotelManagerApi, pricingEngineApi } from '@/lib/api/services';
 import { apiClient } from '@/lib/api/client';
 import { API_CONFIG } from '@/lib/api/config';
 import type { RoomType } from '@/types';
@@ -76,6 +76,9 @@ export default function HotelPricingPage() {
 
   const [editingTypeId, setEditingTypeId] = useState<number | null>(null);
   const [savingTypeId, setSavingTypeId] = useState<number | null>(null);
+  const [previewTypeId, setPreviewTypeId] = useState<number | null>(null);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [formData, setFormData] = useState<Record<number, PricingFormData>>({});
 
   const selectedHotelName = useMemo(() => {
@@ -200,7 +203,7 @@ export default function HotelPricingPage() {
       if (data.start_date) priceData.start_date = data.start_date;
       if (data.end_date) priceData.end_date = data.end_date;
 
-      await apiClient.put(API_CONFIG.ENDPOINTS.UPDATE_PRICE, { priceData });
+      await pricingEngineApi.updatePricing(typeId, priceData);
 
       alert('Cập nhật giá thành công!');
       setEditingTypeId(null);
@@ -210,6 +213,29 @@ export default function HotelPricingPage() {
       alert(e instanceof Error ? e.message : 'Có lỗi khi cập nhật giá');
     } finally {
       setSavingTypeId(null);
+    }
+  };
+
+  const handlePreviewPrice = async (typeId: number) => {
+    setPreviewTypeId(typeId);
+    try {
+      const checkInDate = new Date().toISOString().split('T')[0];
+      const checkOutDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 3 days later
+
+      const result = await pricingEngineApi.calculatePrice({
+        type_id: typeId,
+        check_in_date: checkInDate,
+        check_out_date: checkOutDate,
+        guests: 2
+      });
+
+      setPreviewData(result);
+      setShowPreviewModal(true);
+    } catch (error) {
+      console.error('Error previewing price:', error);
+      alert('Lỗi khi tính giá: ' + (error as Error).message);
+    } finally {
+      setPreviewTypeId(null);
     }
   };
 
@@ -296,33 +322,43 @@ export default function HotelPricingPage() {
                     {roomType.description} • Tối đa {roomType.max_guests} khách • {roomType.quantity ?? 0} phòng
                   </p>
                 </div>
-                {!isEditing ? (
+                <div className="flex space-x-2">
                   <Button
-                    onClick={() => setEditingTypeId(roomType.type_id)}
+                    variant="outline"
                     size="sm"
+                    onClick={() => handlePreviewPrice(roomType.type_id)}
                     disabled={processing}
                   >
-                    Chỉnh sửa
+                    🧮 Preview
                   </Button>
-                ) : (
-                  <div className="flex space-x-2">
+                  {!isEditing ? (
                     <Button
-                      variant="outline"
+                      onClick={() => setEditingTypeId(roomType.type_id)}
                       size="sm"
-                      onClick={() => setEditingTypeId(null)}
-                      disabled={isSaving}
+                      disabled={processing}
                     >
-                      Huỷ
+                      Chỉnh sửa
                     </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleSave(roomType.type_id)}
-                      disabled={isSaving}
-                    >
-                      {isSaving ? 'Đang lưu...' : 'Lưu'}
-                    </Button>
-                  </div>
-                )}
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setEditingTypeId(null)}
+                        disabled={isSaving}
+                      >
+                        Huỷ
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleSave(roomType.type_id)}
+                        disabled={isSaving}
+                      >
+                        {isSaving ? 'Đang lưu...' : 'Lưu'}
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -410,6 +446,77 @@ export default function HotelPricingPage() {
           );
         })}
       </div>
+
+      {/* Price Preview Modal */}
+      {showPreviewModal && previewData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">🧮 Tính giá phòng</h2>
+                <button
+                  onClick={() => setShowPreviewModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="text-sm text-blue-600 font-medium">Số đêm</div>
+                    <div className="text-2xl font-bold text-blue-800">{previewData.breakdown.nights}</div>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <div className="text-sm text-green-600 font-medium">Số khách</div>
+                    <div className="text-2xl font-bold text-green-800">{previewData.breakdown.guests}</div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="text-lg font-bold text-gray-900 mb-2">
+                    Tổng tiền: {formatCurrency(previewData.totalPrice)}
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    Cơ bản: {formatCurrency(previewData.breakdown.subtotal)} |
+                    Giảm giá: {formatCurrency(previewData.breakdown.totalDiscount)}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-medium text-gray-900 mb-2">Chi tiết theo ngày:</h3>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {previewData.breakdown.dailyBreakdown.map((day: any, index: number) => (
+                      <div key={index} className="flex justify-between items-center text-sm bg-white p-2 rounded border">
+                        <span>{day.date}</span>
+                        <div className="text-right">
+                          <div>{formatCurrency(day.final_price)}</div>
+                          {day.event && <div className="text-xs text-orange-600">🎉 {day.event}</div>}
+                          {day.discount_rate > 0 && (
+                            <div className="text-xs text-green-600">
+                              Giảm {day.discount_rate * 100}%
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setShowPreviewModal(false)}
+                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

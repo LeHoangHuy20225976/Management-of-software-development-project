@@ -339,9 +339,6 @@ export const hotelManagerApi = {
   },
 
   // Rooms Management
-  async getRooms(hotelId: string = 'h1'): Promise<RoomType[]> {
-    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ALL_ROOMS, { hotel_id: hotelId });
-  },
 
   async createRoom(hotelId: string, roomData: Partial<RoomType>): Promise<RoomType> {
     return apiClient.post<RoomType>(API_CONFIG.ENDPOINTS.ADD_ROOM, { roomData });
@@ -457,17 +454,7 @@ export const hotelManagerApi = {
   },
 
   // Room Types Management
-  async getRoomTypes(hotelId: string = 'h1'): Promise<RoomType[]> {
-    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ROOM_TYPES, { hotel_id: hotelId });
-  },
 
-  /**
-   * Get single room type by ID
-   * GET /hotel-profile/view-room-type/:type_id
-   */
-  async getRoomType(typeId: string): Promise<RoomType> {
-    return apiClient.get<RoomType>(API_CONFIG.ENDPOINTS.VIEW_ROOM_TYPE, { type_id: typeId });
-  },
 
   async addRoomType(data: {
     type: string;
@@ -719,6 +706,178 @@ export const paymentApi = {
   },
 };
 
+// ============= PRICING ENGINE API =============
+export const pricingEngineApi = {
+  async calculatePrice(data: {
+    type_id: number;
+    check_in_date: string;
+    check_out_date: string;
+    guests?: number;
+    promo_code?: string;
+  }): Promise<{
+    totalPrice: number;
+    breakdown: {
+      nights: number;
+      guests: number;
+      subtotal: number;
+      totalDiscount: number;
+      finalTotal: number;
+      dailyBreakdown: Array<{
+        date: string;
+        base_price: number;
+        event?: string;
+        discount_rate: number;
+        discount_amount: number;
+        final_price: number;
+      }>;
+      promoCode?: string;
+      eventApplied?: string;
+    };
+  }> {
+    return apiClient.post(API_CONFIG.ENDPOINTS.PRICING_CALCULATE, data);
+  },
+
+  async getPriceForDate(typeId: number, date: string): Promise<{
+    price: number;
+    base_price: number;
+    event?: string;
+    discount: number;
+  }> {
+    return apiClient.get(API_CONFIG.ENDPOINTS.PRICING_GET_PRICE, { typeId: typeId.toString(), date });
+  },
+
+  async getPriceRange(typeId: number, startDate: string, endDate: string): Promise<{
+    minPrice: number;
+    maxPrice: number;
+    averagePrice: number;
+    dailyPrices: Array<{
+      date: string;
+      price: number;
+      base_price: number;
+      event?: string;
+      discount: number;
+    }>;
+  }> {
+    return apiClient.get(API_CONFIG.ENDPOINTS.PRICING_GET_RANGE, {
+      typeId: typeId.toString(),
+      start_date: startDate,
+      end_date: endDate
+    });
+  },
+
+  async updatePricing(typeId: number, pricingData: {
+    basic_price?: number;
+    special_price?: number;
+    discount?: number;
+    event?: string;
+    start_date?: string;
+    end_date?: string;
+  }): Promise<{
+    message: string;
+    pricing: {
+      type_id: number;
+      basic_price: number;
+      special_price?: number;
+      discount: number;
+      event?: string;
+      start_date?: string;
+      end_date?: string;
+    };
+  }> {
+    return apiClient.put(API_CONFIG.ENDPOINTS.PRICING_UPDATE, pricingData, { typeId: typeId.toString() });
+  },
+};
+
+// ============= SYNCHRONIZATION API =============
+export const synchronizationApi = {
+  async syncHotelAvailability(hotelId: number, startDate: string, endDate: string): Promise<{
+    synced: boolean;
+    records: number;
+    timestamp: string;
+    data: {
+      hotel_id: number;
+      hotel_name: string;
+      sync_timestamp: string;
+      availability: Array<{
+        room_type_id: number;
+        room_type: string;
+        rooms: Array<{
+          room_id: number;
+          room_name: string;
+          status: number;
+          calendar: Array<{
+            date: string;
+            available: boolean;
+          }>;
+        }>;
+      }>;
+    };
+  }> {
+    return apiClient.post(API_CONFIG.ENDPOINTS.SYNC_HOTEL_AVAILABILITY, {
+      start_date: startDate,
+      end_date: endDate
+    }, { hotelId: hotelId.toString() });
+  },
+
+  async syncHotelPricing(hotelId: number): Promise<{
+    synced: boolean;
+    records: number;
+    timestamp: string;
+    data: {
+      hotel_id: number;
+      hotel_name: string;
+      sync_timestamp: string;
+      pricing: Array<{
+        room_type_id: number;
+        room_type: string;
+        base_price: number;
+        special_price?: number;
+        special_price_start?: string;
+        special_price_end?: string;
+        event?: string;
+        discount: number;
+      }>;
+    };
+  }> {
+    return apiClient.post(API_CONFIG.ENDPOINTS.SYNC_HOTEL_PRICING, {}, { hotelId: hotelId.toString() });
+  },
+
+  async syncHotelData(hotelId: number, startDate: string, endDate: string): Promise<{
+    availability: any;
+    pricing: any;
+    synced_at: string;
+  }> {
+    return apiClient.post(API_CONFIG.ENDPOINTS.SYNC_HOTEL_DATA, {
+      start_date: startDate,
+      end_date: endDate
+    }, { hotelId: hotelId.toString() });
+  },
+
+  async syncMultipleHotels(data: {
+    hotel_ids: number[];
+    start_date: string;
+    end_date: string;
+  }): Promise<Array<{
+    hotel_id: number;
+    success: boolean;
+    error?: string;
+    availability?: any;
+    pricing?: any;
+  }>> {
+    return apiClient.post(API_CONFIG.ENDPOINTS.SYNC_MULTIPLE_HOTELS, data);
+  },
+
+  async getSyncStatus(hotelId: number): Promise<{
+    hotel_id: number;
+    last_sync: string | null;
+    status: string;
+    room_types_count: number;
+    pricing_configured: boolean;
+  }> {
+    return apiClient.get(API_CONFIG.ENDPOINTS.SYNC_STATUS, { hotelId: hotelId.toString() });
+  },
+};
+
 // ============= ROOM INVENTORY API =============
 export const roomInventoryApi = {
   async checkAvailability(data: {
@@ -776,37 +935,7 @@ export const roomInventoryApi = {
     return apiClient.get<any>(API_CONFIG.ENDPOINTS.ROOM_INVENTORY_CALENDAR, { typeId, startDate, endDate });
   },
 
-  /**
-   * Get room type by ID
-   * GET /rooms/types/:id
-   */
-  async getRoomType(typeId: string): Promise<RoomType | null> {
-    return apiClient.get<RoomType>(API_CONFIG.ENDPOINTS.ROOM_TYPE_BY_ID, { id: typeId });
-  },
 
-  /**
-   * Get all room types for a hotel
-   * GET /rooms/types/hotel/:hotelId
-   */
-  async getRoomTypesByHotel(hotelId: string): Promise<RoomType[]> {
-    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.ROOM_TYPES_BY_HOTEL, { hotelId });
-  },
-
-  /**
-   * Get room by ID
-   * GET /rooms/:id
-   */
-  async getRoom(roomId: string): Promise<Room | null> {
-    return apiClient.get<Room>(API_CONFIG.ENDPOINTS.ROOM_BY_ID, { id: roomId });
-  },
-
-  /**
-   * Get all rooms of a room type
-   * GET /rooms/type/:typeId
-   */
-  async getRoomsByType(typeId: string): Promise<Room[]> {
-    return apiClient.get<Room[]>(API_CONFIG.ENDPOINTS.ROOMS_BY_TYPE, { typeId });
-  },
 };
 
 // ============= DESTINATIONS EXTENDED API =============
@@ -833,9 +962,9 @@ export const destinationsApi = {
     return apiClient.delete<boolean>(API_CONFIG.ENDPOINTS.DELETE_DESTINATION, { id });
   },
 
-  async getReviews(destinationId: string): Promise<Review[]> {
-    return apiClient.get<Review[]>(API_CONFIG.ENDPOINTS.GET_DESTINATION_REVIEWS, { id: destinationId });
-  },
+  // async getReviews(destinationId: string): Promise<Review[]> {
+  //   return apiClient.get<Review[]>(API_CONFIG.ENDPOINTS.GET_DESTINATION_REVIEWS, { id: destinationId });
+  // },
 
   async addReview(destinationId: string, reviewData: Partial<Review>): Promise<Review> {
     return apiClient.post<Review>(API_CONFIG.ENDPOINTS.ADD_DESTINATION_REVIEW, { id: destinationId, ...reviewData });

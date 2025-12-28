@@ -15,70 +15,70 @@ export const API_CONFIG = {
 
   // API Endpoints
   ENDPOINTS: {
-    // Auth (matches backend format_message.md)
-    LOGIN: '/auth/login',
-    REGISTER: '/auth/register',
-    LOGOUT: '/auth/logout',
-    REFRESH_TOKEN: '/auth/refresh-tokens',
-    CHANGE_PASSWORD: '/auth/reset-password',
-    FORGOT_PASSWORD: '/auth/verify-forget-password',
-    RESET_FORGOT_PASSWORD: '/auth/reset-forget-password',
+    // Auth (matches backend /api/v1/auth/*)
+    LOGIN: '/api/v1/auth/login',
+    REGISTER: '/api/v1/auth/register',
+    LOGOUT: '/api/v1/auth/logout',
+    REFRESH_TOKEN: '/api/v1/auth/refresh-tokens',
+    CHANGE_PASSWORD: '/api/v1/auth/reset-password',
+    FORGOT_PASSWORD: '/api/v1/auth/verify-forget-password',
+    RESET_FORGOT_PASSWORD: '/api/v1/auth/reset-forget-password',
 
-    // Hotel Profile (matches backend /hotel-profile/*)
-    ADD_HOTEL: '/hotel-profile/add-hotel',
-    HOTEL_MANAGER_HOTELS: '/hotel-profile/hotel-manager/hotels',
-    VIEW_HOTEL: '/hotel-profile/view-hotel/:hotel_id',
-    UPDATE_HOTEL: '/hotel-profile/update-hotel/:hotel_id',
-    DELETE_HOTEL: '/hotel-profile/delete-hotel/:hotel_id',
-    ADD_FACILITY: '/hotel-profile/add-facility/:hotel_id',
-    VIEW_FACILITIES: '/hotel-profile/view-facilities/:hotel_id',
+    // Hotel Profile (matches backend /api/v1/hotel-profile/*)
+    ADD_HOTEL: '/api/v1/hotel-profile/add-hotel',
+    HOTEL_MANAGER_HOTELS: '/api/v1/hotel-profile/hotel-manager/hotels',
+    VIEW_HOTEL: '/api/v1/hotel-profile/view-hotel/:hotel_id',
+    UPDATE_HOTEL: '/api/v1/hotel-profile/update-hotel/:hotel_id',
+    DELETE_HOTEL: '/api/v1/hotel-profile/delete-hotel/:hotel_id',
+    ADD_FACILITY: '/api/v1/hotel-profile/add-facility/:hotel_id',
+    VIEW_FACILITIES: '/api/v1/hotel-profile/view-facilities/:hotel_id',
     
     // Room Type Management
-    ADD_ROOM_TYPE: '/hotel-profile/add-room-type',
-    VIEW_ROOM_TYPES: '/hotel-profile/view-room-types/:hotel_id',
-    VIEW_ROOM_TYPE: '/hotel-profile/view-room-type/:type_id',
-    UPDATE_ROOM_TYPE: '/hotel-profile/update-room-type/:type_id',
-    
+    ADD_ROOM_TYPE: '/api/v1/hotel-profile/add-room-type',
+    VIEW_ROOM_TYPES: '/api/v1/hotel-profile/view-room-types/:hotel_id',
+    VIEW_ROOM_TYPE: '/api/v1/hotel-profile/view-room-type/:type_id',
+    UPDATE_ROOM_TYPE: '/api/v1/hotel-profile/update-room-type/:type_id',
+
     // Room Management
-    ADD_ROOM: '/hotel-profile/add-room',
-    VIEW_ALL_ROOMS: '/hotel-profile/view-all-rooms/:hotel_id',
-    VIEW_ROOM: '/hotel-profile/view-room/:room_id',
-    UPDATE_ROOM: '/hotel-profile/update-room/:room_id',
-    ALL_ROOMS: '/hotel-profile/all-rooms',
-    ALL_HOTELS: '/hotel-profile/all-hotels',
+    ADD_ROOM: '/api/v1/hotel-profile/add-room',
+    VIEW_ALL_ROOMS: '/api/v1/hotel-profile/view-all-rooms/:hotel_id',
+    VIEW_ROOM: '/api/v1/hotel-profile/view-room/:room_id',
+    UPDATE_ROOM: '/api/v1/hotel-profile/update-room/:room_id',
+    ALL_ROOMS: '/api/v1/hotel-profile/all-rooms',
+    ALL_HOTELS: '/api/v1/hotel-profile/all-hotels',
     
     // Pricing
-    UPDATE_PRICE: '/hotel-profile/update-price',
+    UPDATE_PRICE: '/api/v1/hotel-profile/update-price',
 
     // Reviews (under hotel-profile)
-    ADD_REVIEW: '/hotel-profile/add-review',
-    UPDATE_REVIEW: '/hotel-profile/update-review/:review_id',
-    DELETE_REVIEW: '/hotel-profile/delete-review/:review_id',
-    ALL_REVIEWS: '/hotel-profile/all-reviews/:hotel_id',
-    REPLY_REVIEW: '/hotel-profile/reply-review/:review_id',
+    ADD_REVIEW: '/api/v1/hotel-profile/add-review',
+    UPDATE_REVIEW: '/api/v1/hotel-profile/update-review/:review_id',
+    DELETE_REVIEW: '/api/v1/hotel-profile/delete-review/:review_id',
+    ALL_REVIEWS: '/api/v1/hotel-profile/all-reviews/:hotel_id',
+    REPLY_REVIEW: '/api/v1/hotel-profile/reply-review/:review_id',
 
     // Bookings (matches backend /bookings/*)
-    BOOKING_HISTORY: '/bookings',
-    BOOKING_DETAILS: '/bookings/:id',
-    ADD_BOOKING: '/bookings',
-    CANCEL_BOOKING: '/bookings/:id/cancel',
-    UPDATE_BOOKING: '/bookings/:id',
-    UPDATE_BOOKING_STATUS: '/bookings/:id/status',
-    CHECK_AVAILABILITY: '/bookings/check-availability',
-    CALCULATE_PRICE: '/bookings/calculate-price',
-    AVAILABLE_ROOMS: '/bookings/available-rooms/:hotelId',
+    BOOKING_HISTORY: '/api/v1/bookings',
+    BOOKING_DETAILS: '/api/v1/bookings/:id',
+    ADD_BOOKING: '/api/v1/bookings',
+    CANCEL_BOOKING: '/api/v1/bookings/:id/cancel',
+    UPDATE_BOOKING: '/api/v1/bookings/:id',
+    UPDATE_BOOKING_STATUS: '/api/v1/bookings/:id/status',
+    CHECK_AVAILABILITY: '/api/v1/bookings/check-availability',
+    CALCULATE_PRICE: '/api/v1/bookings/calculate-price',
+    AVAILABLE_ROOMS: '/api/v1/bookings/available-rooms/:hotelId',
 
-    // User Profile (matches backend /users/*)
-    VIEW_PROFILE: '/users/profile',
-    UPDATE_PROFILE: '/users/profile',
-    USER_BOOKINGS: '/users/bookings',
-    UPLOAD_PROFILE_IMAGE: '/users/profile/image',
+    // User Profile (matches backend /api/v1/users/*)
+    VIEW_PROFILE: '/api/v1/users/profile',
+    UPDATE_PROFILE: '/api/v1/users/profile',
+    USER_BOOKINGS: '/api/v1/users/bookings',
+    UPLOAD_PROFILE_IMAGE: '/api/v1/users/profile/image',
 
-    // Tourism/Destinations (matches backend /destinations/*)
-    ALL_DESTINATIONS: '/destinations',
-    VIEW_DESTINATION: '/destinations/:destination_id',
-    SEARCH_DESTINATIONS: '/destinations/search',
-    DESTINATIONS_BY_TYPE: '/destinations/type/:type',
+    // Tourism/Destinations (matches backend /api/v1/destinations/*)
+    ALL_DESTINATIONS: '/api/v1/destinations',
+    VIEW_DESTINATION: '/api/v1/destinations/:destination_id',
+    SEARCH_DESTINATIONS: '/api/v1/destinations/search',
+    DESTINATIONS_BY_TYPE: '/api/v1/destinations/type/:type',
 
     // Payment Gateway (matches backend /payments/*)
     PAYMENT_CREATE: '/payments/create',
@@ -93,51 +93,76 @@ export const API_CONFIG = {
     VNPAY_RETURN: '/payments/vnpay-return',
     VNPAY_IPN: '/payments/vnpay-ipn',
 
-    // Room Inventory (matches backend /rooms/*)
-    ROOM_CHECK_AVAILABILITY: '/rooms/check-availability',
-    ROOM_AVAILABLE: '/rooms/available/:hotelId',
-    ROOM_TYPE_BY_ID: '/rooms/types/:id',
-    ROOM_TYPES_BY_HOTEL: '/rooms/types/hotel/:hotelId',
-    ROOM_BY_ID: '/rooms/:id',
-    ROOMS_BY_TYPE: '/rooms/type/:typeId',
-    ROOM_HOLD: '/rooms/hold',
-    ROOM_HOLD_RELEASE: '/rooms/hold/:holdId/release',
-    ROOM_INVENTORY_CALENDAR: '/rooms/inventory-calendar/:typeId',
-    ROOM_INVENTORY_UPDATE: '/room-inventory/update-room/:room_id',
-    ROOM_INVENTORY_DELETE: '/room-inventory/delete-room/:room_id',
+    // Room Inventory (matches backend /api/v1/rooms/*)
+    ROOM_CHECK_AVAILABILITY: '/api/v1/rooms/check-availability',
+    ROOM_AVAILABLE: '/api/v1/rooms/available/:hotelId',
+    ROOM_TYPE_BY_ID: '/api/v1/rooms/types/:id',
+    ROOM_TYPES_BY_HOTEL: '/api/v1/rooms/types/hotel/:hotelId',
+    ROOM_BY_ID: '/api/v1/rooms/:id',
+    ROOMS_BY_TYPE: '/api/v1/rooms/type/:typeId',
+    ROOM_HOLD: '/api/v1/rooms/hold',
+    ROOM_HOLD_RELEASE: '/api/v1/rooms/hold/:holdId/release',
+    ROOM_INVENTORY_CALENDAR: '/api/v1/rooms/inventory-calendar/:typeId',
+    ROOM_INVENTORY_UPDATE: '/api/v1/room-inventory/update-room/:room_id',
+    ROOM_INVENTORY_DELETE: '/api/v1/room-inventory/delete-room/:room_id',
 
     // Pricing Engine
-    GET_PRICE: '/pricing-engine/get-price/:type_id',
-    PRICING_PRICE_FOR_DATE: '/pricing/date/:typeId',
+    PRICING_CALCULATE: '/api/v1/pricing/calculate',
+    PRICING_GET_PRICE: '/api/v1/pricing/date/:typeId',
+    PRICING_GET_RANGE: '/api/v1/pricing/range/:typeId',
+    PRICING_UPDATE: '/api/v1/pricing/update/:typeId',
+
+    // Synchronization
+    SYNC_HOTEL_AVAILABILITY: '/api/v1/sync/availability/:hotelId',
+    SYNC_HOTEL_PRICING: '/api/v1/sync/pricing/:hotelId',
+    SYNC_HOTEL_DATA: '/api/v1/sync/hotel/:hotelId',
+    SYNC_MULTIPLE_HOTELS: '/api/v1/sync/hotels',
+    SYNC_STATUS: '/api/v1/sync/status/:hotelId',
+    SYNC_INCOMING: '/api/v1/sync/incoming',
 
     // User Profile Extended
-    DELETE_PROFILE: '/users/profile',
-    GET_PROFILE_IMAGE: '/users/profile/image',
-    DELETE_PROFILE_IMAGE: '/users/profile/image',
-    GET_ALL_USERS: '/users',
-    CREATE_USER: '/users',
+    DELETE_PROFILE: '/api/v1/users/profile',
+    GET_PROFILE_IMAGE: '/api/v1/users/profile/image',
+    DELETE_PROFILE_IMAGE: '/api/v1/users/profile/image',
+    GET_ALL_USERS: '/api/v1/users',
+    CREATE_USER: '/api/v1/users',
 
     // Destinations Extended
-    CREATE_DESTINATION: '/destinations',
-    UPDATE_DESTINATION: '/destinations/:id',
-    DELETE_DESTINATION: '/destinations/:id',
-    GET_DESTINATION_REVIEWS: '/destinations/:id/reviews',
-    ADD_DESTINATION_REVIEW: '/destinations/:id/reviews',
-    DESTINATION_THUMBNAIL: '/destinations/:id/thumbnail',
-    DESTINATION_IMAGES: '/destinations/:id/images',
-    DELETE_DESTINATION_IMAGE: '/destinations/:id/images/:imageId',
+    CREATE_DESTINATION: '/api/v1/destinations',
+    UPDATE_DESTINATION: '/api/v1/destinations/:id',
+    DELETE_DESTINATION: '/api/v1/destinations/:id',
+    ADD_DESTINATION_REVIEW: '/api/v1/destinations/:id/reviews',
+    DESTINATION_THUMBNAIL: '/api/v1/destinations/:id/thumbnail',
+    DESTINATION_IMAGES: '/api/v1/destinations/:id/images',
+    DELETE_DESTINATION_IMAGE: '/api/v1/destinations/:id/images/:imageId',
 
     // Booking Extended (Hotel Manager)
-    BOOKING_CHECKIN: '/bookings/:id/checkin',
-    BOOKING_CHECKOUT: '/bookings/:id/checkout',
+    BOOKING_CHECKIN: '/api/v1/bookings/:id/checkin',
+    BOOKING_CHECKOUT: '/api/v1/bookings/:id/checkout',
 
     // Notifications
-    NOTIFICATION_TEST: '/notifications/test',
-    NOTIFICATION_BOOKING_CONFIRM: '/notifications/booking-confirmation',
-    NOTIFICATION_BOOKING_CANCEL: '/notifications/booking-cancellation',
-    NOTIFICATION_PASSWORD_RESET: '/notifications/password-reset',
-    NOTIFICATION_WELCOME: '/notifications/welcome',
-    NOTIFICATION_PAYMENT_CONFIRM: '/notifications/payment-confirmation',
+    NOTIFICATION_TEST: '/api/v1/notifications/test',
+    NOTIFICATION_BOOKING_CONFIRM: '/api/v1/notifications/booking-confirmation',
+    NOTIFICATION_BOOKING_CANCEL: '/api/v1/notifications/booking-cancellation',
+    NOTIFICATION_PASSWORD_RESET: '/api/v1/notifications/password-reset',
+    NOTIFICATION_WELCOME: '/api/v1/notifications/welcome',
+    NOTIFICATION_PAYMENT_CONFIRM: '/api/v1/notifications/payment-confirmation',
+
+    // Admin (matches backend /admin/*)
+    ADMIN_DASHBOARD: '/admin/dashboard',
+    ADMIN_REVENUE_METRICS: '/admin/metrics/revenue',
+    ADMIN_BOOKING_KPIS: '/admin/metrics/bookings',
+    ADMIN_RECENT_ACTIVITY: '/admin/activity',
+    ADMIN_USERS: '/admin/users',
+    ADMIN_USER_BY_ID: '/admin/users/:id',
+    ADMIN_UPDATE_USER_ROLE: '/admin/users/:id/role',
+    ADMIN_UPDATE_USER: '/admin/users/:id',
+    ADMIN_DELETE_USER: '/admin/users/:id',
+    ADMIN_HOTEL_MANAGERS: '/admin/hotel-managers',
+    ADMIN_PENDING_HOTELS: '/admin/hotels/pending',
+    ADMIN_APPROVE_HOTEL: '/admin/hotels/:id/approve',
+    ADMIN_LOCK_HOTEL: '/admin/hotels/:id/lock',
+    ADMIN_UPDATE_HOTEL_STATUS: '/admin/hotels/:id/status',
 
     // Image Uploads (Hotel Profile)
     UPLOAD_HOTEL_IMAGES: '/hotel-profile/upload-images-for-hotel/:hotel_id',
