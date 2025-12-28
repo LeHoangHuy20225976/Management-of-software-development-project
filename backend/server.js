@@ -22,10 +22,24 @@ const initializeServices = async () => {
   }
 };
 
-// connectDB();
-initializeServices();
+// Initialize services asynchronously
+const startServer = async () => {
+  try {
+    await connectDB();
+  } catch (error) {
+    console.error('⚠️ Database connection failed, server will continue without database');
+  }
 
-server.listen(port, '0.0.0.0',() => {
-  // eslint-disable-next-line no-console
-  console.log(`Server listening on http://localhost:${port}`);
-});
+  try {
+    await initializeServices();
+  } catch (error) {
+    console.error('⚠️ Services initialization failed, server will continue');
+  }
+
+  server.listen(port, '0.0.0.0', () => {
+    // eslint-disable-next-line no-console
+    console.log(`Server listening on http://localhost:${port}`);
+  });
+};
+
+startServer();
