@@ -1,0 +1,187 @@
+# HOTEL KNOWLEDGE BASE
+(Phiên bản dùng cho Chatbot + RAG)
+
+==================================================
+I. THÔNG TIN CHUNG KHÁCH SẠN
+==================================================
+
+- Tên khách sạn: ABC Hotel
+- Địa chỉ: 123 Đường XYZ, Quận 1, TP. Hồ Chí Minh
+- Hotline: +84 28 1234 5678
+- Email: contact@abchotel.com
+- Website: www.abchotel.com
+- Giờ làm việc lễ tân: 24/7
+- Ngôn ngữ hỗ trợ: Tiếng Việt, English
+
+==================================================
+II. GIỜ NHẬN & TRẢ PHÒNG
+==================================================
+
+- Giờ check-in: 14:00
+- Giờ check-out: 12:00
+- Nhận phòng sớm: Tùy tình trạng phòng, có thể phát sinh phụ phí
+- Trả phòng muộn: Có thể tính thêm phí, tùy theo thời gian
+
+==================================================
+III. THÔNG TIN PHÒNG
+==================================================
+
+--------------------
+1. PHÒNG STANDARD
+--------------------
+- Diện tích: 25m²
+- Số khách tối đa: 2 người lớn
+- Loại giường: 1 giường đôi hoặc 2 giường đơn
+- Giá tham khảo: từ 1.200.000 VNĐ / đêm
+- Tiện nghi:
+  - Điều hòa
+  - TV màn hình phẳng
+  - Wifi miễn phí
+  - Minibar
+  - Phòng tắm riêng
+- Phù hợp cho: Khách công tác, lưu trú ngắn ngày
+
+--------------------
+2. PHÒNG DELUXE
+--------------------
+- Diện tích: 30m²
+- Số khách tối đa: 2 người lớn + 1 trẻ em
+- Loại giường: 1 giường đôi lớn
+- Giá tham khảo: từ 1.500.000 VNĐ / đêm
+- Tiện nghi:
+  - Điều hòa
+  - TV
+  - Wifi miễn phí
+  - Minibar
+  - Két sắt
+  - Bồn tắm
+- Phù hợp cho: Cặp đôi, khách du lịch
+
+--------------------
+3. PHÒNG SUITE
+--------------------
+- Diện tích: 45m²
+- Số khách tối đa: 3 người lớn
+- Loại giường: 1 giường king-size
+- Giá tham khảo: từ 2.500.000 VNĐ / đêm
+- Tiện nghi:
+  - Phòng khách riêng
+  - Điều hòa
+  - TV
+  - Wifi miễn phí
+  - Minibar
+  - Két sắt
+  - Bồn tắm
+- Phù hợp cho: Gia đình, khách VIP
+
+==================================================
+IV. CHÍNH SÁCH ĐẶT PHÒNG
+==================================================
+
+- Khách cần cung cấp:
+  - Họ tên
+  - Số điện thoại
+  - Ngày nhận phòng
+  - Ngày trả phòng
+  - Số lượng khách
+- Đặt phòng được xác nhận sau khi:
+  - Thanh toán trước (nếu có yêu cầu)
+  - Hoặc nhận xác nhận từ hệ thống khách sạn
+
+==================================================
+V. CHÍNH SÁCH HỦY / ĐỔI
+==================================================
+
+- Hủy trước 48 giờ trước ngày check-in: Miễn phí
+- Hủy trong vòng 48 giờ: Tính phí 1 đêm
+- Không đến (No-show): Tính 100% tiền phòng
+- Đổi ngày lưu trú: Tùy tình trạng phòng và có thể phát sinh phụ phí
+
+==================================================
+VI. DỊCH VỤ KHÁCH SẠN
+==================================================
+
+--------------------
+1. NHÀ HÀNG
+--------------------
+- Giờ mở cửa: 06:30 – 22:00
+- Phục vụ:
+  - Buffet sáng
+  - Món Á & Âu
+- Địa điểm: Tầng 1
+
+--------------------
+2. SPA
+--------------------
+- Giờ mở cửa: 09:00 – 21:00
+- Cần đặt lịch trước
+- Các dịch vụ:
+  - Massage thư giãn
+  - Chăm sóc da
+
+--------------------
+3. PHÒNG GYM
+--------------------
+- Giờ mở cửa: 06:00 – 22:00
+- Miễn phí cho khách lưu trú
+
+--------------------
+4. HỒ BƠI
+--------------------
+- Giờ mở cửa: 07:00 – 20:00
+- Miễn phí cho khách lưu trú
+
+--------------------
+5. ĐƯA ĐÓN SÂN BAY
+--------------------
+- Có cung cấp dịch vụ đưa đón sân bay
+- Cần đặt trước
+- Giá: Liên hệ lễ tân để biết chi tiết
+
+==================================================
+VII. TIỆN ÍCH KHÁC
+==================================================
+
+- Wifi miễn phí toàn khách sạn
+- Bãi đỗ xe miễn phí cho khách lưu trú
+- Dịch vụ giặt ủi (có tính phí)
+- Dịch vụ phòng 24/7
+
+==================================================
+VIII. ĐỊA ĐIỂM XUNG QUANH
+==================================================
+
+- Sân bay Tân Sơn Nhất: 20 phút di chuyển
+- Biển: 5 phút đi bộ
+- Trung tâm thương mại XYZ: 10 phút đi bộ
+- Nhà hàng & quán cà phê: trong bán kính 500m
+
+==================================================
+IX. CÂU HỎI THƯỜNG GẶP (FAQ)
+==================================================
+
+Q: Khách sạn có cho mang thú cưng không?
+A: Hiện tại khách sạn không cho phép mang thú cưng.
+
+Q: Có nhận khách đoàn không?
+A: Có, vui lòng liên hệ trực tiếp để được báo giá tốt nhất.
+
+Q: Khách sạn có hỗ trợ xuất hóa đơn VAT không?
+A: Có, vui lòng cung cấp thông tin xuất hóa đơn khi đặt phòng.
+
+Q: Có thể thanh toán bằng hình thức nào?
+A: Tiền mặt, thẻ tín dụng, chuyển khoản ngân hàng.
+
+==================================================
+X. LƯU Ý CHO CHATBOT
+==================================================
+
+- Chatbot chỉ sử dụng thông tin trong tài liệu này để trả lời
+- Nếu câu hỏi ngoài phạm vi:
+  → Trả lời: 
+    "Hiện tại tôi chưa có thông tin chính xác về vấn đề này, vui lòng liên hệ lễ tân để được hỗ trợ thêm."
+- Không được tự suy đoán hoặc bịa thông tin
+
+==================================================
+KẾT THÚC TÀI LIỆU
+==================================================

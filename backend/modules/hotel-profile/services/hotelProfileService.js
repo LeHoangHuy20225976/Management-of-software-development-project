@@ -264,6 +264,132 @@ const hotelProfileService = {
             hotelData: hotel
         }
     },
+    async getAllImagesForHotel(hotelid, userid) {
+        const hotel = await db.Hotel.findByPk(hotelid);
+        if (!hotel) {
+            throw new Error("Hotel not found");
+        }
+
+        if (String(hotel.hotel_owner) !== String(userid)) {
+            throw new Error("You are not the owner of this hotel");
+        }
+
+        const hotelThumbnail = hotel?.thumbnail ? String(hotel.thumbnail) : null;
+        let thumbnailUrl = null;
+        if (hotelThumbnail) {
+            if (hotelThumbnail.startsWith("http://") || hotelThumbnail.startsWith("https://")) {
+                thumbnailUrl = hotelThumbnail;
+            } else {
+                const presignedUrl = await minioUtils.getFileUrl(
+                    minioUtils.buckets.HOTEL_IMAGES,
+                    normalizeObjectName(hotelThumbnail)
+                );
+                thumbnailUrl = toPublicObjectUrl(presignedUrl);
+            }
+        }
+
+        const hotelImageRows = await db.Image.findAll({
+            where: { hotel_id: hotel.hotel_id },
+            attributes: ["image_id", "image_url"],
+        });
+
+        const hotelImages = [];
+        for (const row of hotelImageRows) {
+            const raw = row.image_url ? String(row.image_url) : null;
+            if (!raw) continue;
+
+            let url = raw;
+            if (!(raw.startsWith("http://") || raw.startsWith("https://"))) {
+                const presignedUrl = await minioUtils.getFileUrl(
+                    minioUtils.buckets.HOTEL_IMAGES,
+                    normalizeObjectName(raw)
+                );
+                url = toPublicObjectUrl(presignedUrl);
+            }
+
+            hotelImages.push({
+                image_id: row.image_id,
+                url,
+            });
+        }
+
+        const roomTypes = await db.RoomType.findAll({
+            where: { hotel_id: hotel.hotel_id },
+            attributes: ["type_id"],
+        });
+        const typeIds = roomTypes.map((t) => t.type_id);
+
+        const rooms = typeIds.length
+            ? await db.Room.findAll({
+                where: { type_id: typeIds },
+                attributes: ["room_id", "type_id", "name"],
+            })
+            : [];
+
+        const roomIds = rooms.map((r) => r.room_id);
+
+        const roomImageRows = roomIds.length
+            ? await db.Image.findAll({
+                where: { room_id: roomIds },
+                attributes: ["image_id", "image_url", "room_id"],
+            })
+            : [];
+
+        const roomIdToUrls = new Map();
+        for (const row of roomImageRows) {
+            const raw = row.image_url ? String(row.image_url) : null;
+            if (!raw) continue;
+
+            let url = raw;
+            if (!(raw.startsWith("http://") || raw.startsWith("https://"))) {
+                const presignedUrl = await minioUtils.getFileUrl(
+                    minioUtils.buckets.ROOM_IMAGES,
+                    normalizeObjectName(raw)
+                );
+                url = toPublicObjectUrl(presignedUrl);
+            }
+
+            const rid = row.room_id;
+            if (!roomIdToUrls.has(rid)) roomIdToUrls.set(rid, []);
+            roomIdToUrls.get(rid).push({
+                image_id: row.image_id,
+                url,
+            });
+        }
+
+        const roomsImages = rooms.map((room) => ({
+            room_id: room.room_id,
+            room_name: room.name ?? null,
+            images: roomIdToUrls.get(room.room_id) ?? [],
+        }));
+
+        const all = [];
+        if (thumbnailUrl) {
+            all.push({ scope: "hotel", kind: "thumbnail", url: thumbnailUrl });
+        }
+        for (const img of hotelImages) {
+            all.push({ scope: "hotel", kind: "image", image_id: img.image_id, url: img.url });
+        }
+        for (const entry of roomsImages) {
+            for (const img of entry.images) {
+                all.push({
+                    scope: "room",
+                    kind: "image",
+                    room_id: entry.room_id,
+                    image_id: img.image_id,
+                    url: img.url,
+                });
+            }
+        }
+
+        return {
+            hotel_id: Number(hotelid),
+            thumbnail: thumbnailUrl,
+            hotelImages,
+            rooms: roomsImages,
+            all,
+        };
+    },
     async updateHotelProfile(hotelid, userid, hotelData = {}, thumbnailFile) {
         const hotel = await db.Hotel.findByPk(hotelid);
         if(!hotel) {

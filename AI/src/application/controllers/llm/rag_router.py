@@ -30,7 +30,8 @@ def initialize_rag():
         from src.application.services.llm.rag import RAGIndexer, PDFQueryEngine
         from src.application.services.llm.rag.pdf_loader import PDFLoader
         import os
-        
+
+
         # Get project root
         project_root = Path(__file__).parent.parent.parent.parent.parent
         pdf_folder = project_root / "folder_pdf"
