@@ -60,18 +60,58 @@ const pricingEngineValidation = {
     param('typeId')
       .isInt({ min: 1 })
       .withMessage('Room type ID must be a positive integer'),
-    
+
     query('start_date')
       .notEmpty()
       .withMessage('Start date is required')
       .isISO8601()
       .withMessage('Start date must be a valid date (YYYY-MM-DD)'),
-    
+
     query('end_date')
       .notEmpty()
       .withMessage('End date is required')
       .isISO8601()
       .withMessage('End date must be a valid date (YYYY-MM-DD)')
+  ],
+
+  /**
+   * Validate update pricing request
+   */
+  updatePricing: [
+    param('typeId')
+      .isInt({ min: 1 })
+      .withMessage('Room type ID must be a positive integer'),
+
+    body('basic_price')
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage('Basic price must be a positive number'),
+
+    body('special_price')
+      .optional()
+      .isFloat({ min: 0 })
+      .withMessage('Special price must be a positive number'),
+
+    body('discount')
+      .optional()
+      .isFloat({ min: 0, max: 1 })
+      .withMessage('Discount must be between 0 and 1'),
+
+    body('event')
+      .optional()
+      .isString()
+      .withMessage('Event must be a string')
+      .trim(),
+
+    body('start_date')
+      .optional()
+      .isISO8601()
+      .withMessage('Start date must be a valid date'),
+
+    body('end_date')
+      .optional()
+      .isISO8601()
+      .withMessage('End date must be a valid date')
   ]
 };
 

@@ -135,26 +135,25 @@ class PricingEngineService {
    * @returns {number} Adjusted price
    */
   applyDynamicPricing(basePrice, date, roomType) {
-    let adjustedPrice = basePrice;
+    // Holiday pricing has highest priority (20% increase)
+    if (this.isHoliday(date)) {
+      return Math.round(basePrice * 1.2);
+    }
 
-    // Weekend pricing (Friday, Saturday)
+    // Weekend pricing (Friday, Saturday) - 10% increase
     const dayOfWeek = date.getDay();
     if (dayOfWeek === 5 || dayOfWeek === 6) {
-      adjustedPrice = basePrice * 1.1; // 10% increase on weekends
+      return Math.round(basePrice * 1.1);
     }
 
-    // Holiday pricing (simplified - check for common holidays)
-    if (this.isHoliday(date)) {
-      adjustedPrice = basePrice * 1.2; // 20% increase on holidays
-    }
-
-    // Peak season (June-August, December)
+    // Peak season (June-August, December) - 15% increase
     const month = date.getMonth();
     if (month === 5 || month === 6 || month === 7 || month === 11) {
-      adjustedPrice = basePrice * 1.15; // 15% increase in peak season
+      return Math.round(basePrice * 1.15);
     }
 
-    return Math.round(adjustedPrice);
+    // Regular pricing
+    return basePrice;
   }
 
   /**
@@ -185,24 +184,10 @@ class PricingEngineService {
    * @returns {Promise<number>} Discount rate (0-1)
    */
   async applyPromoCode(promoCode, price, date) {
-    // Simplified promo code logic - can be extended with a promo codes table
-    const promoCodes = {
-      'SUMMER10': { discount: 0.1, validUntil: new Date('2024-12-31') },
-      'WINTER15': { discount: 0.15, validUntil: new Date('2024-12-31') },
-      'EARLY20': { discount: 0.2, validUntil: new Date('2024-12-31') }
-    };
-
-    const promo = promoCodes[promoCode.toUpperCase()];
-    
-    if (!promo) {
-      return 0; // Invalid promo code
-    }
-
-    if (date > promo.validUntil) {
-      return 0; // Expired promo code
-    }
-
-    return promo.discount;
+    // TODO: Implement promo codes table in database
+    // For now, return 0 to avoid hard-coded data
+    // This ensures no mock/hard-coded data is used
+    return 0;
   }
 
   /**
@@ -241,7 +226,7 @@ class PricingEngineService {
     }
 
     // Apply dynamic pricing
-    price = this.applyDynamicPricing(price, date, roomPrice.RoomType);
+    price = this.applyDynamicPricing(price, new Date(date), roomPrice.RoomType);
 
     return {
       price: Math.round(price),
@@ -283,6 +268,57 @@ class PricingEngineService {
       maxPrice,
       averagePrice: Math.round(averagePrice),
       dailyPrices
+    };
+  }
+
+  /**
+   * Update pricing for a room type
+   * @param {number} typeId - Room type ID
+   * @param {object} updateData - Pricing update data
+   * @returns {Promise<object>} Updated pricing data
+   */
+  async updatePricing(typeId, updateData) {
+    const roomPrice = await RoomPrice.findOne({
+      where: { type_id: typeId },
+      include: [{ model: RoomType }]
+    });
+
+    if (!roomPrice) {
+      throw new Error('Room price not found');
+    }
+
+    // Prepare update data
+    const updateFields = {};
+
+    if (updateData.basic_price !== undefined) {
+      updateFields.basic_price = updateData.basic_price;
+    }
+
+    if (updateData.special_price !== undefined) {
+      updateFields.special_price = updateData.special_price;
+    }
+
+    if (updateData.discount !== undefined) {
+      updateFields.discount = updateData.discount;
+    }
+
+    if (updateData.event !== undefined) {
+      updateFields.event = updateData.event;
+    }
+
+    if (updateData.start_date !== undefined) {
+      updateFields.start_date = updateData.start_date;
+    }
+
+    if (updateData.end_date !== undefined) {
+      updateFields.end_date = updateData.end_date;
+    }
+
+    await roomPrice.update(updateFields);
+
+    return {
+      type_id: typeId,
+      ...roomPrice.toJSON()
     };
   }
 }

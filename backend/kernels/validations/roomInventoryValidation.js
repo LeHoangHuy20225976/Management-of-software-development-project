@@ -98,11 +98,11 @@ const roomInventoryValidation = {
    * Validate create reservation hold request
    */
   createReservationHold: [
-    body('room_id')
+    body('room_type_id')
       .notEmpty()
-      .withMessage('Room ID is required')
+      .withMessage('Room type ID is required')
       .isInt({ min: 1 })
-      .withMessage('Room ID must be a positive integer'),
+      .withMessage('Room type ID must be a positive integer'),
     
     body('check_in_date')
       .notEmpty()
