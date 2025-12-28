@@ -10,7 +10,7 @@ const DestinationController = {
   getAllDestinations: async (req, res) => {
     try {
       const destinations = await DestinationService.getAllDestinations();
-      return responseUtils.ok(res, destinations);
+      return res.status(200).json(destinations);
     } catch (error) {
       console.error("Get all destinations error:", error);
       return responseUtils.error(res, error.message);
