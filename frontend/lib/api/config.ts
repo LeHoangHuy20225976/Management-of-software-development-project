@@ -165,9 +165,9 @@ export const API_CONFIG = {
     ADMIN_UPDATE_HOTEL_STATUS: '/admin/hotels/:id/status',
 
     // Image Uploads (Hotel Profile)
-    UPLOAD_HOTEL_IMAGES: '/hotel-profile/upload-images-for-hotel/:hotel_id',
-    UPLOAD_ROOM_IMAGES: '/hotel-profile/upload-images-for-room/:room_id',
-    HOTEL_ALL_IMAGES: '/hotel-profile/all-images/:hotel_id',
+    UPLOAD_HOTEL_IMAGES: '/api/v1/hotel-profile/upload-images-for-hotel/:hotel_id',
+    UPLOAD_ROOM_IMAGES: '/api/v1/hotel-profile/upload-images-for-room/:room_id',
+    HOTEL_ALL_IMAGES: '/api/v1/hotel-profile/all-images/:hotel_id',
   },
 
   // Request timeout
