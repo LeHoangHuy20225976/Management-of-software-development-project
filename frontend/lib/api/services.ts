@@ -1174,7 +1174,7 @@ export const userProfileApi = {
     return apiClient.delete<boolean>(API_CONFIG.ENDPOINTS.DELETE_PROFILE);
   },
 
-  async uploadProfileImage(file: File): Promise<{ imageUrl: string }> {
+  async uploadProfileImage(file: File): Promise<{ imageUrl: string; message: string }> {
     const formData = new FormData();
     formData.append('image', file);
 
@@ -1188,7 +1188,11 @@ export const userProfileApi = {
       throw new Error('Failed to upload image');
     }
 
-    return response.json();
+    const data = await response.json();
+    return {
+      imageUrl: data.profile_image,
+      message: data.message
+    };
   },
 
   async getProfileImage(): Promise<{ imageUrl: string | null }> {

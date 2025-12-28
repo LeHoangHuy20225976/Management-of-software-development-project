@@ -182,7 +182,7 @@ export default function HotelManagerFacilitiesPage() {
                       onChange={() => toggleFacility(f.id)}
                       className="w-4 h-4 text-[#0071c2] rounded focus:ring-2 focus:ring-[#0071c2]"
                     />
-                    Bật
+                    {/* Bật */}
                   </label>
                 </div>
               </div>
