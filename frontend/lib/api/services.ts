@@ -1025,98 +1025,146 @@ export const destinationsApi = {
   },
 
   async getById(id: string): Promise<Destination | null> {
-    return apiClient.get<Destination>(API_CONFIG.ENDPOINTS.VIEW_DESTINATION.replace(':destination_id', id));
+    return apiClient.get<Destination>(
+      API_CONFIG.ENDPOINTS.VIEW_DESTINATION.replace(":destination_id", id)
+    );
   },
 
   async search(query: string): Promise<Destination[]> {
-    return apiClient.get<Destination[]>(API_CONFIG.ENDPOINTS.SEARCH_DESTINATIONS, { q: query });
+    return apiClient.get<Destination[]>(
+      API_CONFIG.ENDPOINTS.SEARCH_DESTINATIONS,
+      { q: query }
+    );
   },
 
   async getByType(type: string): Promise<Destination[]> {
-    return apiClient.get<Destination[]>(API_CONFIG.ENDPOINTS.DESTINATIONS_BY_TYPE.replace(':type', type));
+    return apiClient.get<Destination[]>(
+      API_CONFIG.ENDPOINTS.DESTINATIONS_BY_TYPE.replace(":type", type)
+    );
   },
 
   async create(data: Partial<Destination>): Promise<Destination> {
-    return apiClient.post<Destination>(API_CONFIG.ENDPOINTS.CREATE_DESTINATION, data);
+    return apiClient.post<Destination>(
+      API_CONFIG.ENDPOINTS.CREATE_DESTINATION,
+      data
+    );
   },
 
   async update(id: string, data: Partial<Destination>): Promise<Destination> {
-    return apiClient.put<Destination>(API_CONFIG.ENDPOINTS.UPDATE_DESTINATION.replace(':id', id), data);
+    return apiClient.put<Destination>(
+      API_CONFIG.ENDPOINTS.UPDATE_DESTINATION.replace(":id", id),
+      data
+    );
   },
 
   async delete(id: string): Promise<{ success: boolean; message: string }> {
     return apiClient.delete<{ success: boolean; message: string }>(
-      API_CONFIG.ENDPOINTS.DELETE_DESTINATION.replace(':id', id)
+      API_CONFIG.ENDPOINTS.DELETE_DESTINATION.replace(":id", id)
     );
   },
 
-  async addReview(destinationId: string, reviewData: Partial<Review>): Promise<Review> {
+  async addReview(
+    destinationId: string,
+    reviewData: Partial<Review>
+  ): Promise<Review> {
     return apiClient.post<Review>(
-      API_CONFIG.ENDPOINTS.ADD_DESTINATION_REVIEW.replace(':id', destinationId), 
+      API_CONFIG.ENDPOINTS.ADD_DESTINATION_REVIEW.replace(":id", destinationId),
       reviewData
     );
   },
 
   async getImages(destinationId: number | string): Promise<Image[]> {
     return apiClient.get<Image[]>(
-      API_CONFIG.ENDPOINTS.DESTINATION_IMAGES.replace(':id', destinationId.toString())
+      API_CONFIG.ENDPOINTS.DESTINATION_IMAGES.replace(
+        ":id",
+        destinationId.toString()
+      )
     );
   },
 
-  async uploadThumbnail(id: number | string, file: File): Promise<{ success: boolean; url: string; thumbnail: string }> {
+  async uploadThumbnail(
+    id: number | string,
+    file: File
+  ): Promise<{ success: boolean; url: string; thumbnail: string }> {
     const formData = new FormData();
-    formData.append('thumbnail', file);
-    
+    formData.append("thumbnail", file);
+
     const response = await fetch(
-      `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DESTINATION_THUMBNAIL.replace(':id', id.toString())}`,
+      `${
+        API_CONFIG.BASE_URL
+      }${API_CONFIG.ENDPOINTS.DESTINATION_THUMBNAIL.replace(
+        ":id",
+        id.toString()
+      )}`,
       {
-        method: 'POST',
-        credentials: 'include',
+        method: "POST",
+        credentials: "include",
         body: formData,
       }
     );
 
     if (!response.ok) {
-      throw new Error('Failed to upload thumbnail');
+      throw new Error("Failed to upload thumbnail");
     }
 
     return response.json();
   },
 
-  async deleteThumbnail(id: number | string): Promise<{ success: boolean; message: string }> {
+  async deleteThumbnail(
+    id: number | string
+  ): Promise<{ success: boolean; message: string }> {
     return apiClient.delete<{ success: boolean; message: string }>(
-      API_CONFIG.ENDPOINTS.DESTINATION_THUMBNAIL.replace(':id', id.toString())
+      API_CONFIG.ENDPOINTS.DESTINATION_THUMBNAIL.replace(":id", id.toString())
     );
   },
 
-  async uploadImage(id: number | string, file: File): Promise<{ success: boolean; url: string; image: Image }> {
+  async uploadImage(
+    id: number | string,
+    file: File
+  ): Promise<{ success: boolean; url: string; image: Image }> {
     const formData = new FormData();
-    formData.append('image', file);
-    
+    formData.append("image", file);
+
     const response = await fetch(
-      `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DESTINATION_IMAGES.replace(':id', id.toString())}`,
+      `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DESTINATION_IMAGES.replace(
+        ":id",
+        id.toString()
+      )}`,
       {
-        method: 'POST',
-        credentials: 'include',
+        method: "POST",
+        credentials: "include",
         body: formData,
       }
     );
 
     if (!response.ok) {
-      throw new Error('Failed to upload image');
+      throw new Error("Failed to upload image");
     }
 
     return response.json();
   },
 
-  async deleteImage(destinationId: number | string, imageId: number | string): Promise<{ success: boolean; message: string }> {
+  async deleteImage(
+    destinationId: number | string,
+    imageId: number | string
+  ): Promise<{ success: boolean; message: string }> {
     return apiClient.delete<{ success: boolean; message: string }>(
-      API_CONFIG.ENDPOINTS.DELETE_DESTINATION_IMAGE
-        .replace(':id', destinationId.toString())
-        .replace(':imageId', imageId.toString())
+      API_CONFIG.ENDPOINTS.DELETE_DESTINATION_IMAGE.replace(
+        ":id",
+        destinationId.toString()
+      ).replace(":imageId", imageId.toString())
+    );
+  },
+
+  async getReviews(destinationId: string): Promise<Review[]> {
+    return apiClient.get<Review[]>(
+      API_CONFIG.ENDPOINTS.GET_DESTINATION_REVIEWS,
+      { id: destinationId }
     );
   },
 };
+
+
 
 // ============= USER PROFILE EXTENDED API =============
 export const userProfileApi = {
@@ -1126,7 +1174,7 @@ export const userProfileApi = {
     return apiClient.delete<boolean>(API_CONFIG.ENDPOINTS.DELETE_PROFILE);
   },
 
-  async uploadProfileImage(file: File): Promise<{ imageUrl: string }> {
+  async uploadProfileImage(file: File): Promise<{ imageUrl: string; message: string }> {
     const formData = new FormData();
     formData.append('image', file);
 
@@ -1140,7 +1188,11 @@ export const userProfileApi = {
       throw new Error('Failed to upload image');
     }
 
-    return response.json();
+    const data = await response.json();
+    return {
+      imageUrl: data.profile_image,
+      message: data.message
+    };
   },
 
   async getProfileImage(): Promise<{ imageUrl: string | null }> {

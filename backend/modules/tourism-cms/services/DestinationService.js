@@ -231,6 +231,32 @@ const DestinationService = {
   },
 
   /**
+   * Get all reviews for a destination
+   */
+  async getDestinationReviews(destinationId) {
+    const destination = await db.Destination.findByPk(destinationId);
+    if (!destination) {
+      throw new Error("Destination not found");
+    }
+
+    const reviews = await db.Review.findAll({
+      where: {
+        destination_id: destinationId,
+      },
+      attributes: ["review_id", "rating", "comment", "date_created"],
+      include: [
+        {
+          model: db.User,
+          attributes: ["user_id", "name", "profile_image"],
+        },
+      ],
+      order: [["date_created", "DESC"]],
+    });
+
+    return reviews;
+  },
+
+  /**
    * Add a review for a destination
    * destination_id is set, hotel_id and room_id are null
    */

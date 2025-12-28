@@ -252,6 +252,24 @@ const DestinationController = {
   },
 
   /**
+   * Get all reviews for a destination
+   * GET /destinations/:id/reviews
+   */
+  getDestinationReviews: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const reviews = await DestinationService.getDestinationReviews(id);
+      return responseUtils.ok(res, reviews);
+    } catch (error) {
+      console.error("Get destination reviews error:", error);
+      if (error.message === "Destination not found") {
+        return responseUtils.notFound(res);
+      }
+      return responseUtils.error(res, error.message);
+    }
+  },
+
+  /**
    * Add a review for a destination
    * POST /destinations/:id/reviews
    * Body: { rating, comment }
@@ -283,7 +301,7 @@ const DestinationController = {
       review.helpful = 0;
       review.verified = true;
 
-      const result = {...req.body, ...review};
+      const result = { ...req.body, ...review };
 
       return responseUtils.ok(res, result);
     } catch (error) {

@@ -39,6 +39,7 @@ router.put("/:id", DestinationController.updateDestination); // PUT /destination
 router.delete("/:id", DestinationController.deleteDestination); // DELETE /destinations/:id - Delete destination
 
 // Review routes for destinations
+router.get("/:id/reviews", DestinationController.getDestinationReviews); // GET /destinations/:id/reviews - Get reviews for destination
 router.post(
   "/:id/reviews",
   authMiddleware,

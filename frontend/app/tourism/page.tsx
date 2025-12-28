@@ -70,11 +70,13 @@ export default function TourismPage() {
       let matchesRegion = true;
       if (filter !== 'all') {
         const region =
-          spot.location.includes('Hà Nội') || spot.location.includes('Hạ Long') || spot.location.includes('Sa Pa') || spot.location.includes('Ninh Bình')
+          spot.location.includes('Hanoi') || spot.location.includes('Ha Long') || spot.location.includes('Sapa') || spot.location.includes('Ninh Binh')
             ? 'north'
-            : spot.location.includes('Huế') || spot.location.includes('Đà Nẵng') || spot.location.includes('Hội An') || spot.location.includes('Nha Trang')
+            : spot.location.includes('Hue') || spot.location.includes('Da Nang') || spot.location.includes('Hoi An') || spot.location.includes('Nha Trang') || spot.location.includes('Khanh Hoa') || spot.location.includes('Binh Thuan') 
             ? 'central'
-            : 'south';
+            : spot.location.includes('Ho Chi Minh City') || spot.location.includes('Phu Quoc') || spot.location.includes('Can Tho') || spot.location.includes('Vung Tau') || spot.location.includes('Da Lat') || spot.location.includes('Tay Ninh') || spot.location.includes('Lam Dong')
+            ? 'south'
+            : null;
         matchesRegion = region === filter;
       }
 
@@ -206,7 +208,7 @@ export default function TourismPage() {
                 >
                   <option value="rating">Đánh giá cao nhất</option>
                   <option value="name">Tên A-Z</option>
-                  <option value="popular">Phổ biến nhất</option>
+                  {/* <option value="popular">Phổ biến nhất</option> */}
                 </select>
               </div>
             </div>
