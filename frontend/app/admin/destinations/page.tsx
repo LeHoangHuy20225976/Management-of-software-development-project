@@ -49,7 +49,7 @@ export default function AdminDestinationsPage() {
     e.preventDefault();
     try {
       let destinationId: string;
-      
+
       if (editingDestination) {
         const updated = await destinationsApi.update(String(editingDestination.destination_id), formData);
         destinationId = String(updated.destination_id);
@@ -187,13 +187,13 @@ export default function AdminDestinationsPage() {
 
   const getTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      attraction: 'Điểm tham quan',
-      beach: 'Bãi biển',
-      mountain: 'Núi',
-      cultural: 'Văn hóa',
-      entertainment: 'Giải trí',
-      nature: 'Thiên nhiên',
-      historical: 'Lịch sử',
+      attraction: 'Attraction',
+      beach: 'Beach',
+      mountain: 'Mountain',
+      cultural: 'Cultural',
+      entertainment: 'Entertainment',
+      nature: 'Nature',
+      historical: 'Historical',
     };
     return labels[type] || type;
   };
@@ -244,7 +244,7 @@ export default function AdminDestinationsPage() {
           <div className="text-2xl font-bold text-blue-600">{destinations.length}</div>
           <div className="text-sm text-gray-600">Tổng số điểm đến</div>
         </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
+        {/* <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="text-2xl font-bold text-green-600">
             {destinations.filter(d => d.type === 'beach').length}
           </div>
@@ -261,7 +261,7 @@ export default function AdminDestinationsPage() {
             {destinations.filter(d => d.type === 'historical').length}
           </div>
           <div className="text-sm text-gray-600">Lịch sử</div>
-        </div>
+        </div> */}
       </div>
 
       {/* Filters */}
@@ -563,7 +563,7 @@ export default function AdminDestinationsPage() {
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                   <p className="text-sm text-gray-500 mt-1">Có thể chọn nhiều ảnh cùng lúc</p>
-                  
+
                   {imageFiles.length > 0 && (
                     <div className="mt-3 grid grid-cols-4 gap-2">
                       {imageFiles.map((file, index) => (

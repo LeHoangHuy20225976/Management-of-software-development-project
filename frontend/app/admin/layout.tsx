@@ -8,10 +8,10 @@ import { useEffect } from 'react';
 const adminNav = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
   { href: '/admin/users', label: 'Quản lý người dùng', icon: '👥' },
-  { href: '/admin/hotels', label: 'Quản lý khách sạn', icon: '🏨' },
+  // { href: '/admin/hotels', label: 'Quản lý khách sạn', icon: '🏨' },
   { href: '/admin/destinations', label: 'Điểm đến du lịch', icon: '🗺️' },
-  { href: '/admin/bookings', label: 'Đặt phòng', icon: '📋' },
-  { href: '/admin/revenue', label: 'Doanh thu', icon: '💰' },
+  // { href: '/admin/bookings', label: 'Đặt phòng', icon: '📋' },
+  // { href: '/admin/revenue', label: 'Doanh thu', icon: '💰' },
   { href: '/admin/settings', label: 'Cài đặt', icon: '⚙️' },
 ];
 
