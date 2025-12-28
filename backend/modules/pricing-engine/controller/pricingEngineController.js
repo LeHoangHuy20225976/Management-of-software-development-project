@@ -96,6 +96,35 @@ class PricingEngineController {
       return responseUtils.error(res, error.message);
     }
   }
+
+  /**
+   * Update pricing for room type
+   * PUT /api/v1/pricing/update/:typeId
+   */
+  async updatePricing(req, res) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return responseUtils.invalidated(res, errors.array());
+      }
+
+      const { typeId } = req.params;
+      const updateData = req.body;
+
+      const updatedPricing = await pricingEngineService.updatePricing(
+        parseInt(typeId),
+        updateData
+      );
+
+      return responseUtils.ok(res, {
+        message: 'Pricing updated successfully',
+        pricing: updatedPricing
+      });
+    } catch (error) {
+      console.error('Update pricing error:', error);
+      return responseUtils.error(res, error.message);
+    }
+  }
 }
 
 module.exports = new PricingEngineController();

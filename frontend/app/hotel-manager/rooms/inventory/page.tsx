@@ -104,11 +104,41 @@ export default function RoomInventoryCalendarPage() {
 
       // Try API first, fallback to mock
       try {
-        const data = await roomInventoryApi.getInventoryCalendar(
-          '1', // hotelId - would come from context
-          startDate,
-          endDate
+        // Get room types first, then get calendar for each type
+        const roomTypesResponse = await roomInventoryApi.getRoomTypesByHotel('1');
+        const roomTypes = roomTypesResponse.room_types || [];
+
+        const calendarPromises = roomTypes.map(roomType =>
+          roomInventoryApi.getInventoryCalendar(
+            roomType.type_id.toString(),
+            startDate,
+            endDate
+          )
         );
+
+        const calendarResults = await Promise.all(calendarPromises);
+
+        // Transform data to match expected format
+        const transformedData = roomTypes.map((roomType, index) => {
+          const calendar = calendarResults[index] || [];
+          return {
+            room_type_id: roomType.type_id,
+            room_type_name: roomType.type,
+            inventory: calendar.map((day: any) => ({
+              date: day.date,
+              available: day.available_rooms || 0,
+              booked: (day.total_rooms || 0) - (day.available_rooms || 0),
+              held: 0, // Not implemented yet
+              total: day.total_rooms || 0
+            }))
+          };
+        });
+
+        if (transformedData.length > 0) {
+          setInventoryData(transformedData);
+        } else {
+          setInventoryData(mockData);
+        }
         // Transform API response if needed
         if (Array.isArray(data) && data.length > 0 && 'room_type_id' in data[0]) {
           setInventoryData(data as unknown as RoomInventory[]);

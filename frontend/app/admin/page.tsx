@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/common/Card';
-import { adminApi, AdminDashboard, AdminActivity } from '@/lib/api/services';
+import { adminApi, AdminDashboard, AdminActivity, synchronizationApi } from '@/lib/api/services';
 import { formatCurrency } from '@/lib/utils/format';
 import Link from 'next/link';
 
 export default function AdminDashboardPage() {
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResults, setSyncResults] = useState<any[]>([]);
 
   useEffect(() => {
     loadDashboard();
@@ -22,6 +24,41 @@ export default function AdminDashboardPage() {
       console.error('Error loading dashboard:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const syncAllHotels = async () => {
+    setSyncing(true);
+    setSyncResults([]);
+
+    try {
+      // Get all pending hotels
+      const pendingHotels = await adminApi.getPendingHotels();
+
+      if (pendingHotels.length === 0) {
+        alert('Không có khách sạn nào cần đồng bộ');
+        return;
+      }
+
+      const hotelIds = pendingHotels.map(h => h.hotel_id);
+
+      // Sync all hotels
+      const results = await synchronizationApi.syncMultipleHotels({
+        hotel_ids: hotelIds,
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 30 days from now
+      });
+
+      setSyncResults(results);
+      alert(`Đã đồng bộ ${results.filter(r => r.success).length}/${results.length} khách sạn thành công`);
+
+      // Reload dashboard
+      await loadDashboard();
+    } catch (error) {
+      console.error('Error syncing hotels:', error);
+      alert('Lỗi khi đồng bộ: ' + (error as Error).message);
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -165,6 +202,51 @@ export default function AdminDashboardPage() {
           </Card>
         </Link>
       </div>
+
+      {/* Data Synchronization */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-black">🔄 Đồng bộ dữ liệu</h2>
+          <button
+            onClick={syncAllHotels}
+            disabled={syncing}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+          >
+            {syncing ? 'Đang đồng bộ...' : 'Đồng bộ tất cả'}
+          </button>
+        </div>
+
+        {syncResults.length > 0 && (
+          <div className="mb-4">
+            <h3 className="font-medium text-black mb-2">Kết quả đồng bộ:</h3>
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {syncResults.map((result, index) => (
+                <div key={index} className={`text-sm p-2 rounded ${result.success ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+                  Khách sạn {result.hotel_id}: {result.success ? '✅ Thành công' : `❌ Lỗi: ${result.error}`}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="text-center p-4 bg-blue-50 rounded-lg">
+            <div className="text-2xl font-bold text-blue-600">🔄</div>
+            <div className="text-sm text-black mt-2">Sync Availability</div>
+            <div className="text-xs text-black">Đồng bộ tình trạng phòng</div>
+          </div>
+          <div className="text-center p-4 bg-green-50 rounded-lg">
+            <div className="text-2xl font-bold text-green-600">💰</div>
+            <div className="text-sm text-black mt-2">Sync Pricing</div>
+            <div className="text-xs text-black">Đồng bộ giá phòng</div>
+          </div>
+          <div className="text-center p-4 bg-purple-50 rounded-lg">
+            <div className="text-2xl font-bold text-purple-600">📊</div>
+            <div className="text-sm text-black mt-2">Sync Status</div>
+            <div className="text-xs text-black">Kiểm tra trạng thái</div>
+          </div>
+        </div>
+      </Card>
 
       {/* Recent Activity */}
       <Card>

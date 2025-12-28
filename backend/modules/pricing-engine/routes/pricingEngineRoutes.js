@@ -29,6 +29,13 @@ router.get(
   pricingEngineController.getPriceRange
 );
 
+// Update pricing for room type (admin/hotel manager)
+router.put(
+  '/update/:typeId',
+  pricingEngineValidation.updatePricing,
+  pricingEngineController.updatePricing
+);
+
 module.exports = router;
 
 
