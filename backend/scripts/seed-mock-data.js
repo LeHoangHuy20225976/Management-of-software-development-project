@@ -73,7 +73,7 @@ async function seedDatabase() {
         gender: "Nam",
         date_of_birth: new Date("1990-01-15"),
         role: "admin",
-        password: hashedPassword,
+        password: "password123",
         profile_image: mockImages.avatars.default,
       },
       {

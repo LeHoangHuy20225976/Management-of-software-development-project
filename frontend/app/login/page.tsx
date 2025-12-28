@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    role: 'customer' as 'customer' | 'admin',
     rememberMe: false,
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -44,10 +45,14 @@ export default function LoginPage() {
     setSessionExpired(false);
 
     try {
-      await login(formData.email, formData.password, 'customer');
+      await login(formData.email, formData.password, formData.role);
       
-      // Redirect to user dashboard on success
-      router.push('/user/dashboard');
+      // Redirect based on role
+      if (formData.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/user/dashboard');
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra. Vui lòng thử lại!';
       setError(errorMessage);
@@ -100,6 +105,21 @@ export default function LoginPage() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    Loại tài khoản
+                  </label>
+                  <select
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value as 'customer' | 'admin' })}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900"
+                    disabled={isLoading}
+                  >
+                    <option value="customer">👤 Khách hàng</option>
+                    <option value="admin">👨‍💼 Quản trị viên</option>
+                  </select>
+                </div>
+
                 <div>
                   <label className="block text-sm font-semibold text-gray-900 mb-2">
                     Email

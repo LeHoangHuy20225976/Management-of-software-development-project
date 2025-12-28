@@ -323,3 +323,73 @@ export interface Coupon {
   usageLimit?: number;
   usedCount?: number;
 }
+
+// Admin Types
+export interface AdminDashboard {
+  totalUsers: number;
+  totalHotels: number;
+  totalBookings: number;
+  totalRevenue: number;
+  pendingHotels: number;
+  activeHotels: number;
+  activeBookings: number;
+  todayBookings: number;
+  todayRevenue: number;
+  recentActivity: AdminActivity[];
+  revenueChart?: {
+    labels: string[];
+    data: number[];
+  };
+  bookingKPIs?: {
+    totalBookings: number;
+    confirmedBookings: number;
+    cancelledBookings: number;
+    pendingBookings: number;
+    completedBookings: number;
+    conversionRate: number;
+    averageBookingValue: number;
+  };
+}
+
+export interface AdminActivity {
+  id: number;
+  type: 'booking' | 'hotel' | 'user' | 'payment' | 'review';
+  description: string;
+  timestamp: string;
+  userId?: number;
+  userName?: string;
+  hotelId?: number;
+  hotelName?: string;
+}
+
+export interface AdminUser extends User {
+  bookingCount?: number;
+  totalSpent?: number;
+  lastLogin?: string;
+}
+
+export interface AdminHotel extends Hotel {
+  approvalStatus?: 'pending' | 'approved' | 'locked' | 'rejected';
+  approvedAt?: string;
+  approvedBy?: number;
+  rejectedReason?: string;
+  ownerEmail?: string;
+  ownerPhone?: string;
+}
+
+export interface RevenueMetrics {
+  totalRevenue: number;
+  thisMonthRevenue: number;
+  lastMonthRevenue: number;
+  growth: number;
+  dailyRevenue: {
+    date: string;
+    revenue: number;
+  }[];
+  topHotels: {
+    hotel_id: number;
+    hotel_name: string;
+    revenue: number;
+    bookings: number;
+  }[];
+}
