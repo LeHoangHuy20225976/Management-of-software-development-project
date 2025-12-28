@@ -12,7 +12,8 @@ import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
-import { hotelsApi, bookingsApi } from '@/lib/api/services';
+import { hotelsApi, bookingsApi, paymentApi, notificationApi } from '@/lib/api/services';
+import { useAuth } from '@/lib/context/AuthContext';
 import type { Hotel, RoomType, RoomPrice } from '@/types';
 
 interface RoomTypeWithPrice extends RoomType {
@@ -22,6 +23,8 @@ interface RoomTypeWithPrice extends RoomType {
 function BookingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+
   const hotel_id = searchParams.get('hotel_id');
   const rooms_param = searchParams.get('rooms'); // Format: "typeId:qty,typeId:qty"
   const check_in = searchParams.get('check_in');
@@ -42,6 +45,8 @@ function BookingContent() {
     email: '',
     phone: '',
     specialRequests: '',
+    // Payment method
+    paymentMethod: 'vnpay' as 'vnpay' | 'cash',
   });
 
   useEffect(() => {
@@ -143,6 +148,15 @@ function BookingContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Check authentication first
+    if (!isAuthenticated || !user) {
+      alert('Vui lòng đăng nhập để đặt phòng!');
+      // Save current URL to redirect back after login
+      const currentUrl = window.location.href;
+      router.push(`/login?redirect=${encodeURIComponent(currentUrl)}`);
+      return;
+    }
+
     // Validate
     if (!formData.check_in_date || !formData.check_out_date) {
       alert('Vui lòng chọn ngày nhận và trả phòng!');
@@ -160,55 +174,232 @@ function BookingContent() {
       return;
     }
 
-    // Create booking data matching Booking table schema
-    const bookingData = {
-      // user_id will be set by backend from auth
-      user_id: null,
-      room_id: roomType?.type_id, // TODO: Should select actual room_id, not type_id
-      status: 'pending' as const,
-      total_price: calculateTotalPrice(),
-      check_in_date: formData.check_in_date,
-      check_out_date: formData.check_out_date,
-      created_at: new Date().toISOString().split('T')[0],
-      people: formData.people,
-    };
+    if (selectedRoomTypes.length === 0) {
+      alert('Không có phòng nào được chọn!');
+      return;
+    }
 
-    console.log('Booking data:', bookingData);
+    // Validate guest info
+    if (!formData.fullName || !formData.email || !formData.phone) {
+      alert('Vui lòng điền đầy đủ thông tin liên hệ!');
+      return;
+    }
 
-    // Call API to create booking
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      alert('Email không hợp lệ!');
+      return;
+    }
+
+    // Create multiple bookings - one for each room type and quantity
     try {
-      const result = await bookingsApi.create(bookingData);
+      const createdBookings = [];
+      const nights = calculateNights();
 
-      // Store booking info for confirmation page
-      sessionStorage.setItem(
-        'bookingConfirmation',
-        JSON.stringify({
-          bookingId: result.booking_id || 'BK' + Date.now(),
-          bookingDate: result.created_at || new Date().toISOString(),
-          paymentStatus: result.status || 'pending',
-          hotelName: hotel?.name,
-          roomType: roomType?.type,
-          guests: formData.people,
-          checkIn: formData.check_in_date,
-          checkOut: formData.check_out_date,
-          roomPrice: roomType?.price?.special_price || roomType?.price?.basic_price || 0,
-          nights: calculateNights(),
-          paymentMethod: 'cash',
-          guestInfo: {
-            fullName: formData.fullName,
-            email: formData.email,
-            phone: formData.phone,
-            specialRequests: formData.specialRequests,
-          },
-        })
+      // Calculate people per room (distribute evenly)
+      const totalRooms = getTotalRooms();
+      const peoplePerRoom = Math.ceil(formData.people / totalRooms);
+
+      console.log('🔍 Fetching available rooms for hotel:', hotel_id);
+
+      // Get available rooms from backend
+      const response = await bookingsApi.getAvailableRooms(
+        hotel_id!,
+        formData.check_in_date,
+        formData.check_out_date,
+        formData.people
       );
 
-      router.push('/booking/confirmation');
+      console.log('📋 Available rooms response:', response);
+
+      // Backend returns { available_rooms: [...], count: N, ... }
+      const availableRooms = (response as any).available_rooms || [];
+
+      console.log('📋 Available rooms array:', availableRooms);
+
+      for (const { roomType, quantity } of selectedRoomTypes) {
+        // Find available rooms for this room type
+        const roomsOfType = availableRooms.filter((room: any) =>
+          room.room_type_id === roomType.type_id
+        );
+
+        console.log(`Found ${roomsOfType.length} available rooms for type ${roomType.type} (need ${quantity})`);
+
+        if (roomsOfType.length < quantity) {
+          throw new Error(`Không đủ phòng trống! Cần ${quantity} phòng ${roomType.type}, chỉ còn ${roomsOfType.length} phòng.`);
+        }
+
+        // Create a booking for each room
+        for (let i = 0; i < quantity; i++) {
+          const availableRoom = roomsOfType[i];
+          const pricePerNight = roomType.price?.special_price || roomType.price?.basic_price || 0;
+
+          // Backend expects actual room_id
+          const bookingData = {
+            room_id: availableRoom.room_id, // Use actual room_id from available rooms
+            check_in_date: formData.check_in_date,
+            check_out_date: formData.check_out_date,
+            people: Math.min(peoplePerRoom, roomType.max_guests),
+          };
+
+          console.log(`Creating booking ${i + 1}/${quantity} for ${roomType.type} (Room ID: ${availableRoom.room_id}):`, bookingData);
+          console.log('User authenticated:', { isAuthenticated, userId: user?.user_id, userName: user?.name });
+
+          try {
+            const result = await bookingsApi.create(bookingData);
+            console.log(`✅ Booking API response:`, result);
+
+            // Extract booking from response: { message, booking, pricing }
+            const booking = (result as any).booking || result;
+            console.log(`✅ Booking object:`, booking);
+
+            createdBookings.push({
+              ...booking,  // booking_id is here!
+              roomType: roomType.type,
+              roomPrice: pricePerNight,
+              roomName: availableRoom.room_name,
+            });
+          } catch (bookingError: any) {
+            console.error(`❌ Failed to create booking ${i + 1}/${quantity}:`, {
+              error: bookingError,
+              message: bookingError.message,
+              bookingData,
+              user: { id: user?.user_id, name: user?.name, role: user?.role }
+            });
+            throw bookingError; // Re-throw to stop the loop
+          }
+        }
+      }
+
+      console.log('All bookings created:', createdBookings);
+
+      const totalAmount = calculateTotalPrice();
+
+      // Get booking ID (fallback to generated ID if backend doesn't return one)
+      const firstBookingId = createdBookings[0]?.booking_id ||
+                           createdBookings[0]?.id ||
+                           Date.now();
+
+      console.log('First booking ID:', firstBookingId);
+
+      // Default booking confirmation data
+      const bookingConfirmationData = {
+        bookingId: createdBookings.map(b => b.booking_id || 'BK' + Date.now()).join(', '),
+        bookingDate: createdBookings[0]?.created_at || new Date().toISOString(),
+        paymentStatus: 'pending',
+        paymentId: null as number | null,
+        hotelName: hotel?.name,
+        roomType: selectedRoomTypes.map(({ roomType, quantity }) =>
+          `${roomType.type} x${quantity}`
+        ).join(', '),
+        guests: formData.people,
+        checkIn: formData.check_in_date,
+        checkOut: formData.check_out_date,
+        roomPrice: calculateTotalPrice() / nights,
+        nights: nights,
+        totalAmount: totalAmount,
+        paymentMethod: formData.paymentMethod,
+        guestInfo: {
+          fullName: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          specialRequests: formData.specialRequests,
+        },
+        allBookings: createdBookings,
+        totalRooms: getTotalRooms(),
+      };
+
+      // Try to create payment (only for VNPay)
+      let paymentUrl: string | null = null;
+
+      // Only create payment for VNPay method
+      if (formData.paymentMethod === 'vnpay' && typeof firstBookingId === 'number' && firstBookingId < Date.now() / 1000) {
+        try {
+          console.log('💳 Creating VNPay payment:', {
+            booking_id: firstBookingId,
+            type: typeof firstBookingId,
+            locale: 'vn'
+          });
+
+          const paymentData: any = {
+            booking_id: Number(firstBookingId),  // Ensure it's a number
+            locale: 'vn'
+          };
+
+          const paymentResult = await paymentApi.createPayment(paymentData);
+
+          console.log('✅ VNPay payment created:', paymentResult);
+
+          // Update confirmation data with payment info
+          bookingConfirmationData.paymentStatus = 'processing';
+          bookingConfirmationData.paymentId = paymentResult.payment_id;
+          paymentUrl = paymentResult.payment_url || null;
+
+        } catch (paymentError: any) {
+          console.warn('⚠️ VNPay payment failed (non-critical):', paymentError.message);
+          // Continue without payment - user can pay later
+        }
+      } else if (formData.paymentMethod === 'cash') {
+        console.log('💵 Cash payment - no payment API call needed');
+        bookingConfirmationData.paymentStatus = 'pending';
+      }
+
+      // EMAIL DISABLED - Gmail credentials not configured
+      console.log('📧 Email notifications disabled (Gmail not configured)');
+
+      // Store booking info for confirmation page
+      sessionStorage.setItem('bookingConfirmation', JSON.stringify(bookingConfirmationData));
+
+      // Redirect based on payment method
+      if (paymentUrl) {
+        // VNPay/Momo - show info before redirecting to payment gateway
+        console.log('💳 ===== PAYMENT CREATED =====');
+        console.log('Payment URL:', paymentUrl);
+        console.log('Payment ID:', bookingConfirmationData.paymentId);
+        console.log('Total Amount:', totalAmount);
+        console.log('Bookings:', createdBookings.map(b => `#${b.booking_id}`).join(', '));
+        console.log('================================');
+
+        // Show confirmation before redirect
+        const proceed = confirm(
+          `✅ Đặt phòng thành công!\n\n` +
+          `📋 Bookings: ${createdBookings.map(b => `#${b.booking_id}`).join(', ')}\n` +
+          `💰 Tổng tiền: ${totalAmount.toLocaleString('vi-VN')}đ\n` +
+          `💳 Payment ID: ${bookingConfirmationData.paymentId}\n\n` +
+          `Bấm OK để chuyển sang trang thanh toán VNPay\n` +
+          `(Check console logs để xem chi tiết)`
+        );
+
+        if (proceed) {
+          console.log('🔗 Redirecting to VNPay...');
+          // Small delay to see logs
+          setTimeout(() => {
+            window.location.href = paymentUrl;
+          }, 500);
+        } else {
+          // User cancelled - go to confirmation page
+          console.log('⚠️ User cancelled payment redirect');
+          router.push('/booking/confirmation');
+        }
+      } else {
+        // Cash/Bank transfer or payment failed - go to confirmation page
+        console.log('💰 Payment method:', formData.paymentMethod);
+        console.log('📋 Bookings created:', createdBookings.length);
+
+        alert(`✅ Đặt phòng thành công! Đã tạo ${createdBookings.length} booking.\n${formData.paymentMethod === 'cash' ? 'Vui lòng thanh toán tại khách sạn.' : ''}`);
+        router.push('/booking/confirmation');
+      }
     } catch (error) {
-      console.error('Error creating booking:', error);
+      console.error('Error creating bookings:', error);
       alert('Lỗi khi tạo đặt phòng. Vui lòng thử lại!');
     }
   };
+
+  // Debug: Log authentication status
+  useEffect(() => {
+    console.log('🔐 Auth Status:', { isAuthenticated, user: user?.name, role: user?.role, loading: authLoading });
+  }, [isAuthenticated, user, authLoading]);
 
   if (loading) {
     return (
@@ -252,6 +443,29 @@ function BookingContent() {
           <h1 className="text-3xl font-bold text-gray-900 mb-8">
             Đặt phòng online
           </h1>
+
+          {/* Authentication Warning */}
+          {!isAuthenticated && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-start">
+                <span className="text-2xl mr-3">⚠️</span>
+                <div>
+                  <h3 className="font-semibold text-yellow-800 mb-1">
+                    Bạn chưa đăng nhập
+                  </h3>
+                  <p className="text-sm text-yellow-700">
+                    Vui lòng đăng nhập để đặt phòng.
+                    <button
+                      onClick={() => router.push(`/login?redirect=${encodeURIComponent(window.location.href)}`)}
+                      className="ml-2 underline font-semibold hover:text-yellow-900"
+                    >
+                      Đăng nhập ngay
+                    </button>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Booking Form */}
@@ -393,8 +607,48 @@ function BookingContent() {
                   </div>
                 </Card>
 
+                <Card className="mb-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">
+                    Phương thức thanh toán
+                  </h2>
+
+                  <div className="space-y-3">
+                    <label className="flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#0071c2] transition-colors">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="vnpay"
+                        checked={formData.paymentMethod === 'vnpay'}
+                        onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value as any })}
+                        className="mr-3"
+                      />
+                      <div className="flex-1">
+                        <span className="font-semibold text-gray-900">💳 VNPay</span>
+                        <p className="text-xs text-gray-600">Thanh toán qua VNPay (ATM, Visa, MasterCard)</p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#0071c2] transition-colors">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="cash"
+                        checked={formData.paymentMethod === 'cash'}
+                        onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value as any })}
+                        className="mr-3"
+                      />
+                      <div className="flex-1">
+                        <span className="font-semibold text-gray-900">💵 Tiền mặt</span>
+                        <p className="text-xs text-gray-600">Thanh toán tại khách sạn</p>
+                      </div>
+                    </label>
+                  </div>
+                </Card>
+
                 <Button type="submit" className="w-full" size="lg">
-                  Xác nhận đặt phòng
+                  {formData.paymentMethod === 'vnpay'
+                    ? 'Tiếp tục thanh toán'
+                    : 'Xác nhận đặt phòng'}
                 </Button>
               </form>
             </div>

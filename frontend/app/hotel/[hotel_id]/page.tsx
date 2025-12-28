@@ -7,7 +7,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
 import { HotelChat } from '@/components/hotel/HotelChat';
 import { Button } from '@/components/common/Button';
-import { hotelsApi, reviewsApi } from '@/lib/api/services';
+import { hotelsApi, reviewsApi, bookingsApi } from '@/lib/api/services';
 import { useAuth } from '@/lib/context/AuthContext';
 import type { Hotel, RoomType, RoomPrice, Review } from '@/types';
 
@@ -46,6 +46,9 @@ export default function HotelDetailPage({
 
   // Room selection - track quantity for each room type
   const [selectedRooms, setSelectedRooms] = useState<{ [key: number]: number }>({});
+
+  // Track available room quantities for selected dates
+  const [availableQuantities, setAvailableQuantities] = useState<{ [key: number]: number }>({});
 
   useEffect(() => {
     const loadHotel = async () => {
@@ -98,6 +101,51 @@ export default function HotelDetailPage({
     }
   };
 
+  // Check room availability for selected dates
+  const checkAvailability = async () => {
+    if (!searchDates.checkIn || !searchDates.checkOut || !hotel) {
+      // Reset to default quantities if no dates selected
+      const defaultQuantities: { [key: number]: number } = {};
+      roomTypes.forEach(rt => {
+        defaultQuantities[rt.type_id] = rt.quantity;
+      });
+      setAvailableQuantities(defaultQuantities);
+      return;
+    }
+
+    try {
+      const response = await bookingsApi.getAvailableRooms(
+        resolvedParams.hotel_id,
+        searchDates.checkIn,
+        searchDates.checkOut,
+        searchDates.guests
+      );
+
+      const availableRooms = (response as any).available_rooms || [];
+
+      // Count available rooms by room type
+      const quantities: { [key: number]: number } = {};
+      roomTypes.forEach(rt => {
+        const roomsOfType = availableRooms.filter((room: any) =>
+          room.room_type_id === rt.type_id
+        );
+        quantities[rt.type_id] = roomsOfType.length;
+      });
+
+      setAvailableQuantities(quantities);
+      console.log('📊 Available quantities by type:', quantities);
+    } catch (error) {
+      console.error('Error checking availability:', error);
+    }
+  };
+
+  // Check availability when dates change
+  useEffect(() => {
+    if (roomTypes.length > 0) {
+      checkAvailability();
+    }
+  }, [searchDates.checkIn, searchDates.checkOut, roomTypes]);
+
   // Calculate total capacity from selected rooms
   const calculateTotalCapacity = () => {
     let totalCapacity = 0;
@@ -120,10 +168,10 @@ export default function HotelDetailPage({
     setSelectedRooms(prev => {
       const currentQty = prev[typeId] || 0;
       const newQty = Math.max(0, currentQty + change);
-      const roomType = roomTypes.find(rt => rt.type_id === typeId);
+      const availableQty = availableQuantities[typeId] ?? roomTypes.find(rt => rt.type_id === typeId)?.quantity ?? 0;
 
       // Don't exceed available quantity
-      if (roomType && newQty > roomType.quantity) {
+      if (newQty > availableQty) {
         return prev;
       }
 
@@ -479,8 +527,9 @@ export default function HotelDetailPage({
                 )}
 
                 {roomTypes.map((roomType) => {
-                    // Show all available rooms, not filtered by guest count
-                    const isAvailable = roomType.availability && roomType.quantity > 0;
+                    // Use actual available quantity for selected dates
+                    const availableQty = availableQuantities[roomType.type_id] ?? roomType.quantity;
+                    const isAvailable = roomType.availability && availableQty > 0;
                     const selectedQty = selectedRooms[roomType.type_id] || 0;
 
                     return (
@@ -538,7 +587,7 @@ export default function HotelDetailPage({
                               </span>
                               {isAvailable ? (
                                 <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-semibold text-xs">
-                                  ✅ Còn {roomType.quantity} phòng
+                                  ✅ Còn {availableQty} phòng
                                 </span>
                               ) : (
                                 <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full font-semibold text-xs">
@@ -636,7 +685,7 @@ export default function HotelDetailPage({
                                     </span>
                                     <button
                                       onClick={() => handleRoomQuantityChange(roomType.type_id, 1)}
-                                      disabled={selectedQty >= roomType.quantity}
+                                      disabled={selectedQty >= availableQty}
                                       className="w-10 h-10 bg-[#0071c2] hover:bg-[#005999] disabled:bg-gray-300 disabled:text-gray-400 text-white font-bold rounded-lg transition-colors disabled:cursor-not-allowed"
                                     >
                                       +

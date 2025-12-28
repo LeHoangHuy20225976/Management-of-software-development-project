@@ -28,8 +28,16 @@ export default function BookingsPage() {
     try {
       setLoading(true);
       // Fetch from backend API
-      const data = await bookingsApi.getAll();
-      setBookings(data);
+      const response = await bookingsApi.getAll();
+      console.log('📋 Bookings API response:', response);
+
+      // Backend may return { bookings: [...] } or direct array
+      const bookingsArray = Array.isArray(response)
+        ? response
+        : (response as any).bookings || [];
+
+      console.log('📋 Bookings array:', bookingsArray);
+      setBookings(bookingsArray);
     } catch (error) {
       console.error('Error loading bookings:', error);
       alert('❌ Lỗi khi tải danh sách bookings!');

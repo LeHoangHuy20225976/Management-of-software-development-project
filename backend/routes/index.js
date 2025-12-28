@@ -4,6 +4,7 @@ const router = express.Router({ mergeParams: true });
 const authRoutes = require("../modules/auth/routes/authRoutes");
 const hotelProfileRoutes = require("../modules/hotel-profile/routes/hotelProfileRoutes");
 const bookingRoutes = require("../modules/booking-engine/routes/bookingRoutes");
+const paymentRoutes = require("../modules/payment-gateway/routes/paymentRoutes");
 const userProfileRoutes = require("../modules/user-profile/routes/UserProfileRoute");
 const destinationRoutes = require("../modules/tourism-cms/routes/DestinationRoutes");
 const notificationRoutes = require("../modules/notification/routes/notificationRoutes");
@@ -20,6 +21,9 @@ router.get("/health", (req, res) => {
 router.use("/api/v1/auth", authRoutes);
 router.use("/api/v1/hotel-profile", hotelProfileRoutes);
 router.use("/api/v1/bookings", bookingRoutes);
+
+// Payment Gateway routes
+router.use("/payments", paymentRoutes);
 router.use("/api/v1/users", userProfileRoutes);
 router.use("/api/v1/destinations", destinationRoutes);
 router.use("/api/v1/notifications", notificationRoutes);

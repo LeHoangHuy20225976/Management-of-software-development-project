@@ -22,9 +22,12 @@ export default function HotelDashboardPage() {
     const loadData = async () => {
       try {
         const data = await bookingsApi.getAll();
-        setBookings(data);
+        // Backend returns { bookings: [...], total, limit, offset }
+        const bookingsArray = data?.bookings || data || [];
+        setBookings(Array.isArray(bookingsArray) ? bookingsArray : []);
       } catch (error) {
         console.error('Error loading bookings:', error);
+        setBookings([]);
       } finally {
         setLoading(false);
       }

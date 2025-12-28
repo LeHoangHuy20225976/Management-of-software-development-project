@@ -11,26 +11,27 @@ const rolePermissions = {
     'booking:calculate_price',                                                                                                             
     'booking:view_available_rooms',                                                                                                        
   ],                                                                                                                                       
-  hotel_manager: [                                                                                                                         
-    // Hotel Profile module duties (task.md:21-29)                                                                                         
-    'hotel:create',                                                                                                                        
-    'hotel:update',                                                                                                                        
-    'hotel:view_owned',                                                                                                                    
-    'hotel:manage_media',                                                                                                                  
-    // Room & Inventory ownership (task.md:31-39)                                                                                          
-    'room:create',                                                                                                                         
-    'room:update',                                                                                                                         
-    'room:update_status',                                                                                                                  
-    'inventory:view',                                                                                                                      
-    'inventory:update',                                                                                                                    
-    // Booking oversight for their property (task.md:41-49)                                                                                
-    'booking:view_for_hotel',                                                                                                              
-    'booking:update_status',                                                                                                               
-    'booking:checkin',                                                                                                                     
-    'booking:checkout',                                                                                                                    
-    // Pricing coordination (task.md:51-59)                                                                                                
-    'pricing:view',                                                                                                                        
-    'pricing:update',                                                                                                                      
+  hotel_manager: [
+    // Hotel Profile module duties (task.md:21-29)
+    'hotel:create',
+    'hotel:update',
+    'hotel:view_owned',
+    'hotel:manage_media',
+    // Room & Inventory ownership (task.md:31-39)
+    'room:create',
+    'room:update',
+    'room:update_status',
+    'inventory:view',
+    'inventory:update',
+    // Booking oversight for their property (task.md:41-49)
+    'booking:view_for_hotel',
+    'booking:update_own',
+    'booking:update_status',
+    'booking:checkin',
+    'booking:checkout',
+    // Pricing coordination (task.md:51-59)
+    'pricing:view',
+    'pricing:update',
   ],                                                                                                                                       
   admin: [                                                                                                                                 
     // Admin/super admin duties (task.md:13-21 & 59-67)                                                                                    

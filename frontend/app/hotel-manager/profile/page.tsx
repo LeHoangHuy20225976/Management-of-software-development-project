@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
-import { hotelManagerApi, hotelManagerApiExtended } from '@/lib/api/services';
+import { hotelManagerApi } from '@/lib/api/services';
 import { useAuth } from '@/lib/context/AuthContext';
 import { API_CONFIG, getApiUrl } from '@/lib/api/config';
 
@@ -159,7 +159,7 @@ export default function HotelProfilePage() {
 
     setDeletingHotel(true);
     try {
-      await hotelManagerApiExtended.deleteHotel(hotelId);
+      await hotelManagerApi.deleteHotel(hotelId);
       alert('Khách sạn đã được xóa thành công!');
       await logout();
       router.push('/');

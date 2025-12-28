@@ -9,7 +9,7 @@ const app = express();
 app.disable("x-powered-by");
 const corsOptions = {
   origin: ["http://localhost:3000", "http://localhost:3002"],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true  // using cookies
 };

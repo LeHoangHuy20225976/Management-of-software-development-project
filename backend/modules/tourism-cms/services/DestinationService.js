@@ -146,15 +146,16 @@ const DestinationService = {
         [Op.or]: [
           { name: { [Op.iLike]: `%${query}%` } },
           { location: { [Op.iLike]: `%${query}%` } },
+          { description: { [Op.iLike]: `%${query}%` } }
         ],
-      },
-      include: [
-        {
-          model: db.Image,
-          attributes: ["image_id", "image_url"],
-        },
-      ],
-      order: [["rating", "DESC"]],
+      }
+      // include: [
+      //   {
+      //     model: db.Image,
+      //     attributes: ["image_id", "image_url"],
+      //   },
+      // ],
+      // order: [["rating", "DESC"]],
     });
     return destinations;
   },
@@ -164,14 +165,14 @@ const DestinationService = {
    */
   async getDestinationsByType(type) {
     const destinations = await db.Destination.findAll({
-      where: { type },
-      include: [
-        {
-          model: db.Image,
-          attributes: ["image_id", "image_url"],
-        },
-      ],
-      order: [["rating", "DESC"]],
+      where: { type }
+      // include: [
+      //   {
+      //     model: db.Image,
+      //     attributes: ["image_id", "image_url"],
+      //   },
+      // ],
+      // order: [["rating", "DESC"]],
     });
     return destinations;
   },

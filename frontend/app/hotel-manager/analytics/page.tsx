@@ -3,31 +3,55 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
-import { bookingsApi } from '@/lib/api/services';
+import { bookingsApi, hotelManagerApi } from '@/lib/api/services';
 import { formatCurrency } from '@/lib/utils/format';
 import type { Booking } from '@/types';
 
 export default function HotelAnalyticsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hotels, setHotels] = useState<Array<Record<string, unknown>>>([]);
+  const [selectedHotelId, setSelectedHotelId] = useState<string>('');
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>(
     'month'
   );
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadHotels = async () => {
       try {
-        const data = await bookingsApi.getAll();
-        setBookings(data);
+        const myHotels = await hotelManagerApi.getMyHotels();
+        const normalized = (myHotels as unknown as Array<Record<string, unknown>>) ?? [];
+        setHotels(normalized);
+        const firstId = normalized.length
+          ? String((normalized[0] as any).hotel_id ?? (normalized[0] as any).id)
+          : '';
+        setSelectedHotelId(firstId);
       } catch (error) {
-        console.error('Error loading analytics:', error);
-      } finally {
-        setLoading(false);
+        console.error('Error loading hotels:', error);
       }
     };
-
-    loadData();
+    loadHotels();
   }, []);
+
+  useEffect(() => {
+    if (selectedHotelId) {
+      loadData();
+    }
+  }, [selectedHotelId]);
+
+  const loadData = async () => {
+    try {
+      const data = await bookingsApi.getAll();
+      // Backend returns { bookings: [...], total, limit, offset }
+      const bookingsArray = data?.bookings || data || [];
+      setBookings(Array.isArray(bookingsArray) ? bookingsArray : []);
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+      setBookings([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -39,14 +63,13 @@ export default function HotelAnalyticsPage() {
 
   // Calculate metrics
   const totalRevenue = bookings
-    .filter((b) => b.paymentStatus === 'paid')
-    .reduce((sum, b) => sum + (b.total_price || 0), 0);
+    .reduce((sum, b) => sum + (Number(b.total_price) || 0), 0);
 
   const confirmedBookings = bookings.filter((b) => b.status === 'accepted');
   const completedBookings = bookings.filter((b) => b.status === 'maintained');
   const cancelledBookings = bookings.filter((b) => b.status === 'cancelled');
 
-  const totalNights = bookings.reduce((sum, b) => sum + (b.nights || 0), 0);
+  const totalNights = bookings.reduce((sum, b) => sum + (Number(b.nights) || 0), 0);
   const averageBookingValue =
     bookings.length > 0 ? totalRevenue / bookings.length : 0;
   const averageStayLength =
@@ -59,21 +82,28 @@ export default function HotelAnalyticsPage() {
     return acc;
   }, {} as Record<string, number>);
 
-  // Monthly revenue (mock data for chart)
-  const monthlyData = [
-    { month: 'T1', revenue: 85000000, bookings: 12 },
-    { month: 'T2', revenue: 92000000, bookings: 15 },
-    { month: 'T3', revenue: 78000000, bookings: 11 },
-    { month: 'T4', revenue: 105000000, bookings: 18 },
-    { month: 'T5', revenue: 98000000, bookings: 16 },
-    { month: 'T6', revenue: 112000000, bookings: 20 },
-    { month: 'T7', revenue: 125000000, bookings: 22 },
-    { month: 'T8', revenue: 118000000, bookings: 21 },
-    { month: 'T9', revenue: 95000000, bookings: 17 },
-    { month: 'T10', revenue: 102000000, bookings: 18 },
-    { month: 'T11', revenue: 88000000, bookings: 14 },
-    { month: 'T12', revenue: totalRevenue, bookings: bookings.length },
-  ];
+  // Monthly revenue - calculated from actual bookings for current year
+  const currentYear = new Date().getFullYear();
+  const monthlyData = Array.from({ length: 12 }, (_, i) => {
+    const monthBookings = bookings.filter((b) => {
+      const bookingDate = new Date(b.created_at || b.check_in_date);
+      return bookingDate.getMonth() === i && bookingDate.getFullYear() === currentYear;
+    });
+
+    const monthRevenue = monthBookings
+      .reduce((sum, b) => sum + (Number(b.total_price) || 0), 0);
+
+    console.log(`📊 Month ${i + 1} (${currentYear}):`, {
+      bookingsCount: monthBookings.length,
+      revenue: monthRevenue
+    });
+
+    return {
+      month: `T${i + 1}`,
+      revenue: monthRevenue,
+      bookings: monthBookings.length,
+    };
+  });
 
   const maxRevenue = Math.max(...monthlyData.map((d) => d.revenue));
 
@@ -107,6 +137,30 @@ export default function HotelAnalyticsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Hotel Selector */}
+      {hotels.length > 1 && (
+        <Card>
+          <div className="flex items-center gap-4">
+            <label className="text-gray-900 font-semibold">Chọn khách sạn:</label>
+            <select
+              value={selectedHotelId}
+              onChange={(e) => setSelectedHotelId(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[300px] text-gray-900"
+            >
+              {hotels.map((hotel) => (
+                <option
+                  key={String((hotel as any).hotel_id || (hotel as any).id)}
+                  value={String((hotel as any).hotel_id || (hotel as any).id)}
+                  className="text-gray-900"
+                >
+                  {String((hotel as any).name || 'Khách sạn')} - ID: {String((hotel as any).hotel_id || (hotel as any).id)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Card>
+      )}
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">

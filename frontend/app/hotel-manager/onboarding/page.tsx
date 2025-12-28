@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
-import { hotelManagerApiExtended } from '@/lib/api/services';
+import { hotelManagerApi } from '@/lib/api/services';
 
 export default function HotelOnboardingPage() {
   const router = useRouter();
@@ -87,7 +87,7 @@ export default function HotelOnboardingPage() {
 
     setLoading(true);
     try {
-      const result = await hotelManagerApiExtended.createHotel({
+      const result = await hotelManagerApi.createHotel({
         name: formData.name,
         address: formData.address,
         description: formData.description,

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
-import { hotelManagerApi, hotelManagerApiExtended } from '@/lib/api/services';
+import { hotelManagerApi } from '@/lib/api/services';
 import { apiClient } from '@/lib/api/client';
 import { API_CONFIG } from '@/lib/api/config';
 
@@ -118,7 +118,7 @@ export default function EditRoomPage({ params }: { params: Promise<{ id: string 
 
     setUploadingImages(true);
     try {
-      await hotelManagerApiExtended.uploadRoomImages(resolvedParams.id, selectedImages);
+      await hotelManagerApi.uploadRoomImages(resolvedParams.id, selectedImages);
       alert('Tải ảnh lên thành công!');
 
       setSelectedImages([]);

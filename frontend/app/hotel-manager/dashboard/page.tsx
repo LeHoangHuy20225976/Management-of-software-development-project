@@ -5,14 +5,17 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
-import { bookingsApi } from '@/lib/api/services';
+import { bookingsApi, hotelManagerApi, reviewsApi } from '@/lib/api/services';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
-import type { Booking } from '@/types';
+import type { Booking, RoomType } from '@/types';
 
 export default function HotelManagerDashboardPage() {
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [rooms, setRooms] = useState<RoomType[]>([]);
+  const [averageRating, setAverageRating] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [hotelId, setHotelId] = useState<string | null>(null);
 
   useEffect(() => {
     // DISABLED: Authentication check for testing
@@ -24,10 +27,74 @@ export default function HotelManagerDashboardPage() {
 
     const loadData = async () => {
       try {
-        const data = await bookingsApi.getAll();
-        setBookings(data);
+        // Get hotel ID from hotel manager's hotels
+        let currentHotelId: string | null = null;
+        try {
+          const myHotels = await hotelManagerApi.getMyHotels();
+          if (myHotels && myHotels.length > 0) {
+            // Use first hotel if multiple hotels exist
+            currentHotelId = String((myHotels[0] as any).hotel_id || (myHotels[0] as any).id);
+            setHotelId(currentHotelId);
+          } else {
+            console.warn('No hotels found for this hotel manager');
+            setLoading(false);
+            return;
+          }
+        } catch (err) {
+          console.error('Error loading hotel info:', err);
+          setLoading(false);
+          return;
+        }
+
+        // Load bookings - this is the main data source
+        try {
+          const bookingData = await bookingsApi.getAll();
+          const bookingsArray = bookingData?.bookings || bookingData || [];
+          setBookings(Array.isArray(bookingsArray) ? bookingsArray : []);
+        } catch (err) {
+          console.error('Error loading bookings:', err);
+          setBookings([]);
+        }
+
+        // Load rooms - optional, for occupancy calculation
+        if (currentHotelId) {
+          try {
+            const roomData = await hotelManagerApi.getRooms(currentHotelId);
+            if (roomData && Array.isArray(roomData)) {
+              setRooms(roomData);
+            } else {
+              // If API returns unexpected format, try room types endpoint
+              const roomTypes = await hotelManagerApi.getRoomTypes(currentHotelId);
+              setRooms(Array.isArray(roomTypes) ? roomTypes : []);
+            }
+          } catch (err) {
+            console.error('Error loading rooms:', err);
+            // Fallback: try to get room types instead
+            try {
+              const roomTypes = await hotelManagerApi.getRoomTypes(currentHotelId);
+              setRooms(Array.isArray(roomTypes) ? roomTypes : []);
+            } catch (err2) {
+              console.error('Error loading room types:', err2);
+              setRooms([]);
+            }
+          }
+
+          // Load reviews and calculate average rating - optional
+          try {
+            const reviews = await reviewsApi.getAll(currentHotelId);
+            if (reviews && Array.isArray(reviews) && reviews.length > 0) {
+              const avg = reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length;
+              setAverageRating(Number(avg.toFixed(1)));
+            } else {
+              setAverageRating(0);
+            }
+          } catch (err) {
+            console.error('Error loading reviews:', err);
+            setAverageRating(0);
+          }
+        }
       } catch (error) {
-        console.error('Error loading bookings:', error);
+        console.error('Error loading dashboard data:', error);
       } finally {
         setLoading(false);
       }
@@ -46,24 +113,66 @@ export default function HotelManagerDashboardPage() {
     );
   }
 
+  if (!hotelId) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🏨</div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Chưa có khách sạn</h2>
+            <p className="text-gray-600 mb-4">
+              Bạn chưa có khách sạn nào. Vui lòng tạo khách sạn mới để bắt đầu.
+            </p>
+            <Button onClick={() => router.push('/hotel-manager/onboarding')}>
+              Tạo khách sạn mới
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   const recentBookings = bookings.slice(0, 5);
   const confirmedBookings = bookings.filter((b) => b.status === 'accepted');
+  const checkedInBookings = bookings.filter((b) => b.status === 'checked_in');
+  const pendingBookings = bookings.filter((b) => b.status === 'pending');
   const completedBookings = bookings.filter((b) => b.status === 'maintained');
   const totalRevenue = bookings
-    .filter((b) => b.paymentStatus === 'paid')
-    .reduce((sum, b) => sum + (b.total_price || 0), 0);
+    .reduce((sum, b) => sum + (Number(b.total_price) || 0), 0);
+
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
 
   const monthRevenue = bookings
     .filter((b) => {
-      const bookingMonth = new Date(b.created_at).getMonth();
-      const currentMonth = new Date().getMonth();
-      return bookingMonth === currentMonth && b.paymentStatus === 'paid';
-    })
-    .reduce((sum, b) => sum + (b.total_price || 0), 0);
+      const bookingDate = new Date(b.created_at || b.check_in_date);
+      const bookingMonth = bookingDate.getMonth();
+      const bookingYear = bookingDate.getFullYear();
 
-  const occupancyRate = Math.round(
-    (confirmedBookings.length / (confirmedBookings.length + 5)) * 100
-  );
+      console.log('📅 Booking date check:', {
+        booking_id: b.booking_id,
+        created_at: b.created_at,
+        check_in_date: b.check_in_date,
+        bookingDate,
+        bookingMonth,
+        bookingYear,
+        currentMonth,
+        currentYear,
+        total_price: b.total_price,
+        matches: bookingMonth === currentMonth && bookingYear === currentYear
+      });
+
+      return bookingMonth === currentMonth && bookingYear === currentYear;
+    })
+    .reduce((sum, b) => sum + (Number(b.total_price) || 0), 0);
+
+  console.log('💰 Month revenue result:', { monthRevenue, totalBookings: bookings.length });
+
+  // Calculate occupancy rate based on actual room data
+  const totalRooms = rooms.length || 15; // Fallback to 15 if no rooms loaded
+  const occupiedRooms = confirmedBookings.length + checkedInBookings.length;
+  const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
 
   return (
     <div className="space-y-6">
@@ -78,7 +187,7 @@ export default function HotelManagerDashboardPage() {
           <div className="text-center">
             <div className="text-4xl mb-2">📋</div>
             <div className="text-3xl font-bold text-[#0071c2]">
-              {confirmedBookings.length}
+              {pendingBookings.length}
             </div>
             <div className="text-gray-900 font-medium mt-1">Đặt phòng mới</div>
           </div>
@@ -95,7 +204,9 @@ export default function HotelManagerDashboardPage() {
         <Card>
           <div className="text-center">
             <div className="text-4xl mb-2">⭐</div>
-            <div className="text-3xl font-bold text-yellow-600">4.8</div>
+            <div className="text-3xl font-bold text-yellow-600">
+              {averageRating > 0 ? averageRating : '-'}
+            </div>
             <div className="text-gray-900 font-medium mt-1">Đánh giá TB</div>
           </div>
         </Card>

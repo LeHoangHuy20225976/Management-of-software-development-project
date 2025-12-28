@@ -3,7 +3,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
-import { roomInventoryApi } from '@/lib/api/services';
+import { roomInventoryApi, hotelManagerApi, bookingsApi } from '@/lib/api/services';
+import type { RoomType } from '@/types';
 import Link from 'next/link';
 
 interface InventoryDay {
@@ -25,6 +26,8 @@ export default function RoomInventoryCalendarPage() {
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedRoomType, setSelectedRoomType] = useState<number | null>(null);
+  const [hotels, setHotels] = useState<Array<Record<string, unknown>>>([]);
+  const [selectedHotelId, setSelectedHotelId] = useState<string>('');
 
   // Generate days of current month
   const daysInMonth = useMemo(() => {
@@ -44,21 +47,42 @@ export default function RoomInventoryCalendarPage() {
   const endDate = daysInMonth[daysInMonth.length - 1]?.toISOString().split('T')[0] || '';
 
   useEffect(() => {
-    loadInventory();
-  }, [currentMonth]);
+    const loadHotels = async () => {
+      try {
+        const myHotels = await hotelManagerApi.getMyHotels();
+        const normalized = (myHotels as unknown as Array<Record<string, unknown>>) ?? [];
+        setHotels(normalized);
+        const firstId = normalized.length
+          ? String((normalized[0] as any).hotel_id ?? (normalized[0] as any).id)
+          : '';
+        setSelectedHotelId(firstId);
+      } catch (error) {
+        console.error('Error loading hotels:', error);
+      }
+    };
+    loadHotels();
+  }, []);
+
+  useEffect(() => {
+    if (selectedHotelId) {
+      loadInventory();
+    }
+  }, [currentMonth, selectedHotelId]);
 
   const loadInventory = async () => {
+    if (!selectedHotelId) return;
+
     setLoading(true);
     try {
-      // In mock mode, generate sample data
+      // Mock data for fallback
       const mockData: RoomInventory[] = [
         {
           room_type_id: 1,
           room_type_name: 'Phòng Standard',
           inventory: daysInMonth.map((day) => {
             const dateStr = day.toISOString().split('T')[0];
-            const booked = Math.floor(Math.random() * 5);
-            const held = Math.floor(Math.random() * 2);
+            const booked = Math.floor(Math.random() * 3);
+            const held = Math.floor(Math.random() * 1);
             return {
               date: dateStr,
               total: 10,
@@ -73,7 +97,7 @@ export default function RoomInventoryCalendarPage() {
           room_type_name: 'Phòng Deluxe',
           inventory: daysInMonth.map((day) => {
             const dateStr = day.toISOString().split('T')[0];
-            const booked = Math.floor(Math.random() * 3);
+            const booked = Math.floor(Math.random() * 2);
             const held = Math.floor(Math.random() * 1);
             return {
               date: dateStr,
@@ -84,31 +108,20 @@ export default function RoomInventoryCalendarPage() {
             };
           }),
         },
-        {
-          room_type_id: 3,
-          room_type_name: 'Phòng Suite',
-          inventory: daysInMonth.map((day) => {
-            const dateStr = day.toISOString().split('T')[0];
-            const booked = Math.floor(Math.random() * 2);
-            const held = 0;
-            return {
-              date: dateStr,
-              total: 3,
-              booked,
-              held,
-              available: Math.max(0, 3 - booked - held),
-            };
-          }),
-        },
       ];
 
       // Try API first, fallback to mock
       try {
         // Get room types first, then get calendar for each type
-        const roomTypesResponse = await roomInventoryApi.getRoomTypesByHotel('1');
-        const roomTypes = roomTypesResponse.room_types || [];
+        const roomTypes: RoomType[] = await roomInventoryApi.getRoomTypesByHotel(selectedHotelId);
 
-        const calendarPromises = roomTypes.map(roomType =>
+        if (!roomTypes || roomTypes.length === 0) {
+          console.warn('No room types found for hotel');
+          setInventoryData(mockData);
+          return;
+        }
+
+        const calendarPromises = roomTypes.map((roomType: RoomType) =>
           roomInventoryApi.getInventoryCalendar(
             roomType.type_id.toString(),
             startDate,
@@ -119,7 +132,7 @@ export default function RoomInventoryCalendarPage() {
         const calendarResults = await Promise.all(calendarPromises);
 
         // Transform data to match expected format
-        const transformedData = roomTypes.map((roomType, index) => {
+        const transformedData = roomTypes.map((roomType: RoomType, index: number) => {
           const calendar = calendarResults[index] || [];
           return {
             room_type_id: roomType.type_id,
@@ -134,18 +147,9 @@ export default function RoomInventoryCalendarPage() {
           };
         });
 
-        if (transformedData.length > 0) {
-          setInventoryData(transformedData);
-        } else {
-          setInventoryData(mockData);
-        }
-        // Transform API response if needed
-        if (Array.isArray(data) && data.length > 0 && 'room_type_id' in data[0]) {
-          setInventoryData(data as unknown as RoomInventory[]);
-        } else {
-          setInventoryData(mockData);
-        }
-      } catch {
+        setInventoryData(transformedData.length > 0 ? transformedData : mockData);
+      } catch (error) {
+        console.error('API error, using mock data:', error);
         setInventoryData(mockData);
       }
     } catch (error) {
@@ -213,6 +217,30 @@ export default function RoomInventoryCalendarPage() {
           <Button variant="outline">← Quản lý phòng</Button>
         </Link>
       </div>
+
+      {/* Hotel Selector */}
+      {hotels.length > 1 && (
+        <Card>
+          <div className="flex items-center gap-4">
+            <label className="text-gray-900 font-semibold">Chọn khách sạn:</label>
+            <select
+              value={selectedHotelId}
+              onChange={(e) => setSelectedHotelId(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[300px] text-gray-900"
+            >
+              {hotels.map((hotel) => (
+                <option
+                  key={String((hotel as any).hotel_id || (hotel as any).id)}
+                  value={String((hotel as any).hotel_id || (hotel as any).id)}
+                  className="text-gray-900"
+                >
+                  {String((hotel as any).name || 'Khách sạn')} - ID: {String((hotel as any).hotel_id || (hotel as any).id)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Card>
+      )}
 
       {/* Month Navigation */}
       <Card>

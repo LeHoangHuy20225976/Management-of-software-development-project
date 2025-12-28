@@ -280,7 +280,12 @@ const DestinationController = {
         comment,
       });
 
-      return responseUtils.ok(res, review);
+      review.helpful = 0;
+      review.verified = true;
+
+      const result = {...req.body, ...review};
+
+      return responseUtils.ok(res, result);
     } catch (error) {
       console.error("Add destination review error:", error);
       if (error.message === "Destination not found") {

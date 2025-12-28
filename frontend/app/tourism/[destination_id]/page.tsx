@@ -44,15 +44,16 @@ export default function TourismDetailPage({
         );
         
         // Load reviews for this destination from API
+        // TODO: Backend needs to implement GET /destinations/:id/reviews endpoint
+        // For now, reviews start empty and are populated when users submit new reviews
         try {
-          // Note: reviewsApi.getAll now requires hotelId, use empty string for destinations
-          const allReviews = await reviewsApi.getAll('');
-          const destinationReviews = allReviews.filter(
-            r => r.destination_id === Number(resolvedParams.destination_id)
-          );
-          setReviews(destinationReviews);
+          // Temporarily disabled until backend implements destination reviews endpoint
+          // const destinationReviews = await destinationsApi.getReviews(resolvedParams.destination_id);
+          // setReviews(destinationReviews);
+          setReviews([]);
         } catch (reviewError) {
           console.error('Error loading reviews:', reviewError);
+          setReviews([]);
         }
       } catch (error) {
         console.error('Error loading tourism spot:', error);

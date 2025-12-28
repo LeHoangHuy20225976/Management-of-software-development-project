@@ -82,6 +82,7 @@ export const API_CONFIG = {
 
     // Payment Gateway (matches backend /payments/*)
     PAYMENT_CREATE: '/payments/create',
+    PAYMENT_CREATE_MOCK: '/payments/create-mock',
     PAYMENT_CONFIG: '/payments/config',
     PAYMENT_LIST: '/payments',
     PAYMENT_DETAILS: '/payments/:id',
@@ -180,10 +181,32 @@ export const getApiUrl = (endpoint: string, params?: Record<string, string>): st
   // Direct URL without /api/v1 prefix (backend uses /auth/login, /auth/register, etc.)
   let url = `${API_CONFIG.BASE_URL}${endpoint}`;
 
+  const pathParams: Record<string, string> = {};
+  const queryParams: Record<string, string> = {};
+
+  // Separate path params (used in URL like :id) from query params
   if (params) {
     Object.keys(params).forEach(key => {
-      url = url.replace(`:${key}`, params[key]);
+      if (url.includes(`:${key}`)) {
+        pathParams[key] = params[key];
+      } else {
+        queryParams[key] = params[key];
+      }
     });
+
+    // Replace path parameters
+    Object.keys(pathParams).forEach(key => {
+      url = url.replace(`:${key}`, pathParams[key]);
+    });
+
+    // Append query parameters
+    const queryKeys = Object.keys(queryParams);
+    if (queryKeys.length > 0) {
+      const queryString = queryKeys
+        .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(queryParams[key])}`)
+        .join('&');
+      url += `?${queryString}`;
+    }
   }
 
   return url;
