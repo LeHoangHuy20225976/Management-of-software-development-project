@@ -25,7 +25,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY . .
 
 # Entrypoint
-RUN chmod +x /app/docker-entrypoint.sh
+RUN sed -i 's/\r$//' /app/docker-entrypoint.sh && chmod +x /app/docker-entrypoint.sh
 
 # Expose port
 EXPOSE 4000

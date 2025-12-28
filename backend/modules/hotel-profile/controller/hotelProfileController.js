@@ -44,6 +44,16 @@ const hotelProfileController = {
         }
 
     },
+    getAllImagesForHotel: async (req, res) => {
+        try {
+            const hotelid = req.params.hotel_id;
+            const userid = req.user.user_id;
+            const result = await hotelProfileService.getAllImagesForHotel(hotelid, userid);
+            return responseUtils.ok(res, result);
+        } catch (error) {
+            return responseUtils.error(res, error.message);
+        }
+    },
     updateHotelProfile: async(req, res) => {
         try {
             const hotelid = req.params.hotel_id;

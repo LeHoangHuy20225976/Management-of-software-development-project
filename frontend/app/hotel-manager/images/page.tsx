@@ -92,6 +92,69 @@ const defaultImages: HotelImage[] = [
   },
 ];
 
+const today = () => new Date().toISOString().split('T')[0];
+
+const buildImagesFromAllImagesResponse = (payload: any): HotelImage[] => {
+  const images: HotelImage[] = [];
+  const seenUrls = new Set<string>();
+
+  const thumbnailUrl = typeof payload?.thumbnail === 'string' ? payload.thumbnail : null;
+  if (thumbnailUrl) {
+    seenUrls.add(thumbnailUrl);
+    images.push({
+      id: 1,
+      url: thumbnailUrl,
+      type: 'hotel',
+      caption: 'Ảnh đại diện',
+      isThumbnail: true,
+      uploadedAt: today(),
+    });
+  }
+
+  const hotelImages: Array<{ url: string }> = Array.isArray(payload?.hotelImages)
+    ? payload.hotelImages
+    : [];
+  const hotelUrls = hotelImages.map((i) => i?.url).filter(Boolean);
+  const uniqueHotelUrls = [...new Set(hotelUrls)].filter((u) => !!u && !seenUrls.has(u));
+
+  uniqueHotelUrls.forEach((url, index) => {
+    seenUrls.add(url);
+    images.push({
+      id: 2 + index,
+      url,
+      type: 'hotel',
+      caption: `Ảnh ${index + 1}`,
+      isThumbnail: false,
+      uploadedAt: today(),
+    });
+  });
+
+  const rooms: any[] = Array.isArray(payload?.rooms) ? payload.rooms : [];
+  let nextId = 2 + uniqueHotelUrls.length;
+  for (const room of rooms) {
+    const roomId = typeof room?.room_id === 'number' ? room.room_id : undefined;
+    const roomName = room?.room_name ?? 'Phòng';
+    const roomImages: any[] = Array.isArray(room?.images) ? room.images : [];
+
+    for (let i = 0; i < roomImages.length; i++) {
+      const url = roomImages[i]?.url;
+      if (typeof url !== 'string' || !url || seenUrls.has(url)) continue;
+      seenUrls.add(url);
+      images.push({
+        id: nextId++,
+        url,
+        type: 'room',
+        caption: `${roomName} - Ảnh ${i + 1}`,
+        isThumbnail: false,
+        roomId,
+        uploadedAt: today(),
+      });
+    }
+  }
+
+  return images;
+};
+
 export default function HotelManagerImagesPage() {
   const [images, setImages] = useState<HotelImage[]>([]);
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -101,6 +164,7 @@ export default function HotelManagerImagesPage() {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [hotelId, setHotelId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -113,31 +177,24 @@ export default function HotelManagerImagesPage() {
   useEffect(() => {
     const loadHotelAndImages = async () => {
       try {
+        setLoadError(null);
         // Get hotel ID first
         const myHotels = await hotelManagerApi.getMyHotels();
         if (myHotels && myHotels.length > 0) {
           const currentHotelId = String((myHotels[0] as any).hotel_id || (myHotels[0] as any).id);
           setHotelId(currentHotelId);
 
-          // Load images for this hotel
-          try {
-            const savedImages = await hotelManagerApi.getImages(currentHotelId);
-            if (savedImages && savedImages.length > 0) {
-              setImages(savedImages as HotelImage[]);
-            } else {
-              setImages(defaultImages);
-            }
-          } catch (error) {
-            console.error('Error loading images:', error);
-            setImages(defaultImages);
-          }
+          const allImagesPayload = await hotelManagerApi.getAllImages(currentHotelId);
+          setImages(buildImagesFromAllImagesResponse(allImagesPayload));
         } else {
           console.warn('No hotels found');
           setImages([]);
+          setLoadError('Không tìm thấy khách sạn của bạn (getMyHotels trả về rỗng).');
         }
       } catch (error) {
         console.error('Error loading hotel:', error);
         setImages([]);
+        setLoadError(error instanceof Error ? error.message : 'Không load được ảnh/khách sạn.');
       } finally {
         setLoading(false);
       }
@@ -202,6 +259,10 @@ export default function HotelManagerImagesPage() {
   };
 
   const handleSetThumbnail = async (id: number) => {
+    if (!hotelId) {
+      console.warn('Missing hotelId, cannot set thumbnail');
+      return;
+    }
     try {
       await hotelManagerApi.setThumbnail(hotelId, id);
       const updated = images.map((img) => ({
@@ -215,6 +276,10 @@ export default function HotelManagerImagesPage() {
   };
 
   const handleDeleteImage = async (id: number) => {
+    if (!hotelId) {
+      console.warn('Missing hotelId, cannot delete image');
+      return;
+    }
     if (confirm('Bạn có chắc muốn xóa ảnh này?')) {
       try {
         await hotelManagerApi.deleteImage(hotelId, id);
@@ -256,6 +321,11 @@ export default function HotelManagerImagesPage() {
 
   return (
     <div className="space-y-6">
+      {loadError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {loadError}
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

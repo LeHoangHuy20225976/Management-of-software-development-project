@@ -588,6 +588,15 @@ export const hotelManagerApi = {
     }
   },
 
+  async getAllImages(hotelId: string): Promise<{
+    thumbnail: string | null;
+    hotelImages: { image_id: number; url: string }[];
+    rooms: { room_id: number; room_name: string | null; images: { image_id: number; url: string }[] }[];
+    all: any[];
+  }> {
+    return apiClient.get<any>(API_CONFIG.ENDPOINTS.HOTEL_ALL_IMAGES, { hotel_id: hotelId });
+  },
+
   async uploadImages(hotelId: string, files: File[], imageType: string, caption: string): Promise<{ id: number; url: string; type: string; caption: string }[]> {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();

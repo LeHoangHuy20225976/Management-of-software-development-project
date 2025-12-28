@@ -66,6 +66,12 @@ router.get(
   validate([hotelProfileValidation.viewHotel]),
   hotelProfileController.viewHotelProfile
 );
+router.get(
+  "/all-images/:hotel_id",
+  middlewares([authMiddleware, rbacMiddleware(["hotel:update"])]),
+  validate([hotelProfileValidation.viewHotel]),
+  hotelProfileController.getAllImagesForHotel
+);
 router.put(
   "/update-hotel/:hotel_id",
   middlewares([authMiddleware, rbacMiddleware(["hotel:update"])]),

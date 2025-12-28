@@ -142,6 +142,7 @@ export const API_CONFIG = {
     // Image Uploads (Hotel Profile)
     UPLOAD_HOTEL_IMAGES: '/hotel-profile/upload-images-for-hotel/:hotel_id',
     UPLOAD_ROOM_IMAGES: '/hotel-profile/upload-images-for-room/:room_id',
+    HOTEL_ALL_IMAGES: '/hotel-profile/all-images/:hotel_id',
   },
 
   // Request timeout
