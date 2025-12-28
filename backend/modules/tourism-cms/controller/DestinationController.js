@@ -10,7 +10,7 @@ const DestinationController = {
   getAllDestinations: async (req, res) => {
     try {
       const destinations = await DestinationService.getAllDestinations();
-      return res.status(200).json(destinations);
+      return responseUtils.ok(res, destinations);
     } catch (error) {
       console.error("Get all destinations error:", error);
       return responseUtils.error(res, error.message);
@@ -25,7 +25,7 @@ const DestinationController = {
     try {
       const { id } = req.params;
       const destination = await DestinationService.getDestinationById(id);
-      return res.status(200).json(destination);
+      return responseUtils.ok(res, destination);
     } catch (error) {
       console.error("Get destination by ID error:", error);
       if (error.message === "Destination not found") {
@@ -105,7 +105,7 @@ const DestinationController = {
         ]);
       }
       const destinations = await DestinationService.searchDestinations(q);
-      return res.status(200).json(destinations);
+      return responseUtils.ok(res, destinations);
     } catch (error) {
       console.error("Search destinations error:", error);
       return responseUtils.error(res, error.message);
@@ -285,7 +285,7 @@ const DestinationController = {
 
       const result = {...req.body, ...review};
 
-      return res.status(200).json(result);
+      return responseUtils.ok(res, result);
     } catch (error) {
       console.error("Add destination review error:", error);
       if (error.message === "Destination not found") {
