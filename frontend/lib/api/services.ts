@@ -824,6 +824,10 @@ export const destinationsApi = {
     return apiClient.delete<boolean>(API_CONFIG.ENDPOINTS.DELETE_DESTINATION, { id });
   },
 
+  async getReviews(destinationId: string): Promise<Review[]> {
+    return apiClient.get<Review[]>(API_CONFIG.ENDPOINTS.GET_DESTINATION_REVIEWS, { id: destinationId });
+  },
+
   async addReview(destinationId: string, reviewData: Partial<Review>): Promise<Review> {
     return apiClient.post<Review>(API_CONFIG.ENDPOINTS.ADD_DESTINATION_REVIEW, { id: destinationId, ...reviewData });
   },

@@ -121,6 +121,7 @@ export const API_CONFIG = {
     CREATE_DESTINATION: '/destinations',
     UPDATE_DESTINATION: '/destinations/:id',
     DELETE_DESTINATION: '/destinations/:id',
+    GET_DESTINATION_REVIEWS: '/destinations/:id/reviews',
     ADD_DESTINATION_REVIEW: '/destinations/:id/reviews',
     DESTINATION_THUMBNAIL: '/destinations/:id/thumbnail',
     DESTINATION_IMAGES: '/destinations/:id/images',
