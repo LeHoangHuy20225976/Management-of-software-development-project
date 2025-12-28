@@ -6,6 +6,7 @@ jest.mock('models/index', () => {
   const facilities = [];
   const bookings = [];
   const users = [];
+  const images = [];
   let lastTransaction = null;
 
   const sequelize = {
@@ -148,16 +149,31 @@ jest.mock('models/index', () => {
     })
   };
 
+  const Image = {
+    findAll: jest.fn(async ({ where } = {}) => {
+      if (!where) return [...images];
+      if (where.hotel_id !== undefined) return images.filter((i) => i.hotel_id === where.hotel_id);
+      if (where.room_id !== undefined) return images.filter((i) => i.room_id === where.room_id);
+      return [...images];
+    }),
+    create: jest.fn(async (data) => {
+      const record = { ...data, image_id: images.length + 1 };
+      images.push(record);
+      return record;
+    })
+  };
+
   return {
     Hotel,
     RoomType,
     Room,
     User,
     RoomPrice,
+    Image,
     FacilitiesPossessing,
     Booking,
     sequelize,
-    __data: { hotels, roomTypes, rooms, users, roomPrices, facilities, bookings },
+    __data: { hotels, roomTypes, rooms, users, roomPrices, facilities, bookings, images },
     __reset: () => {
       hotels.length = 0;
       roomTypes.length = 0;
@@ -166,6 +182,7 @@ jest.mock('models/index', () => {
       roomPrices.length = 0;
       facilities.length = 0;
       bookings.length = 0;
+      images.length = 0;
       lastTransaction = null;
       sequelize.transaction.mockClear();
       Hotel.findOne.mockClear();
@@ -182,6 +199,8 @@ jest.mock('models/index', () => {
       RoomPrice.findOne.mockClear();
       RoomPrice.update.mockClear();
       RoomPrice.create.mockClear();
+      Image.findAll.mockClear();
+      Image.create.mockClear();
       FacilitiesPossessing.destroy.mockClear();
       FacilitiesPossessing.create.mockClear();
       Booking.findAll.mockClear();
@@ -192,15 +211,29 @@ jest.mock('models/index', () => {
 
 jest.mock('sequelize', () => ({
   Op: {
-    and: 'and'
+    and: 'and',
+    ne: 'ne'
   },
   fn: (funcName, column) => ({ funcName, col: column }),
   col: (column) => column,
   where: (lhs, rhs) => ({ lhs, rhs })
 }));
 
+jest.mock('../../../../utils/minioUtils', () => ({
+  buckets: {
+    HOTEL_IMAGES: 'hotel-images',
+    ROOM_IMAGES: 'room-images'
+  },
+  uploadFile: jest.fn(async (_bucket, _buffer, originalname) => ({ fileName: `uploaded-${originalname}` })),
+  deleteFile: jest.fn(async () => {}),
+  getFileUrl: jest.fn(async (bucket, objectName) => {
+    return `http://minio:9000/${bucket}/${objectName}?X-Amz-Signature=abc`;
+  })
+}));
+
 const hotelProfileService = require('../hotelProfileService');
 const db = require('models/index');
+const minioUtils = require('../../../../utils/minioUtils');
 
 describe('hotelProfileService - Integration Tests', () => {
   beforeEach(() => {
@@ -280,6 +313,48 @@ describe('hotelProfileService - Integration Tests', () => {
       notes: 'No notes'
     });
     expect(roomType.quantity).toBe(1);
+  });
+
+  it('updates hotel thumbnail end-to-end when a new file is provided', async () => {
+    const ownerId = 21;
+    db.__data.users.push({
+      user_id: ownerId,
+      role: 'hotel_manager',
+      save: jest.fn(async function () { return this; })
+    });
+
+    const hotel = {
+      hotel_id: 70,
+      hotel_owner: ownerId,
+      name: 'Hotel',
+      address: 'Addr',
+      status: 1,
+      longitude: 1,
+      latitude: 2,
+      description: 'Desc',
+      contact_phone: '000',
+      thumbnail: 'old.png',
+      save: jest.fn(async function () { return this; })
+    };
+    db.__data.hotels.push(hotel);
+
+    const thumbnailFile = {
+      buffer: Buffer.from('fake-image'),
+      originalname: 'thumb.png',
+      mimetype: 'image/png'
+    };
+
+    await hotelProfileService.updateHotelProfile(hotel.hotel_id, ownerId, {}, thumbnailFile);
+
+    expect(minioUtils.uploadFile).toHaveBeenCalledWith(
+      minioUtils.buckets.HOTEL_IMAGES,
+      thumbnailFile.buffer,
+      thumbnailFile.originalname,
+      { 'Content-Type': thumbnailFile.mimetype }
+    );
+    expect(hotel.thumbnail).toBe('uploaded-thumb.png');
+    expect(minioUtils.deleteFile).toHaveBeenCalledWith(minioUtils.buckets.HOTEL_IMAGES, 'old.png');
+    expect(hotel.save).toHaveBeenCalled();
   });
 
   it('disables hotel and cascades availability/status updates', async () => {
@@ -472,5 +547,23 @@ describe('hotelProfileService - Integration Tests', () => {
 
     expect(result[0].priceData.price).toBe(90);
     expect(result[0].roomData.isAvailable).toBe(true);
+  });
+
+  it('converts hotel thumbnail/images to public object URLs when viewing hotel profile', async () => {
+    const hotelId = 99;
+    db.__data.hotels.push({
+      hotel_id: hotelId,
+      hotel_owner: 1,
+      thumbnail: 'thumb.png',
+      setDataValue(key, value) { this[key] = value; },
+      save: jest.fn(async function () { return this; })
+    });
+    db.__data.images.push({ hotel_id: hotelId, image_url: 'gallery-1.png' });
+
+    const result = await hotelProfileService.viewHotelProfile(hotelId);
+
+    expect(minioUtils.getFileUrl).toHaveBeenCalledWith(minioUtils.buckets.HOTEL_IMAGES, 'thumb.png');
+    expect(result.hotelData.thumbnail).toBe('http://localhost:9002/hotel-images/thumb.png');
+    expect(result.hotelData.imageUrls).toEqual(['http://localhost:9002/hotel-images/gallery-1.png']);
   });
 });

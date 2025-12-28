@@ -161,6 +161,7 @@ const DestinationController = {
       await DestinationService.updateDestination(id, {
         thumbnail: result.url,
       });
+      console.log(result.url);
 
       return responseUtils.ok(res, {
         message: "Thumbnail uploaded successfully",
@@ -251,6 +252,50 @@ const DestinationController = {
   },
 
   /**
+   * Add a review for a destination
+   * POST /destinations/:id/reviews
+   * Body: { rating, comment }
+   * destination_id is taken from params; user_id from auth (req.user); hotel_id and room_id are null
+   */
+  addDestinationReview: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { rating, comment } = req.body;
+
+      if (rating === undefined) {
+        return responseUtils.invalidated(res, [
+          { field: "rating", message: "rating is required" },
+        ]);
+      }
+
+      const userId = req.user && req.user.user_id;
+
+      if (!userId) {
+        return responseUtils.unauthorized(res, "Authentication required");
+      }
+
+      const review = await DestinationService.addDestinationReview(id, {
+        user_id: userId,
+        rating,
+        comment,
+      });
+
+      review.helpful = 0;
+      review.verified = true;
+
+      const result = {...req.body, ...review};
+
+      return responseUtils.ok(res, result);
+    } catch (error) {
+      console.error("Add destination review error:", error);
+      if (error.message === "Destination not found") {
+        return responseUtils.notFound(res);
+      }
+      return responseUtils.error(res, error.message);
+    }
+  },
+
+  /**
    * Delete destination thumbnail
    * DELETE /destinations/:id/thumbnail
    */
@@ -308,7 +353,7 @@ const DestinationController = {
       const image = await DestinationService.getDestinationImage(id, imageId);
 
       // Extract filename from URL
-      const url = new URL(image.url);
+      const url = new URL(image.image_url);
       const pathParts = url.pathname.split("/");
       const fileName = pathParts[pathParts.length - 1];
 

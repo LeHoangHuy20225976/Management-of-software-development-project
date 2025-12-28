@@ -1,0 +1,333 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/common/Button';
+import { Card } from '@/components/common/Card';
+import { useAuth } from '@/lib/context/AuthContext';
+
+interface Message {
+  id: string;
+  sender: 'user' | 'hotel';
+  text: string;
+  timestamp: Date;
+}
+
+interface HotelChatProps {
+  hotelId: string;
+  hotelName: string;
+  hotelImage?: string;
+}
+
+export function HotelChat({ hotelId, hotelName, hotelImage }: HotelChatProps) {
+  const router = useRouter();
+  const { isAuthenticated } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Save chat to localStorage
+  const saveChatHistory = (updatedMessages: Message[]) => {
+    const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+    const sessionIndex = chatHistory.findIndex((s: any) => s.hotelId === hotelId);
+    
+    const session = {
+      id: hotelId,
+      hotelId,
+      hotelName,
+      hotelImage: hotelImage || '/placeholder-hotel.jpg',
+      lastMessage: updatedMessages[updatedMessages.length - 1]?.text || '',
+      lastMessageTime: new Date(),
+      unreadCount: 0,
+      messages: updatedMessages,
+    };
+
+    if (sessionIndex >= 0) {
+      chatHistory[sessionIndex] = session;
+    } else {
+      chatHistory.push(session);
+    }
+
+    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+  };
+
+  // Load chat history on mount
+  useEffect(() => {
+    if (isOpen && isAuthenticated) {
+      const chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+      const session = chatHistory.find((s: any) => s.hotelId === hotelId);
+      if (session && session.messages.length > 0) {
+        const loadedMessages = session.messages.map((m: any) => ({
+          ...m,
+          timestamp: new Date(m.timestamp),
+        }));
+        setMessages(loadedMessages);
+        return;
+      }
+    }
+    
+    if (isOpen && messages.length === 0) {
+      const welcomeMessage: Message = {
+        id: '1',
+        sender: 'hotel',
+        text: `Xin chào! Chúng tôi là ${hotelName}. Chúng tôi có thể giúp gì cho bạn?`,
+        timestamp: new Date(),
+      };
+      setMessages([welcomeMessage]);
+    }
+  }, [isOpen, hotelName, hotelId, isAuthenticated]);
+
+  const handleOpenChat = () => {
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    setIsOpen(true);
+  };
+
+  const handleLoginRedirect = () => {
+    router.push('/login');
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim()) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      sender: 'user',
+      text: inputMessage,
+      timestamp: new Date(),
+    };
+
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    setInputMessage('');
+    setIsTyping(true);
+
+    // Save to history after user message
+    saveChatHistory(newMessages);
+
+    // Simulate hotel response
+    setTimeout(() => {
+      const responses = [
+        'Cảm ơn bạn đã liên hệ. Chúng tôi sẽ phản hồi ngay.',
+        'Vâng, chúng tôi hiểu yêu cầu của bạn. Chúng tôi sẽ kiểm tra và trả lời sớm nhất.',
+        'Chúng tôi có thể hỗ trợ bạn về vấn đề này. Vui lòng cho biết thêm chi tiết.',
+        'Đội ngũ của chúng tôi sẽ xử lý yêu cầu này ngay lập tức.',
+      ];
+
+      const hotelMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        sender: 'hotel',
+        text: responses[Math.floor(Math.random() * responses.length)],
+        timestamp: new Date(),
+      };
+
+      const updatedMessages = [...newMessages, hotelMessage];
+      setMessages(updatedMessages);
+      setIsTyping(false);
+      
+      // Save to history after hotel response
+      saveChatHistory(updatedMessages);
+    }, 1000 + Math.random() * 1000);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const quickQuestions = [
+    'Giá phòng cho 2 người?',
+    'Có chỗ đỗ xe không?',
+    'Check-in lúc mấy giờ?',
+    'Có phục vụ ăn sáng không?',
+  ];
+
+  const handleQuickQuestion = (question: string) => {
+    setInputMessage(question);
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  // Login prompt modal
+  if (showLoginPrompt) {
+    return (
+      <>
+        <button
+          onClick={handleOpenChat}
+          className="fixed bottom-6 right-24 z-50 bg-[#0071c2] text-white rounded-full p-4 shadow-lg hover:bg-[#005999] transition-all duration-300 hover:scale-110 flex items-center gap-2 h-14"
+        >
+          <span className="text-2xl">💬</span>
+          <span className="font-semibold hidden sm:inline">Chat với khách sạn</span>
+        </button>
+        
+        {/* Login Prompt Modal */}
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+          <Card className="max-w-md w-full">
+            <div className="text-center p-6">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-3xl">🔒</span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Yêu cầu đăng nhập
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Bạn cần đăng nhập để có thể chat với khách sạn
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setShowLoginPrompt(false)}
+                  className="flex-1 bg-gray-200 text-gray-800 hover:bg-gray-300"
+                >
+                  Hủy
+                </Button>
+                <Button
+                  onClick={handleLoginRedirect}
+                  className="flex-1"
+                >
+                  Đăng nhập
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      </>
+    );
+  }
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={handleOpenChat}
+        className="fixed bottom-6 right-24 z-50 bg-[#0071c2] text-white rounded-full p-4 shadow-lg hover:bg-[#005999] transition-all duration-300 hover:scale-110 flex items-center gap-2 h-14"
+      >
+        <span className="text-2xl">💬</span>
+        <span className="font-semibold hidden sm:inline">Chat với khách sạn</span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="fixed bottom-6 right-24 z-50 w-96 max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-8rem)] flex flex-col">
+      <Card className="h-full flex flex-col shadow-2xl">
+        {/* Header */}
+        <div className="bg-[#0071c2] text-white p-4 rounded-t-lg flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+              <span className="text-xl">🏨</span>
+            </div>
+            <div>
+              <h3 className="font-bold text-lg">{hotelName}</h3>
+              <p className="text-xs text-white/80">Thường trả lời trong vài phút</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="text-white/80 hover:text-white text-2xl leading-none"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex ${
+                message.sender === 'user' ? 'justify-end' : 'justify-start'
+              }`}
+            >
+              <div
+                className={`max-w-[75%] rounded-2xl px-4 py-2 ${
+                  message.sender === 'user'
+                    ? 'bg-[#0071c2] text-white'
+                    : 'bg-white text-gray-900 border border-gray-200'
+                }`}
+              >
+                <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                <p
+                  className={`text-xs mt-1 ${
+                    message.sender === 'user' ? 'text-white/70' : 'text-gray-500'
+                  }`}
+                >
+                  {formatTime(message.timestamp)}
+                </p>
+              </div>
+            </div>
+          ))}
+          {isTyping && (
+            <div className="flex justify-start">
+              <div className="bg-white text-gray-900 border border-gray-200 rounded-2xl px-4 py-3">
+                <div className="flex gap-1">
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75" />
+                  <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150" />
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Quick Questions */}
+        {messages.length <= 2 && (
+          <div className="px-4 py-2 border-t border-gray-200 bg-white">
+            <p className="text-xs text-gray-600 mb-2">Câu hỏi thường gặp:</p>
+            <div className="flex flex-wrap gap-2">
+              {quickQuestions.map((question, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleQuickQuestion(question)}
+                  className="text-xs bg-blue-50 text-[#0071c2] px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors border border-blue-200"
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Input */}
+        <div className="p-4 border-t border-gray-200 bg-white rounded-b-lg">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Nhập tin nhắn..."
+              className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-full focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900 text-sm"
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={!inputMessage.trim()}
+              className="bg-[#0071c2] text-white rounded-full p-2 px-4 hover:bg-[#005999] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+            >
+              <span className="text-xl">➤</span>
+            </button>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}

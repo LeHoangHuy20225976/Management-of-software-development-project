@@ -5,82 +5,75 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
+import { reviewsApi } from '@/lib/api/services';
 
-// Mock reviews data - in real app would fetch from API
-const mockReviews = [
-  {
-    id: 'rv1',
-    guestName: 'Nguyễn Văn A',
-    guestAvatar: 'https://i.pravatar.cc/150?u=user1',
-    rating: 5,
-    title: 'Trải nghiệm tuyệt vời!',
-    comment:
-      'Khách sạn rất đẹp, phòng sạch sẽ, nhân viên thân thiện. View từ phòng nhìn ra thành phố rất đẹp. Bữa sáng buffet đa dạng và ngon. Chắc chắn sẽ quay lại!',
-    date: '2025-12-05',
-    bookingId: 'BK001',
-    roomType: 'Deluxe Room',
-    verified: true,
-    replied: false,
-  },
-  {
-    id: 'rv2',
-    guestName: 'Trần Thị B',
-    guestAvatar: 'https://i.pravatar.cc/150?u=user2',
-    rating: 4,
-    title: 'Tốt nhưng có thể cải thiện',
-    comment:
-      'Vị trí khách sạn thuận tiện. Phòng đẹp và sạch sẽ. Tuy nhiên wifi hơi chậm, hy vọng khách sạn sẽ cải thiện điểm này.',
-    date: '2025-12-03',
-    bookingId: 'BK002',
-    roomType: 'Standard Room',
-    verified: true,
-    replied: true,
-    reply: {
-      content:
-        'Cảm ơn bạn đã góp ý. Chúng tôi đã nâng cấp hệ thống wifi và hi vọng bạn sẽ có trải nghiệm tốt hơn trong lần tới.',
-      date: '2025-12-04',
-    },
-  },
-  {
-    id: 'rv3',
-    guestName: 'Lê Văn C',
-    guestAvatar: 'https://i.pravatar.cc/150?u=user3',
-    rating: 5,
-    title: 'Hoàn hảo cho kỳ nghỉ gia đình',
-    comment:
-      'Khách sạn view biển tuyệt đẹp! Hồ bơi rộng rãi, bãi biển riêng sạch sẽ. Con tôi rất thích khu vui chơi trẻ em. Staff nhiệt tình và chu đáo.',
-    date: '2025-12-01',
-    bookingId: 'BK003',
-    roomType: 'Family Suite',
-    verified: true,
-    replied: false,
-  },
-  {
-    id: 'rv4',
-    guestName: 'Phạm Thị D',
-    guestAvatar: 'https://i.pravatar.cc/150?u=user4',
-    rating: 3,
-    title: 'Bình thường',
-    comment:
-      'Phòng ốc ổn nhưng không có gì đặc biệt. Giá hơi cao so với chất lượng dịch vụ.',
-    date: '2025-11-28',
-    bookingId: 'BK004',
-    roomType: 'Standard Room',
-    verified: true,
-    replied: false,
-  },
-];
+// Local interface for hotel reviews (different from global Review type)
+interface HotelReview {
+  review_id: string;
+  guestName: string;
+  guestAvatar: string;
+  rating: number;
+  title: string;
+  comment: string;
+  date: string;
+  bookingId: string;
+  roomType: string;
+  verified: boolean;
+  replied: boolean;
+  reply?: {
+    content: string;
+    date: string;
+  };
+}
+
 
 export default function HotelReviewsPage() {
-  const [reviews] = useState(mockReviews);
+  const searchParams = useSearchParams();
+  const hotelId = searchParams.get('hotel_id') || '1'; // Default to hotel 1
+
+  const [reviews, setReviews] = useState<HotelReview[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'unreplied' | '5star' | 'low'>(
     'all'
   );
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
+
+  useEffect(() => {
+    loadReviews();
+  }, [hotelId]);
+
+  const loadReviews = async () => {
+    try {
+      setLoading(true);
+      // Load reviews from API
+      const data = await reviewsApi.getByHotel(hotelId);
+      // Transform API data to match HotelReview interface
+      const transformedReviews: HotelReview[] = data.map((review: any) => ({
+        review_id: review.review_id?.toString() || '',
+        guestName: review.User?.name || 'Khách hàng',
+        guestAvatar: review.User?.profile_image || 'https://i.pravatar.cc/150',
+        rating: review.rating || 0,
+        title: review.comment?.substring(0, 50) || '',
+        comment: review.comment || '',
+        date: review.date_created || new Date().toISOString(),
+        bookingId: review.booking_id?.toString() || '',
+        roomType: review.Room?.RoomType?.type || 'N/A',
+        verified: true,
+        replied: false,
+      }));
+      setReviews(transformedReviews);
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+      setReviews([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredReviews =
     filter === 'all'
@@ -255,7 +248,7 @@ export default function HotelReviewsPage() {
       ) : (
         <div className="space-y-4">
           {filteredReviews.map((review) => (
-            <Card key={review.id}>
+            <Card key={review.review_id}>
               {/* Review Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-start space-x-3">
@@ -330,7 +323,7 @@ export default function HotelReviewsPage() {
               )}
 
               {/* Reply Form */}
-              {replyingTo === review.id && (
+              {replyingTo === review.review_id && (
                 <div className="border-t pt-4 mt-4">
                   <textarea
                     value={replyText}
@@ -349,7 +342,7 @@ export default function HotelReviewsPage() {
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() => submitReply(review.id)}
+                      onClick={() => submitReply(review.review_id)}
                       disabled={!replyText.trim()}
                     >
                       Gửi phản hồi
@@ -359,12 +352,12 @@ export default function HotelReviewsPage() {
               )}
 
               {/* Actions */}
-              {!review.replied && replyingTo !== review.id && (
+              {!review.replied && replyingTo !== review.review_id && (
                 <div className="flex justify-end pt-4 border-t">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleReply(review.id)}
+                    onClick={() => handleReply(review.review_id)}
                   >
                     💬 Phản hồi
                   </Button>

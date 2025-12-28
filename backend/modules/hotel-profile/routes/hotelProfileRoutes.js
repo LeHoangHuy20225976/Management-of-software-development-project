@@ -56,6 +56,8 @@ router.post(
 router.post(
   "/add-room",
   middlewares([authMiddleware, rbacMiddleware(["room:create"])]),
+  upload.array("images", 10),
+  parseJsonField("roomData"),
   validate([hotelProfileValidation.addRoom]),
   hotelProfileController.addRoom
 );
@@ -64,9 +66,17 @@ router.get(
   validate([hotelProfileValidation.viewHotel]),
   hotelProfileController.viewHotelProfile
 );
+router.get(
+  "/all-images/:hotel_id",
+  middlewares([authMiddleware, rbacMiddleware(["hotel:update"])]),
+  validate([hotelProfileValidation.viewHotel]),
+  hotelProfileController.getAllImagesForHotel
+);
 router.put(
   "/update-hotel/:hotel_id",
   middlewares([authMiddleware, rbacMiddleware(["hotel:update"])]),
+  upload.single("thumbnail"),
+  parseJsonField("hotelData"),
   validate([hotelProfileValidation.updateHotel]),
   hotelProfileController.updateHotelProfile
 );
@@ -94,10 +104,61 @@ router.get(
   hotelProfileController.getAllTypeForHotel
 );
 router.get(
+  "/view-facilities/:hotel_id",
+  middlewares([authMiddleware, rbacMiddleware(["hotel:update"])]),
+  validate([hotelProfileValidation.viewFacilities]),
+  hotelProfileController.getFacilitiesForHotel
+);
+router.get(
   "/view-all-rooms/:hotel_id",
   validate([hotelProfileValidation.viewAllRooms]),
   hotelProfileController.getAllRoomsForHotel
 );
+router.get(
+  "/view-room/:room_id",
+  middlewares([authMiddleware, rbacMiddleware(["room:update"])]),
+  validate([hotelProfileValidation.viewRoom]),
+  hotelProfileController.viewRoom
+);
+router.put(
+  "/update-room/:room_id",
+  middlewares([authMiddleware, rbacMiddleware(["room:update"])]),
+  validate([hotelProfileValidation.updateRoom]),
+  hotelProfileController.updateRoom
+);
+router.get(
+  "/view-room-type/:type_id",
+  middlewares([authMiddleware, rbacMiddleware(["room:update"])]),
+  validate([hotelProfileValidation.viewRoomType]),
+  hotelProfileController.viewRoomType
+);
+router.put(
+  "/update-room-type/:type_id",
+  middlewares([authMiddleware, rbacMiddleware(["room:update"])]),
+  validate([hotelProfileValidation.updateRoomType]),
+  hotelProfileController.updateRoomType
+);
 router.get("/all-rooms", hotelProfileController.getAllRooms);
 router.get("/all-hotels", hotelProfileController.getAllHotels);
+router.post(
+  "/upload-images-for-hotel/:hotel_id",
+  middlewares([authMiddleware, rbacMiddleware(["hotel:update"])]),
+  upload.array("images", 10), // Max 10 images
+  hotelProfileController.uploadImagesForHotel
+);
+router.post(
+  "/upload-images-for-room/:room_id",
+  middlewares([authMiddleware, rbacMiddleware(["room:update"])]),
+  upload.array("images", 10), // Max 10 images
+  hotelProfileController.uploadImagesForRoom
+);
+router.get(
+  "/hotel-manager/hotels",
+  middlewares([authMiddleware, rbacMiddleware(["hotel:update"])]),
+  hotelProfileController.getHotelForHotelOwner
+);
+router.get(
+  "/all-reviews/:hotel_id",
+  hotelProfileController.getAllReviewsForHotel
+);
 module.exports = router;

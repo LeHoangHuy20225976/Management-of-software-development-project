@@ -1,81 +1,78 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
-import { hotelManagerApi } from '@/lib/api/services';
-
-const mockReviews = [
-  {
-    id: 'rv1',
-    guestName: 'Nguyễn Văn A',
-    guestAvatar: 'https://i.pravatar.cc/150?u=user1',
-    rating: 5,
-    title: 'Trải nghiệm tuyệt vời!',
-    comment:
-      'Khách sạn rất đẹp, phòng sạch sẽ, nhân viên thân thiện. View từ phòng nhìn ra thành phố rất đẹp. Bữa sáng buffet đa dạng và ngon. Chắc chắn sẽ quay lại!',
-    date: '2025-12-05',
-    bookingId: 'BK001',
-    roomType: 'Deluxe Room',
-    verified: true,
-    replied: false,
-  },
-  {
-    id: 'rv2',
-    guestName: 'Trần Thị B',
-    guestAvatar: 'https://i.pravatar.cc/150?u=user2',
-    rating: 4,
-    title: 'Tốt nhưng có thể cải thiện',
-    comment:
-      'Vị trí khách sạn thuận tiện. Phòng đẹp và sạch sẽ. Tuy nhiên wifi hơi chậm, hy vọng khách sạn sẽ cải thiện điểm này.',
-    date: '2025-12-03',
-    bookingId: 'BK002',
-    roomType: 'Standard Room',
-    verified: true,
-    replied: true,
-    reply: {
-      content:
-        'Cảm ơn bạn đã góp ý. Chúng tôi đã nâng cấp hệ thống wifi và hi vọng bạn sẽ có trải nghiệm tốt hơn trong lần tới.',
-      date: '2025-12-04',
-    },
-  },
-  {
-    id: 'rv3',
-    guestName: 'Lê Văn C',
-    guestAvatar: 'https://i.pravatar.cc/150?u=user3',
-    rating: 5,
-    title: 'Hoàn hảo cho kỳ nghỉ gia đình',
-    comment:
-      'Khách sạn view biển tuyệt đẹp! Hồ bơi rộng rãi, bãi biển riêng sạch sẽ. Con tôi rất thích khu vui chơi trẻ em. Staff nhiệt tình và chu đáo.',
-    date: '2025-12-01',
-    bookingId: 'BK003',
-    roomType: 'Family Suite',
-    verified: true,
-    replied: false,
-  },
-  {
-    id: 'rv4',
-    guestName: 'Phạm Thị D',
-    guestAvatar: 'https://i.pravatar.cc/150?u=user4',
-    rating: 3,
-    title: 'Bình thường',
-    comment:
-      'Phòng ốc ổn nhưng không có gì đặc biệt. Giá hơi cao so với chất lượng dịch vụ.',
-    date: '2025-11-28',
-    bookingId: 'BK004',
-    roomType: 'Standard Room',
-    verified: true,
-    replied: false,
-  },
-];
+import { hotelManagerApi, reviewsApi } from '@/lib/api/services';
+import { useAuth } from '@/lib/context/AuthContext';
+import type { Review } from '@/types';
 
 export default function HotelReviewsPage() {
-  const [reviews, setReviews] = useState(mockReviews);
+  const { user } = useAuth();
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [hotelId, setHotelId] = useState<string | null>(null);
+  const [hotels, setHotels] = useState<Array<Record<string, unknown>>>([]);
+  const [selectedHotelId, setSelectedHotelId] = useState<string>('');
   const [filter, setFilter] = useState<'all' | 'unreplied' | '5star' | 'low'>(
     'all'
   );
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
+
+  useEffect(() => {
+    const loadHotels = async () => {
+      try {
+        const myHotels = await hotelManagerApi.getMyHotels();
+        const normalized = (myHotels as unknown as Array<Record<string, unknown>>) ?? [];
+        setHotels(normalized);
+        const firstId = normalized.length
+          ? String((normalized[0] as any).hotel_id ?? (normalized[0] as any).id)
+          : '';
+        setSelectedHotelId(firstId);
+        setHotelId(firstId);
+      } catch (error) {
+        console.error('Error loading hotels:', error);
+      }
+    };
+    loadHotels();
+  }, []);
+
+  useEffect(() => {
+    if (selectedHotelId) {
+      loadReviews();
+    }
+  }, [selectedHotelId]);
+
+  const loadReviews = async () => {
+    if (!selectedHotelId) return;
+
+    try {
+      setLoading(true);
+      setHotelId(selectedHotelId);
+
+      const data = await reviewsApi.getAll(selectedHotelId);
+      const transformedReviews = data.map((review: any) => ({
+        review_id: review.review_id?.toString() || '',
+        guestName: review.User?.name || 'Khách hàng',
+        guestAvatar: review.User?.profile_image || 'https://i.pravatar.cc/150',
+        rating: review.rating || 0,
+        title: review.comment?.substring(0, 50) || '',
+        comment: review.comment || '',
+        date: review.date_created || new Date().toISOString(),
+        bookingId: review.booking_id?.toString() || '',
+        roomType: review.Room?.RoomType?.type || 'N/A',
+        verified: true,
+        replied: false,
+      }));
+      setReviews(transformedReviews);
+    } catch (error) {
+      console.error('Error loading reviews:', error);
+      setReviews([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredReviews =
     filter === 'all'
@@ -108,13 +105,15 @@ export default function HotelReviewsPage() {
     }
 
     try {
-      const updatedReview = await hotelManagerApi.replyToReview(
+      await hotelManagerApi.replyToReview(
         reviewId,
         replyText
       );
-      setReviews((prevReviews: any[]) =>
-        prevReviews.map((review: any) =>
-          review.id === reviewId ? updatedReview : review
+      setReviews((prevReviews) =>
+        prevReviews.map((review) =>
+          review.review_id === reviewId
+            ? { ...review, replied: true, reply: { content: replyText, date: new Date().toISOString().split('T')[0] } }
+            : review
         )
       );
       setReplyingTo(null);
@@ -135,6 +134,30 @@ export default function HotelReviewsPage() {
           <p className="text-2xl font-bold text-[#0071c2]">{reviews.length}</p>
         </div>
       </div>
+
+      {/* Hotel Selector */}
+      {hotels.length > 1 && (
+        <Card>
+          <div className="flex items-center gap-4">
+            <label className="text-gray-900 font-semibold">Chọn khách sạn:</label>
+            <select
+              value={selectedHotelId}
+              onChange={(e) => setSelectedHotelId(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[300px] text-gray-900"
+            >
+              {hotels.map((hotel) => (
+                <option
+                  key={String((hotel as any).hotel_id || (hotel as any).id)}
+                  value={String((hotel as any).hotel_id || (hotel as any).id)}
+                  className="text-gray-900"
+                >
+                  {String((hotel as any).name || 'Khách sạn')} - ID: {String((hotel as any).hotel_id || (hotel as any).id)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Card>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -270,7 +293,7 @@ export default function HotelReviewsPage() {
       ) : (
         <div className="space-y-4">
           {filteredReviews.map((review) => (
-            <Card key={review.id}>
+            <Card key={review.review_id}>
               {/* Review Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-start space-x-3">
@@ -295,13 +318,9 @@ export default function HotelReviewsPage() {
                         {[1, 2, 3, 4, 5].map((star) => (
                           <span
                             key={star}
-                            className={`text-lg ${
-                              star <= review.rating
-                                ? 'text-yellow-500'
-                                : 'text-gray-300'
-                            }`}
+                            className="text-lg text-yellow-500"
                           >
-                            ⭐
+                            {star <= review.rating ? '⭐' : '☆'}
                           </span>
                         ))}
                       </div>
@@ -345,7 +364,7 @@ export default function HotelReviewsPage() {
               )}
 
               {/* Reply Form */}
-              {replyingTo === review.id && (
+              {replyingTo === review.review_id && (
                 <div className="border-t pt-4 mt-4">
                   <textarea
                     value={replyText}
@@ -364,7 +383,7 @@ export default function HotelReviewsPage() {
                     </Button>
                     <Button
                       size="sm"
-                      onClick={() => submitReply(review.id)}
+                      onClick={() => submitReply(review.review_id)}
                       disabled={!replyText.trim()}
                     >
                       Gửi phản hồi
@@ -374,12 +393,12 @@ export default function HotelReviewsPage() {
               )}
 
               {/* Actions */}
-              {!review.replied && replyingTo !== review.id && (
+              {!review.replied && replyingTo !== review.review_id && (
                 <div className="flex justify-end pt-4 border-t">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleReply(review.id)}
+                    onClick={() => handleReply(review.review_id)}
                   >
                     💬 Phản hồi
                   </Button>

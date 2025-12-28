@@ -238,9 +238,10 @@ class BookingService {
   /**
    * Get booking by ID with full details
    * @param {number} bookingId - Booking ID
+   * @param {boolean} transform - Whether to transform to frontend format
    * @returns {Promise<object|null>} Booking details
    */
-  async getBookingById(bookingId) {
+  async getBookingById(bookingId, transform = false) {
     const booking = await Booking.findByPk(bookingId, {
       include: [
         {
@@ -262,7 +263,39 @@ class BookingService {
       ]
     });
 
+    if (!booking) {
+      return null;
+    }
+
+    // Transform if requested (for API responses)
+    if (transform) {
+      return this.transformBookingForFrontend(booking);
+    }
+
     return booking;
+  }
+
+  /**
+   * Transform booking data to include flattened fields for frontend
+   * @param {object} booking - Booking object from database
+   * @returns {object} Transformed booking with flat fields
+   */
+  transformBookingForFrontend(booking) {
+    const bookingJSON = booking.toJSON ? booking.toJSON() : booking;
+
+    // Calculate nights
+    const checkIn = new Date(bookingJSON.check_in_date);
+    const checkOut = new Date(bookingJSON.check_out_date);
+    const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+
+    return {
+      ...bookingJSON,
+      // Add flattened fields for frontend
+      hotelName: bookingJSON.Room?.RoomType?.Hotel?.name || null,
+      hotelImage: bookingJSON.Room?.RoomType?.Hotel?.thumbnail || null,
+      roomType: bookingJSON.Room?.RoomType?.type || null,
+      nights: nights,
+    };
   }
 
   /**
@@ -292,18 +325,18 @@ class BookingService {
     if (user_id) whereClause.user_id = user_id;
     if (room_id) whereClause.room_id = room_id;
     if (status) whereClause.status = status;
-    
+
     if (check_in_from) {
-      whereClause.check_in_date = { 
-        ...whereClause.check_in_date, 
-        [Op.gte]: check_in_from 
+      whereClause.check_in_date = {
+        ...whereClause.check_in_date,
+        [Op.gte]: check_in_from
       };
     }
-    
+
     if (check_in_to) {
-      whereClause.check_in_date = { 
-        ...whereClause.check_in_date, 
-        [Op.lte]: check_in_to 
+      whereClause.check_in_date = {
+        ...whereClause.check_in_date,
+        [Op.lte]: check_in_to
       };
     }
 
@@ -315,9 +348,9 @@ class BookingService {
 
     // Filter by hotel_owner_id (for hotel managers to see their hotels' bookings)
     if (hotel_owner_id) {
-      includeClause[1].include[0].include = [{ 
-        model: Hotel, 
-        where: { hotel_owner: hotel_owner_id } 
+      includeClause[1].include[0].include = [{
+        model: Hotel,
+        where: { hotel_owner: hotel_owner_id }
       }];
       includeClause[1].include[0].required = true;
       includeClause[1].required = true;
@@ -331,8 +364,11 @@ class BookingService {
       order: [['created_at', 'DESC']]
     });
 
+    // Transform bookings to include flattened fields
+    const transformedBookings = bookings.rows.map(booking => this.transformBookingForFrontend(booking));
+
     return {
-      bookings: bookings.rows,
+      bookings: transformedBookings,
       total: bookings.count,
       limit,
       offset

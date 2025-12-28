@@ -144,7 +144,13 @@ const UserService = {
       include: [
         {
           model: db.Room,
-          attributes: ["room_id", "room_number", "status"],
+          attributes: ["room_id", "name"],
+          include: [
+            {
+              model: db.RoomType,
+              attributes: ["type_id", "type"],
+            },
+          ],
         },
       ],
       order: [["created_at", "DESC"]],

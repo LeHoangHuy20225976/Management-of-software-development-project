@@ -11,7 +11,7 @@ import { Button } from '@/components/common/Button';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import { ROUTES } from '@/lib/routes';
 import { useEffect, useState } from 'react';
-import { getMockBookings } from '@/lib/utils/mockData';
+import { bookingsApi } from '@/lib/api/services';
 import { useAuth } from '@/lib/context/AuthContext';
 import type { Booking } from '@/types';
 
@@ -20,8 +20,20 @@ export default function UserDashboardPage() {
   const [upcomingBookings, setUpcomingBookings] = useState<Booking[]>([]);
 
   useEffect(() => {
-    const bookings = getMockBookings();
-    setUpcomingBookings(bookings.filter(b => b.status === 'confirmed'));
+    const loadBookings = async () => {
+      try {
+        const response = await bookingsApi.getAll();
+        console.log('Bookings response:', response);
+
+        // Backend may return { bookings: [...] } or direct array
+        const bookingsArray = Array.isArray(response) ? response : (response as any).bookings || [];
+
+        setUpcomingBookings(bookingsArray.filter((b: any) => b.status === 'accepted'));
+      } catch (error) {
+        console.error('Error loading bookings:', error);
+      }
+    };
+    loadBookings();
   }, []);
 
   const displayName = user?.name || 'User';
@@ -75,7 +87,7 @@ export default function UserDashboardPage() {
         ) : (
           <div className="space-y-4">
             {upcomingBookings.slice(0, 3).map((booking) => (
-              <div key={booking.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-[#0071c2] transition-colors">
+              <div key={booking.booking_id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-[#0071c2] transition-colors">
                 <div className="flex items-center space-x-4">
                   <div
                     className="w-24 h-24 rounded-lg bg-cover bg-center flex-shrink-0"
@@ -85,13 +97,13 @@ export default function UserDashboardPage() {
                     <h3 className="font-bold text-lg text-gray-900">{booking.hotelName}</h3>
                     <p className="text-gray-700 font-medium">{booking.roomType}</p>
                     <p className="text-sm text-gray-600 mt-1">
-                      {formatDate(booking.checkIn)} - {formatDate(booking.checkOut)}
+                      {formatDate(booking.check_in_date)} - {formatDate(booking.check_out_date)}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-xl font-bold text-[#0071c2] mb-2">
-                    {formatCurrency(booking.totalPrice)}
+                    {formatCurrency(booking.total_price || 0)}
                   </div>
                   <span className="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-semibold">
                     Đã xác nhận

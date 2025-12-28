@@ -1,11 +1,10 @@
-
 'use client';
 
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
-import "leaflet-defaulticon-compatibility";
+import 'leaflet-defaulticon-compatibility';
 import L from 'leaflet';
 import { Hotel } from '@/types';
 
@@ -36,13 +35,20 @@ const MapView = ({ hotels }: MapViewProps) => {
   const position = [hotels[0].latitude, hotels[0].longitude];
 
   return (
-    <MapContainer center={position} zoom={13} style={{ height: '100%', width: '100%' }}>
+    <MapContainer
+      center={position as [number, number]}
+      zoom={13}
+      style={{ height: '100%', width: '100%' }}
+    >
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       />
-      {hotels.map((hotel) => (
-        <Marker key={hotel.id} position={[hotel.latitude, hotel.longitude]}>
+      {hotels.map((hotel, idx) => (
+        <Marker
+          key={hotel.name + hotel.latitude + hotel.longitude}
+          position={[hotel.latitude, hotel.longitude]}
+        >
           <Popup>
             <div>
               <h3>{hotel.name}</h3>

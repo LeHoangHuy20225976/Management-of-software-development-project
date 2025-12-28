@@ -22,9 +22,12 @@ export default function HotelDashboardPage() {
     const loadData = async () => {
       try {
         const data = await bookingsApi.getAll();
-        setBookings(data);
+        // Backend returns { bookings: [...], total, limit, offset }
+        const bookingsArray = data?.bookings || data || [];
+        setBookings(Array.isArray(bookingsArray) ? bookingsArray : []);
       } catch (error) {
         console.error('Error loading bookings:', error);
+        setBookings([]);
       } finally {
         setLoading(false);
       }
@@ -42,19 +45,19 @@ export default function HotelDashboardPage() {
   }
 
   const recentBookings = bookings.slice(0, 5);
-  const confirmedBookings = bookings.filter((b) => b.status === 'confirmed');
-  const completedBookings = bookings.filter((b) => b.status === 'completed');
+  const confirmedBookings = bookings.filter((b) => b.status === 'accepted');
+  const completedBookings = bookings.filter((b) => b.status === 'maintained');
   const totalRevenue = bookings
     .filter((b) => b.paymentStatus === 'paid')
-    .reduce((sum, b) => sum + b.totalPrice, 0);
+    .reduce((sum, b) => sum + (b.total_price || 0), 0);
 
   const monthRevenue = bookings
     .filter((b) => {
-      const bookingMonth = new Date(b.bookingDate).getMonth();
+      const bookingMonth = new Date(b.created_at).getMonth();
       const currentMonth = new Date().getMonth();
       return bookingMonth === currentMonth && b.paymentStatus === 'paid';
     })
-    .reduce((sum, b) => sum + b.totalPrice, 0);
+    .reduce((sum, b) => sum + (b.total_price || 0), 0);
 
   // Mock occupancy rate - in real app calculate from available rooms
   const occupancyRate = Math.round(
@@ -156,7 +159,7 @@ export default function HotelDashboardPage() {
           <div className="space-y-3">
             {recentBookings.map((booking) => (
               <div
-                key={booking.id}
+                key={booking.booking_id}
                 className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-[#0071c2] transition-colors"
               >
                 <div className="flex items-center space-x-4">
@@ -169,32 +172,34 @@ export default function HotelDashboardPage() {
                       {booking.hotelName}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {booking.roomType} • {booking.nights} đêm •{' '}
-                      {booking.guests} khách
+                      {booking.roomType} • {booking.nights || 'N/A'} đêm •{' '}
+                      {booking.people || 'N/A'} khách
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {formatDate(booking.checkIn)} -{' '}
-                      {formatDate(booking.checkOut)}
+                      {formatDate(booking.check_in_date)} -{' '}
+                      {formatDate(booking.check_out_date)}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-xl text-[#0071c2] mb-2">
-                    {formatCurrency(booking.totalPrice)}
+                    {formatCurrency(booking.total_price || 0)}
                   </p>
                   <span
                     className={`inline-block text-sm px-3 py-1 rounded-full font-semibold ${
-                      booking.status === 'confirmed'
+                      booking.status === 'accepted'
                         ? 'bg-green-100 text-green-800'
-                        : booking.status === 'completed'
-                        ? 'bg-blue-100 text-blue-800'
+                        : booking.status === 'maintained'
+                        ? 'bg-gray-100 text-gray-800'
                         : 'bg-red-100 text-red-800'
                     }`}
                   >
-                    {booking.status === 'confirmed'
+                    {booking.status === 'accepted'
                       ? 'Đã xác nhận'
-                      : booking.status === 'completed'
-                      ? 'Hoàn thành'
+                      : booking.status === 'maintained'
+                      ? 'Bảo trì'
+                      : booking.status === 'pending'
+                      ? 'Chờ xác nhận'
                       : 'Đã hủy'}
                   </span>
                 </div>
@@ -222,8 +227,8 @@ export default function HotelDashboardPage() {
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-600">Đơn hoàn thành</span>
-              <span className="font-bold text-blue-600">
+              <span className="text-gray-600">Đang bảo trì</span>
+              <span className="font-bold text-gray-600">
                 {completedBookings.length}
               </span>
             </div>

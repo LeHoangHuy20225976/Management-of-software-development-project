@@ -4,7 +4,11 @@
       "Bash(ls:*)",
       "Bash(find:*)",
       "Bash(cat:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(npm run build:*)",
+      "Bash(if [ -d \"tourism/[slug]\" ])",
+      "Bash(then mv \"tourism/[slug]\" \"tourism/[destination_id]\")",
+      "Bash(fi)"
     ]
   }
 }

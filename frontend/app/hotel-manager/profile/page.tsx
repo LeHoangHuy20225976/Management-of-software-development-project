@@ -1,96 +1,174 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
 import { hotelManagerApi } from '@/lib/api/services';
+import { useAuth } from '@/lib/context/AuthContext';
+import { API_CONFIG, getApiUrl } from '@/lib/api/config';
 
 export default function HotelProfilePage() {
+  const router = useRouter();
+  const { logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deletingHotel, setDeletingHotel] = useState(false);
+  const [hotelId, setHotelId] = useState<string>('');
+  const [hotels, setHotels] = useState<Array<Record<string, unknown>>>([]);
+  const [selectedHotelId, setSelectedHotelId] = useState<string>('');
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+
+  const selectedHotel = useMemo(() => {
+    if (!selectedHotelId) return null;
+    return hotels.find((h) => String((h as any).hotel_id ?? (h as any).id) === selectedHotelId) ?? null;
+  }, [hotels, selectedHotelId]);
+
   const [hotelInfo, setHotelInfo] = useState({
-    name: 'Grand Hotel Saigon',
-    description:
-      'Khách sạn 5 sao sang trọng tại trung tâm Sài Gòn với thiết kế hiện đại, view toàn cảnh thành phố.',
-    address: '123 Đường Nguyễn Huệ',
-    city: 'Hồ Chí Minh',
-    district: 'Quận 1',
-    phone: '028 3823 5678',
-    email: 'contact@grandhotelsaigon.vn',
-    website: 'www.grandhotelsaigon.vn',
-    stars: 5,
-    checkInTime: '14:00',
-    checkOutTime: '12:00',
-    amenities: [
-      'wifi',
-      'pool',
-      'spa',
-      'restaurant',
-      'bar',
-      'gym',
-      'parking',
-      'concierge',
-      'laundry',
-      'room-service',
-    ],
+    name: '',
+    description: '',
+    address: '',
+    contact_phone: '',
+    rating: 0,
+    status: 1,
+    longitude: '',
+    latitude: '',
+    thumbnail: '',
   });
 
-  const [policies, setPolicies] = useState({
-    cancellation: 'Miễn phí hủy trước 24 giờ',
-    children: 'Chấp nhận trẻ em dưới 12 tuổi miễn phí',
-    pets: 'Không chấp nhận thú cưng',
-    smoking: 'Không hút thuốc trong phòng',
-    payment: 'Chấp nhận thẻ tín dụng, chuyển khoản, tiền mặt',
-  });
+  useEffect(() => {
+    const loadHotelInfo = async () => {
+      try {
+        setError('');
+        const myHotels = await hotelManagerApi.getMyHotels();
+        const normalized = (myHotels as unknown as Array<Record<string, unknown>>) ?? [];
+        setHotels(normalized);
+        const firstId = normalized.length
+          ? String((normalized[0] as any).hotel_id ?? (normalized[0] as any).id)
+          : '';
+        setSelectedHotelId(firstId);
+      } catch (error) {
+        console.error('Error loading hotel info:', error);
+        setError(error instanceof Error ? error.message : 'Không thể tải danh sách khách sạn');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadHotelInfo();
+  }, []);
 
-  const amenities = [
-    { id: 'pool', name: 'Hồ bơi', icon: '🏊', enabled: true },
-    { id: 'gym', name: 'Phòng gym', icon: '💪', enabled: true },
-    { id: 'spa', name: 'Spa', icon: '💆', enabled: true },
-    { id: 'restaurant', name: 'Nhà hàng', icon: '🍽️', enabled: true },
-    { id: 'wifi', name: 'WiFi miễn phí', icon: '📶', enabled: true },
-    { id: 'parking', name: 'Bãi đỗ xe', icon: '🅿️', enabled: true },
-    { id: 'bar', name: 'Quầy bar', icon: '🍸', enabled: true },
-    { id: 'beach', name: 'Bãi biển riêng', icon: '🏖️', enabled: false },
-    { id: 'concierge', name: 'Lễ tân 24/7', icon: '🛎️', enabled: true },
-    { id: 'meeting', name: 'Phòng họp', icon: '👔', enabled: true },
-  ];
+  useEffect(() => {
+    if (!selectedHotel) return;
 
-  const toggleAmenity = (amenityId: string) => {
-    if (!isEditing) return;
-    setHotelInfo((prev) => {
-      const hasAmenity = prev.amenities.includes(amenityId);
-      return {
-        ...prev,
-        amenities: hasAmenity
-          ? prev.amenities.filter((id) => id !== amenityId)
-          : [...prev.amenities, amenityId],
-      };
+    setHotelId(String((selectedHotel as any).hotel_id ?? (selectedHotel as any).id));
+    setThumbnailFile(null);
+    setIsEditing(false);
+
+    setHotelInfo({
+      name: String((selectedHotel as any).name ?? ''),
+      description: String((selectedHotel as any).description ?? ''),
+      address: String((selectedHotel as any).address ?? ''),
+      contact_phone: String((selectedHotel as any).contact_phone ?? ''),
+      rating: Number((selectedHotel as any).rating ?? 0),
+      status: Number((selectedHotel as any).status ?? 1),
+      longitude:
+        (selectedHotel as any).longitude === null || (selectedHotel as any).longitude === undefined
+          ? ''
+          : String((selectedHotel as any).longitude),
+      latitude:
+        (selectedHotel as any).latitude === null || (selectedHotel as any).latitude === undefined
+          ? ''
+          : String((selectedHotel as any).latitude),
+      thumbnail: String((selectedHotel as any).thumbnail ?? ''),
     });
-  };
+  }, [selectedHotel]);
 
   const handleSave = async () => {
     try {
-      const hotelId = 'h1';
-      await hotelManagerApi.updateHotelInfo(hotelId, {
-        name: hotelInfo.name,
-        description: hotelInfo.description,
+      if (!hotelId) {
+        setError('Chưa chọn khách sạn để cập nhật');
+        return;
+      }
+
+      setSaving(true);
+      setError('');
+
+      const longitudeNumber = hotelInfo.longitude.trim() === '' ? undefined : Number(hotelInfo.longitude);
+      const latitudeNumber = hotelInfo.latitude.trim() === '' ? undefined : Number(hotelInfo.latitude);
+
+      const hotelData: Record<string, unknown> = {
+        hotelName: hotelInfo.name,
         address: hotelInfo.address,
-        city: hotelInfo.city,
-        phone: hotelInfo.phone,
-        email: hotelInfo.email,
-        amenities: hotelInfo.amenities,
-        settings: {
-          checkInTime: hotelInfo.checkInTime,
-          checkOutTime: hotelInfo.checkOutTime,
-          policies,
-        },
+        status: hotelInfo.status,
+        description: hotelInfo.description,
+        contact_phone: hotelInfo.contact_phone,
+      };
+
+      if (longitudeNumber !== undefined && !Number.isNaN(longitudeNumber)) {
+        hotelData.longitude = longitudeNumber;
+      }
+      if (latitudeNumber !== undefined && !Number.isNaN(latitudeNumber)) {
+        hotelData.latitude = latitudeNumber;
+      }
+
+      if (!thumbnailFile && hotelInfo.thumbnail.trim() !== '') {
+        hotelData.thumbnail = hotelInfo.thumbnail.trim();
+      }
+
+      const formData = new FormData();
+      formData.append('hotelData', JSON.stringify(hotelData));
+      if (thumbnailFile) {
+        formData.append('thumbnail', thumbnailFile);
+      }
+
+      const response = await fetch(getApiUrl(API_CONFIG.ENDPOINTS.UPDATE_HOTEL, { hotel_id: hotelId }), {
+        method: 'PUT',
+        credentials: 'include',
+        body: formData,
+        signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
       });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.message || `API Error: ${response.status} ${response.statusText}`);
+      }
+
+      const myHotels = await hotelManagerApi.getMyHotels();
+      setHotels((myHotels as unknown as Array<Record<string, unknown>>) ?? []);
       alert('✅ Cập nhật thông tin thành công!');
       setIsEditing(false);
+      setSaving(false);
     } catch (error) {
       console.error('Error saving hotel info:', error);
+      setError(error instanceof Error ? error.message : 'Có lỗi khi lưu thông tin');
+      setSaving(false);
       alert('❌ Có lỗi khi lưu thông tin!');
+    }
+  };
+
+  const handleDeleteHotel = async () => {
+    if (deleteConfirmText !== 'XÓA KHÁCH SẠN') {
+      alert('Vui lòng nhập đúng "XÓA KHÁCH SẠN" để xác nhận!');
+      return;
+    }
+
+    setDeletingHotel(true);
+    try {
+      await hotelManagerApi.deleteHotel(hotelId);
+      alert('Khách sạn đã được xóa thành công!');
+      await logout();
+      router.push('/');
+    } catch (error) {
+      console.error('Error deleting hotel:', error);
+      alert('Không thể xóa khách sạn, vui lòng thử lại.');
+    } finally {
+      setDeletingHotel(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -114,293 +192,289 @@ export default function HotelProfilePage() {
 
       <Card>
         <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          Thông tin cơ bản
+          Thông tin cơ bản (theo DB)
         </h2>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Tên khách sạn
-            </label>
-            <Input
-              value={hotelInfo.name}
-              onChange={(e) =>
-                setHotelInfo({ ...hotelInfo, name: e.target.value })
-              }
-              disabled={!isEditing}
-            />
-          </div>
+        {loading ? (
+          <p className="text-gray-700">Đang tải thông tin...</p>
+        ) : (
+          <div className="space-y-4">
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 text-sm font-medium">{error}</p>
+              </div>
+            )}
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Mô tả
-            </label>
-            <textarea
-              value={hotelInfo.description}
-              onChange={(e) =>
-                setHotelInfo({ ...hotelInfo, description: e.target.value })
-              }
-              disabled={!isEditing}
-              rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] text-gray-900 disabled:bg-gray-100"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Địa chỉ
-              </label>
-              <Input
-                value={hotelInfo.address}
-                onChange={(e) =>
-                  setHotelInfo({ ...hotelInfo, address: e.target.value })
-                }
-                disabled={!isEditing}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Thành phố
-              </label>
-              <Input
-                value={hotelInfo.city}
-                onChange={(e) =>
-                  setHotelInfo({ ...hotelInfo, city: e.target.value })
-                }
-                disabled={!isEditing}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Quận/Huyện
-              </label>
-              <Input
-                value={hotelInfo.district}
-                onChange={(e) =>
-                  setHotelInfo({ ...hotelInfo, district: e.target.value })
-                }
-                disabled={!isEditing}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Điện thoại
-              </label>
-              <Input
-                value={hotelInfo.phone}
-                onChange={(e) =>
-                  setHotelInfo({ ...hotelInfo, phone: e.target.value })
-                }
-                disabled={!isEditing}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Hạng sao
+                Chọn khách sạn
               </label>
               <select
-                value={hotelInfo.stars}
-                onChange={(e) =>
-                  setHotelInfo({ ...hotelInfo, stars: Number(e.target.value) })
-                }
-                disabled={!isEditing}
+                value={selectedHotelId}
+                onChange={(e) => setSelectedHotelId(e.target.value)}
+                disabled={isEditing || saving}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] text-gray-900 disabled:bg-gray-100"
               >
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <option key={star} value={star}>
-                    {star} sao
+                {hotels.map((h) => (
+                  <option
+                    key={String((h as any).hotel_id ?? (h as any).id)}
+                    value={String((h as any).hotel_id ?? (h as any).id)}
+                  >
+                    {String((h as any).name ?? 'Unnamed hotel')}
                   </option>
                 ))}
               </select>
             </div>
-          </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Tên khách sạn
+              </label>
+              <Input
+                value={hotelInfo.name}
+                onChange={(e) =>
+                  setHotelInfo({ ...hotelInfo, name: e.target.value })
+                }
+                disabled={!isEditing}
+              />
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Email
+                Mô tả
               </label>
-              <Input
-                type="email"
-                value={hotelInfo.email}
+              <textarea
+                value={hotelInfo.description}
                 onChange={(e) =>
-                  setHotelInfo({ ...hotelInfo, email: e.target.value })
+                  setHotelInfo({ ...hotelInfo, description: e.target.value })
                 }
                 disabled={!isEditing}
+                rows={4}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] text-gray-900 disabled:bg-gray-100"
               />
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Website
-              </label>
-              <Input
-                value={hotelInfo.website}
-                onChange={(e) =>
-                  setHotelInfo({ ...hotelInfo, website: e.target.value })
-                }
-                disabled={!isEditing}
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Giờ nhận phòng
+                Hoặc upload thumbnail (ưu tiên file)
               </label>
-              <Input
-                type="time"
-                value={hotelInfo.checkInTime}
-                onChange={(e) =>
-                  setHotelInfo({ ...hotelInfo, checkInTime: e.target.value })
-                }
-                disabled={!isEditing}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Giờ trả phòng
-              </label>
-              <Input
-                type="time"
-                value={hotelInfo.checkOutTime}
-                onChange={(e) =>
-                  setHotelInfo({ ...hotelInfo, checkOutTime: e.target.value })
-                }
-                disabled={!isEditing}
-              />
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <Card>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Tiện ích</h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {amenities.map((amenity) => (
-            <label
-              key={amenity.id}
-              className={`flex flex-col items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                hotelInfo.amenities.includes(amenity.id)
-                  ? 'border-[#0071c2] bg-blue-50'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
-              } ${!isEditing ? 'cursor-not-allowed opacity-70' : ''}`}
-            >
               <input
-                type="checkbox"
-                checked={hotelInfo.amenities.includes(amenity.id)}
+                type="file"
+                accept="image/*"
                 disabled={!isEditing}
-                onChange={() => toggleAmenity(amenity.id)}
-                className="sr-only"
+                onChange={(e) => setThumbnailFile(e.target.files?.[0] ?? null)}
               />
-              <span className="text-4xl mb-2">{amenity.icon}</span>
-              <span className="text-sm font-semibold text-gray-900 text-center">
-                {amenity.name}
-              </span>
-            </label>
-          ))}
-        </div>
-      </Card>
-
-      <Card>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Chính sách</h2>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Chính sách hủy phòng
-            </label>
-            <Input
-              value={policies.cancellation}
-              onChange={(e) =>
-                setPolicies({ ...policies, cancellation: e.target.value })
-              }
-              disabled={!isEditing}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Chính sách trẻ em
-            </label>
-            <Input
-              value={policies.children}
-              onChange={(e) =>
-                setPolicies({ ...policies, children: e.target.value })
-              }
-              disabled={!isEditing}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Chính sách thú cưng
-            </label>
-            <Input
-              value={policies.pets}
-              onChange={(e) =>
-                setPolicies({ ...policies, pets: e.target.value })
-              }
-              disabled={!isEditing}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Chính sách hút thuốc
-            </label>
-            <Input
-              value={policies.smoking}
-              onChange={(e) =>
-                setPolicies({ ...policies, smoking: e.target.value })
-              }
-              disabled={!isEditing}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              Phương thức thanh toán
-            </label>
-            <Input
-              value={policies.payment}
-              onChange={(e) =>
-                setPolicies({ ...policies, payment: e.target.value })
-              }
-              disabled={!isEditing}
-            />
-          </div>
-        </div>
-      </Card>
-
-      <Card>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Hình ảnh</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="relative aspect-video bg-gray-200 rounded-lg overflow-hidden group"
-            >
-              <img
-                src={`https://images.unsplash.com/photo-${
-                  1566073771259 + i
-                }-6a8506099945?w=400`}
-                alt={`Hotel ${i}`}
-                className="w-full h-full object-cover"
-              />
-              {isEditing && (
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-2">
-                  <button className="px-3 py-1 bg-white text-gray-900 rounded text-sm">
-                    Sửa
-                  </button>
-                  <button className="px-3 py-1 bg-red-600 text-white rounded text-sm">
-                    Xóa
-                  </button>
-                </div>
-              )}
             </div>
-          ))}
-        </div>
-        {isEditing && <Button variant="outline">📷 Thêm hình ảnh</Button>}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Địa chỉ
+                </label>
+                <Input
+                  value={hotelInfo.address}
+                  onChange={(e) =>
+                    setHotelInfo({ ...hotelInfo, address: e.target.value })
+                  }
+                  disabled={!isEditing}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Số điện thoại liên hệ
+                </label>
+                <Input
+                  value={hotelInfo.contact_phone}
+                  onChange={(e) =>
+                    setHotelInfo({
+                      ...hotelInfo,
+                      contact_phone: e.target.value,
+                    })
+                  }
+                  disabled={!isEditing}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Đánh giá (rating)
+                </label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  value={hotelInfo.rating}
+                  onChange={(e) =>
+                    setHotelInfo({
+                      ...hotelInfo,
+                      rating: Number(e.target.value),
+                    })
+                  }
+                  disabled={!isEditing}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Trạng thái
+                </label>
+                <select
+                  value={hotelInfo.status}
+                  onChange={(e) =>
+                    setHotelInfo({
+                      ...hotelInfo,
+                      status: Number(e.target.value),
+                    })
+                  }
+                  disabled={!isEditing}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] text-gray-900 disabled:bg-gray-100"
+                >
+                  <option value={1}>Hoạt động</option>
+                  <option value={0}>Tạm ngưng</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Thumbnail URL
+                </label>
+                <Input
+                  value={hotelInfo.thumbnail}
+                  onChange={(e) =>
+                    setHotelInfo({ ...hotelInfo, thumbnail: e.target.value })
+                  }
+                  disabled={!isEditing}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Kinh độ (longitude)
+                </label>
+                <Input
+                  type="number"
+                  step="0.000001"
+                  value={hotelInfo.longitude}
+                  onChange={(e) =>
+                    setHotelInfo({
+                      ...hotelInfo,
+                      longitude: e.target.value,
+                    })
+                  }
+                  disabled={!isEditing}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Vĩ độ (latitude)
+                </label>
+                <Input
+                  type="number"
+                  step="0.000001"
+                  value={hotelInfo.latitude}
+                  onChange={(e) =>
+                    setHotelInfo({
+                      ...hotelInfo,
+                      latitude: e.target.value,
+                    })
+                  }
+                  disabled={!isEditing}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </Card>
+
+      <Card className="bg-blue-50 border-blue-100">
+        <p className="text-sm text-gray-800">
+          ℹ️ Chỉ hiển thị và cập nhật các trường có trong bảng <code>Hotel</code>.
+          Các tiện ích (amenities) cần lấy từ bảng <code>FacilitiesPossessing</code>,
+          chính sách (policies) và giờ check-in/out nên lưu trong bảng <code>Settings</code> riêng.
+        </p>
+      </Card>
+
+      {/* Danger Zone - Delete Hotel */}
+      <Card className="border-red-200 bg-red-50">
+        <h3 className="text-xl font-bold text-red-800 mb-4">⚠️ Vùng nguy hiểm</h3>
+        <div className="p-4 bg-white rounded-lg border border-red-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-gray-900">Xóa khách sạn</p>
+              <p className="text-sm text-gray-600">
+                Xóa vĩnh viễn khách sạn và tất cả dữ liệu liên quan. Hành động này không thể hoàn tác.
+              </p>
+            </div>
+            <Button
+              variant="danger"
+              onClick={() => setShowDeleteModal(true)}
+            >
+              🗑️ Xóa khách sạn
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Delete Hotel Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+                <span className="text-3xl">⚠️</span>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Xóa khách sạn?</h3>
+              <p className="text-gray-600 text-sm">
+                Bạn sắp xóa vĩnh viễn khách sạn <strong>{hotelInfo.name}</strong>. 
+                Tất cả dữ liệu bao gồm phòng, đặt phòng và đánh giá sẽ bị xóa và không thể khôi phục.
+              </p>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Nhập <span className="text-red-600">XÓA KHÁCH SẠN</span> để xác nhận:
+              </label>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="XÓA KHÁCH SẠN"
+                className="text-center"
+              />
+            </div>
+
+            <div className="flex space-x-3">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmText('');
+                }}
+                disabled={deletingHotel}
+              >
+                Hủy
+              </Button>
+              <Button
+                variant="danger"
+                className="flex-1"
+                onClick={handleDeleteHotel}
+                disabled={deleteConfirmText !== 'XÓA KHÁCH SẠN' || deletingHotel}
+              >
+                {deletingHotel ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Đang xóa...
+                  </span>
+                ) : (
+                  'Xóa vĩnh viễn'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

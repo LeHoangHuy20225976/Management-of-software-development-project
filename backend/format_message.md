@@ -46,7 +46,9 @@ Successful responses use HTTP 200 with `{ success: true, data, status: 200, mess
 - `POST /hotel-profile/add-hotel`
   - possible_request_format:
     + requires auth middleware
-    + REQUIRED `{ "hotelData": { "hotelName": string, "address": string, "contact_phone": string, "longitude": number|null, "latitute": number|null, "description": string, "thumbnail": string|null } }`
+    + `multipart/form-data`
+      - REQUIRED field `hotelData` (JSON string): `{ "hotelName": string, "address": string, "contact_phone": string, "longitude": number|null, "latitute": number|null, "description": string }`
+      - optional file field `thumbnail` (image/*, max 5MB)
     + `hotelName`, `address`, `contact_phone` must be present (name/address are lowercased in service); others optional.
   - possible_response_format:
     + `{ "success": true, "data": { "message": "Add hotel <hotelName> successfully " }, "status": 200, "message": "ok" }`
@@ -60,7 +62,9 @@ Successful responses use HTTP 200 with `{ success: true, data, status: 200, mess
 - `POST /hotel-profile/add-room`
   - possible_request_format:
     + requires auth + rbac `room:create`
-    + REQUIRED `{ "roomData": { "type_id": number, "name": string, "location": string, "number_of_single_beds": number?, "number_of_double_beds": number?, "room_view": string?, "room_size": number?, "notes": string? } }`
+    + `multipart/form-data`
+      - REQUIRED field `roomData` (JSON string): `{ "type_id": number, "name": string, "location": string, "number_of_single_beds": number?, "number_of_double_beds": number?, "room_view": string?, "room_size": number?, "notes": string? }`
+      - optional file field `images` (image/* array, up to 10 files, max 5MB each)
     + `type_id`, `name`, and `location` must be present; others optional.
   - possible_response_format:
     + `{ "success": true, "data": { "message": "Add room successfully" }, "status": 200, "message": "ok" }`
@@ -73,7 +77,9 @@ Successful responses use HTTP 200 with `{ success: true, data, status: 200, mess
   - possible_request_format:
     + requires auth + rbac `hotel:update`
     + path param `hotel_id`
-    + optional body `{ "hotelData": { "hotelName": string?, "address": string?, "status": number?, "longitude": number?, "latitute": number?, "description": string?, "contact_phone": string?, "thumbnail": string? } }`
+    + `multipart/form-data`
+      - optional field `hotelData` (JSON string): `{ "hotelName": string?, "address": string?, "status": number?, "longitude": number?, "latitute": number?, "description": string?, "contact_phone": string? }`
+      - optional file field `thumbnail` (image/*, max 5MB)
   - possible_response_format:
     + `{ "success": true, "data": { "message": "Update hotel profile successfully" }, "status": 200, "message": "ok" }`
 - `DELETE /hotel-profile/delete-hotel/:hotel_id`
@@ -111,3 +117,24 @@ Successful responses use HTTP 200 with `{ success: true, data, status: 200, mess
     + no params
   - possible_response_format:
     + `{ "success": true, "data": [ { "roomData": RoomObjectWithIsAvailable, "roomTypeData": RoomTypeObject, "priceData": { "price": number, "discount": number, "start_date": string, "end_date": string }|null } ], "status": 200, "message": "ok" }`
+- `GET /hotel-profile/all-hotels`
+  - possible_request_format:
+    + no params
+  - possible_response_format:
+    + `{ "success": true, "data": [HotelObject], "status": 200, "message": "ok" }`
+- `POST /hotel-profile/upload-images-for-hotel/:hotel_id`
+  - possible_request_format:
+    + requires auth + rbac `hotel:update`
+    + REQUIRED path param `hotel_id`
+    + `multipart/form-data`
+      - REQUIRED file field `images` (image/* array, up to 10 files, max 5MB each)
+  - possible_response_format:
+    + `{ "success": true, "data": { "message": string }, "status": 200, "message": "ok" }`
+- `POST /hotel-profile/upload-images-for-room/:room_id`
+  - possible_request_format:
+    + requires auth + rbac `room:update`
+    + REQUIRED path param `room_id`
+    + `multipart/form-data`
+      - REQUIRED file field `images` (image/* array, up to 10 files, max 5MB each)
+  - possible_response_format:
+    + `{ "success": true, "data": { "message": string }, "status": 200, "message": "ok" }`

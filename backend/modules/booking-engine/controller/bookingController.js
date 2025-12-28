@@ -74,7 +74,10 @@ class BookingController {
         }
       }
 
-      return responseUtils.ok(res, { booking });
+      // Transform booking for frontend
+      const transformedBooking = bookingService.transformBookingForFrontend(booking);
+
+      return responseUtils.ok(res, { booking: transformedBooking });
     } catch (error) {
       console.error('Get booking error:', error);
       return responseUtils.error(res, error.message);

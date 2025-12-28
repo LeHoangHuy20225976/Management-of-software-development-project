@@ -42,18 +42,31 @@ class ApiClient {
   ): Promise<T> {
     const url = getApiUrl(endpoint, params);
 
-    const defaultHeaders: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...options.headers as Record<string, string>,
-    };
+    // Debug log
+    console.log('🌐 API Request:', { endpoint, url, method: options.method || 'GET' });
+
+    // Don't set Content-Type for FormData (browser will auto-set with boundary)
+    const isFormData = options.body instanceof FormData;
+    const defaultHeaders: Record<string, string> = isFormData 
+      ? { ...options.headers as Record<string, string> }
+      : {
+          'Content-Type': 'application/json',
+          ...options.headers as Record<string, string>,
+        };
 
     try {
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
+
       const response = await fetch(url, {
         ...options,
         headers: defaultHeaders,
         credentials: 'include', // Include httpOnly cookies
-        signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       // Handle 401 Unauthorized - try to refresh token
       if (response.status === 401) {
@@ -84,11 +97,28 @@ class ApiClient {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('❌ API Error:', { url, status: response.status, statusText: response.statusText, errorData });
+
+        // Log validation errors if present
+        if (errorData.data && Array.isArray(errorData.data)) {
+          console.error('Validation errors:', errorData.data);
+        }
+
         throw new Error(errorData.message || `API Error: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json();
-      return data;
+      const responseData = await response.json();
+      
+      // Backend returns { success, data, status, message }
+      // Unwrap the 'data' field if it exists
+      if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+        console.log('✅ API Response (unwrapped):', { endpoint, data: responseData.data });
+        return responseData.data as T;
+      }
+      
+      // If response is already in the expected format, return as-is
+      console.log('✅ API Response (direct):', { endpoint, data: responseData });
+      return responseData as T;
     } catch (error) {
       console.error('API Request Error:', error);
       throw error;
@@ -160,22 +190,36 @@ class ApiClient {
   }
 
   async post<T>(endpoint: string, body: unknown, params?: Record<string, string>): Promise<T> {
+    const isFormData = body instanceof FormData;
     return this.request<T>(
       endpoint,
       {
         method: 'POST',
-        body: JSON.stringify(body),
+        body: isFormData ? body : JSON.stringify(body),
       },
       params
     );
   }
 
   async put<T>(endpoint: string, body: unknown, params?: Record<string, string>): Promise<T> {
+    const isFormData = body instanceof FormData;
     return this.request<T>(
       endpoint,
       {
         method: 'PUT',
-        body: JSON.stringify(body),
+        body: isFormData ? body : JSON.stringify(body),
+      },
+      params
+    );
+  }
+
+  async patch<T>(endpoint: string, body: unknown, params?: Record<string, string>): Promise<T> {
+    const isFormData = body instanceof FormData;
+    return this.request<T>(
+      endpoint,
+      {
+        method: 'PATCH',
+        body: isFormData ? body : JSON.stringify(body),
       },
       params
     );
@@ -183,6 +227,37 @@ class ApiClient {
 
   async delete<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' }, params);
+  }
+
+  async postFormData<T>(endpoint: string, params: Record<string, string>, formData: FormData): Promise<T> {
+    const url = getApiUrl(endpoint, params);
+
+    console.log('🌐 API FormData Request:', { endpoint, url });
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+        signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `API Error: ${response.status} ${response.statusText}`);
+      }
+
+      const responseData = await response.json();
+      
+      if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+        return responseData.data as T;
+      }
+      
+      return responseData as T;
+    } catch (error) {
+      console.error('API FormData Request Error:', error);
+      throw error;
+    }
   }
 }
 

@@ -1,7 +1,5 @@
-'use strict';
-const {
-  Model
-} = require('sequelize');
+"use strict";
+const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
     /**
@@ -11,35 +9,35 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
-      User.hasMany(models.LovingList, { foreignKey: 'user_id' });
-      User.hasMany(models.Review, { foreignKey: 'user_id' });
-      User.hasMany(models.Booking, { foreignKey: 'user_id' });
-      User.hasMany(models.Hotel, {foreignKey: 'hotel_owner' });
+      User.hasMany(models.LovingList, { foreignKey: "user_id" });
+      User.hasMany(models.Review, { foreignKey: "user_id" });
+      User.hasMany(models.Booking, { foreignKey: "user_id" });
+      User.hasMany(models.Hotel, { foreignKey: "hotel_owner" });
     }
   }
-  User.init({
-    user_id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true
+  User.init(
+    {
+      user_id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+      },
+      name: DataTypes.STRING,
+      email: DataTypes.STRING,
+      phone_number: DataTypes.STRING,
+      gender: DataTypes.STRING,
+      date_of_birth: DataTypes.DATE,
+      role: DataTypes.STRING,
+      password: DataTypes.STRING,
+      profile_image: DataTypes.STRING,
     },
-    name: DataTypes.STRING,
-    email: DataTypes.STRING,
-    phone_number: DataTypes.STRING,
-    gender: DataTypes.STRING,
-    date_of_birth: DataTypes.DATE,
-    role: {
-      type: DataTypes.ENUM('customer', 'hotel_manager', 'admin'),
-      allowNull: false,
-      defaultValue: 'customer',
-    },
-    password: DataTypes.STRING,
-    profile_image: DataTypes.TEXT
-  }, {
-    sequelize,
-    modelName: 'User',
-    tableName: 'User',
-    freezeTableName: true
-  });
+    {
+      sequelize,
+      modelName: "User",
+      tableName: "User",
+      freezeTableName: true,
+      timestamps: true,
+    }
+  );
   return User;
 };

@@ -1,18 +1,22 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Card } from '@/components/common/Card';
 import { HotelLogo } from '@/components/hotel/HotelLogo';
 import { ROUTES } from '@/lib/routes';
 import { cn } from '@/lib/utils/cn';
+import { useAuth } from '@/lib/context/AuthContext';
 
 const menuItems = [
   { name: 'Dashboard', href: '/hotel-manager/dashboard', icon: '📊' },
   { name: 'Thông tin khách sạn', href: '/hotel-manager/profile', icon: '🏢' },
   { name: 'Quản lý phòng', href: '/hotel-manager/rooms', icon: '🛏️' },
+  { name: 'Tiện nghi', href: '/hotel-manager/facilities', icon: '🛎️' },
+  { name: 'Hình ảnh', href: '/hotel-manager/images', icon: '📷' },
   { name: 'Quản lý giá', href: '/hotel-manager/pricing', icon: '💰' },
   { name: 'Đặt phòng', href: '/hotel-manager/bookings', icon: '📋' },
+  { name: 'Tin nhắn', href: '/hotel-manager/messages', icon: '💬' },
   { name: 'Đánh giá', href: '/hotel-manager/reviews', icon: '⭐' },
   { name: 'Thống kê', href: '/hotel-manager/analytics', icon: '📈' },
 ];
@@ -23,13 +27,11 @@ export default function HotelManagerLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
+  const { logout } = useAuth();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm('Bạn có chắc muốn đăng xuất?')) {
-      localStorage.removeItem('hotel_auth_token');
-      localStorage.removeItem('hotelManager');
-      router.push('/hotel-manager/login');
+      await logout();
     }
   };
 

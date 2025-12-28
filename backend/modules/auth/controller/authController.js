@@ -33,7 +33,9 @@ const authController = {
     },
     register: async (req, res) => {
         try {
+            console.log("REGISTER IS CALLED");
             const userData = req.body.userData;
+            console.log("Register attempt for user: ", userData);
             const data = await authService.register(userData);
             return responseUtils.ok(res, data);
         } catch (error) {

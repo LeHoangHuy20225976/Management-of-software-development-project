@@ -7,7 +7,57 @@ import type { User, Booking, Review, Hotel, RoomType, TourismSpot, Coupon } from
 import { mockTourismSpots, mockRoomTypes } from '../mock/data';
 
 // Increment this to force refresh seeded mock data in localStorage
-const MOCK_DATA_VERSION = '3';
+const MOCK_DATA_VERSION = '4';
+
+const normalizeHotel = (hotel: any, index: number): Hotel => ({
+  hotel_id: hotel.hotel_id ?? Number((hotel.id ?? index + 1).toString().replace(/\D/g, '') || index + 1),
+  hotel_owner: hotel.hotel_owner ?? 1,
+  name: hotel.name ?? 'Khách sạn chưa đặt tên',
+  address: hotel.address ?? [hotel.city, hotel.district].filter(Boolean).join(', ') ?? '',
+  status: typeof hotel.status === 'number' ? hotel.status : 1,
+  rating: typeof hotel.rating === 'number' ? hotel.rating : 0,
+  longitude: typeof hotel.longitude === 'number' ? hotel.longitude : 0,
+  latitude: typeof hotel.latitude === 'number' ? hotel.latitude : 0,
+  description: hotel.description ?? '',
+  contact_phone: hotel.contact_phone ?? hotel.phone ?? '0123 456 789',
+  thumbnail: hotel.thumbnail ?? hotel.images?.[0] ?? '',
+  ...hotel,
+});
+
+const normalizeTourismSpot = (spot: any, index: number): TourismSpot => ({
+  destination_id: spot.destination_id ?? Number((spot.id ?? index + 1).toString().replace(/\D/g, '') || index + 1),
+  name: spot.name ?? 'Điểm đến chưa đặt tên',
+  rating: typeof spot.rating === 'number' ? spot.rating : 0,
+  location: spot.location ?? '',
+  transportation: spot.transportation ?? 'Tự túc',
+  entry_fee: typeof spot.entry_fee === 'number' ? spot.entry_fee : 0,
+  description: spot.description ?? spot.fullDescription ?? '',
+  latitude: typeof spot.latitude === 'number' ? spot.latitude : 0,
+  longitude: typeof spot.longitude === 'number' ? spot.longitude : 0,
+  type: spot.type ?? spot.category ?? 'Đang cập nhật',
+  thumbnail: spot.thumbnail ?? spot.images?.[0] ?? '',
+  ...spot,
+});
+
+const normalizeRoomType = (room: any, hotelId: string, index: number): RoomType => ({
+  type_id: room.type_id ?? index + 1,
+  hotel_id: room.hotel_id ?? (parseInt(hotelId.replace(/\D/g, '')) || 1),
+  type: room.type ?? room.name ?? 'Phòng',
+  availability: room.availability ?? true,
+  max_guests: room.max_guests ?? room.maxGuests ?? 2,
+  description: room.description ?? '',
+  quantity: room.quantity ?? 1,
+  // Frontend-only fields
+  id: room.id ?? String(room.type_id ?? index + 1),
+  hotelId: room.hotelId ?? hotelId,
+  name: room.name ?? room.type ?? 'Phòng',
+  size: room.size,
+  beds: room.beds,
+  basePrice: room.basePrice,
+  images: room.images,
+  amenities: room.amenities ?? [],
+  available: room.available ?? room.quantity ?? 1,
+});
 
 // Force reinitialize (useful when updating mock data structure)
 export const forceReinitializeMockData = () => {
@@ -16,21 +66,15 @@ export const forceReinitializeMockData = () => {
 };
 
 const defaultRoomTypesByHotel = (): Record<string, RoomType[]> => ({
-  h1: (mockRoomTypes['1'] || []).map((room, idx) => ({
-    ...room,
-    id: room.id ? `h1-${room.id}` : `h1-r${idx + 1}`,
-    hotelId: 'h1',
-  })),
-  h2: (mockRoomTypes['2'] || []).map((room, idx) => ({
-    ...room,
-    id: room.id ? `h2-${room.id}` : `h2-r${idx + 1}`,
-    hotelId: 'h2',
-  })),
-  h3: (mockRoomTypes['1'] || []).map((room, idx) => ({
-    ...room,
-    id: room.id ? `h3-${room.id}` : `h3-r${idx + 1}`,
-    hotelId: 'h3',
-  })),
+  h1: (mockRoomTypes['1'] || []).map((room: any, idx: number) => 
+    normalizeRoomType(room, 'h1', idx)
+  ),
+  h2: (mockRoomTypes['2'] || []).map((room: any, idx: number) => 
+    normalizeRoomType(room, 'h2', idx)
+  ),
+  h3: (mockRoomTypes['1'] || []).map((room: any, idx: number) => 
+    normalizeRoomType(room, 'h3', idx)
+  ),
 });
 
 // Initialize mock data in localStorage
@@ -46,11 +90,15 @@ export const initializeMockData = () => {
     }
     // User Profile
     const mockUser: User = {
-      id: 'user-001',
+      user_id: 1,
       email: 'nguyen.van.a@gmail.com',
       name: 'Nguyễn Văn A',
-      phone: '0901234567',
-      avatar: 'https://i.pravatar.cc/150?u=user001',
+      phone_number: '0901234567',
+      gender: 'male',
+      date_of_birth: '1990-01-15',
+      role: 'customer',
+      password: '', // Password is not stored in localStorage for security
+      profile_image: 'https://i.pravatar.cc/150?u=user001',
       memberSince: '2023-01-15',
       totalBookings: 12,
       points: 450,
@@ -58,7 +106,7 @@ export const initializeMockData = () => {
     localStorage.setItem('currentUser', JSON.stringify(mockUser));
 
     // Hotels - Diverse data across Vietnam
-    const mockHotels: Hotel[] = [
+    const mockHotels = [
       {
         id: 'h1',
         name: 'Grand Hotel Saigon',
@@ -322,144 +370,144 @@ export const initializeMockData = () => {
           cancellation: 'Miễn phí hủy trước 24 giờ',
         },
       },
-    ];
+    ].map((hotel, index) => normalizeHotel(hotel, index));
     localStorage.setItem('hotels', JSON.stringify(mockHotels));
 
     // Bookings with diverse statuses
     const mockBookings: Booking[] = [
       {
-        id: 'BK001',
-        userId: 'user-001',
-        hotelId: 'h1',
+        booking_id: 1,
+        user_id: 1,
+        room_id: 1,
         hotelName: 'Grand Hotel Saigon',
         hotelImage: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400',
         roomType: 'Deluxe Room',
-        checkIn: '2025-12-20',
-        checkOut: '2025-12-23',
+        check_in_date: '2025-12-20',
+        check_out_date: '2025-12-23',
         nights: 3,
-        guests: 2,
-        totalPrice: 6900000,
-        status: 'confirmed',
-        bookingDate: '2025-12-01',
+        people: 2,
+        total_price: 6900000,
+        status: 'accepted',
+        created_at: '2025-12-01',
         paymentStatus: 'paid',
         paymentMethod: 'Thẻ tín dụng',
       },
       {
-        id: 'BK002',
-        userId: 'user-001',
-        hotelId: 'h3',
+        booking_id: 2,
+        user_id: 1,
+        room_id: 2,
         hotelName: 'Da Nang Beach Resort',
         hotelImage: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400',
         roomType: 'Ocean View Suite',
-        checkIn: '2026-01-15',
-        checkOut: '2026-01-18',
+        check_in_date: '2026-01-15',
+        check_out_date: '2026-01-18',
         nights: 3,
-        guests: 4,
-        totalPrice: 12075000,
-        status: 'confirmed',
-        bookingDate: '2025-11-28',
+        people: 4,
+        total_price: 12075000,
+        status: 'accepted',
+        created_at: '2025-11-28',
         paymentStatus: 'paid',
         paymentMethod: 'Chuyển khoản',
       },
       {
-        id: 'BK003',
-        userId: 'user-001',
-        hotelId: 'h2',
+        booking_id: 3,
+        user_id: 1,
+        room_id: 3,
         hotelName: 'Hanoi Pearl Hotel',
         hotelImage: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400',
         roomType: 'Superior Room',
-        checkIn: '2025-11-10',
-        checkOut: '2025-11-12',
+        check_in_date: '2025-11-10',
+        check_out_date: '2025-11-12',
         nights: 2,
-        guests: 2,
-        totalPrice: 3450000,
-        status: 'completed',
-        bookingDate: '2025-10-25',
+        people: 2,
+        total_price: 3450000,
+        status: 'maintained',
+        created_at: '2025-10-25',
         paymentStatus: 'paid',
         paymentMethod: 'Thẻ tín dụng',
       },
       {
-        id: 'BK004',
-        userId: 'user-001',
-        hotelId: 'h1',
+        booking_id: 4,
+        user_id: 1,
+        room_id: 1,
         hotelName: 'Grand Hotel Saigon',
         hotelImage: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400',
         roomType: 'Premium Room',
-        checkIn: '2025-10-15',
-        checkOut: '2025-10-17',
+        check_in_date: '2025-10-15',
+        check_out_date: '2025-10-17',
         nights: 2,
-        guests: 2,
-        totalPrice: 5520000,
-        status: 'completed',
-        bookingDate: '2025-09-30',
+        people: 2,
+        total_price: 5520000,
+        status: 'maintained',
+        created_at: '2025-09-30',
         paymentStatus: 'paid',
         paymentMethod: 'Tiền mặt',
       },
       {
-        id: 'BK005',
-        userId: 'user-001',
-        hotelId: 'h3',
+        booking_id: 5,
+        user_id: 1,
+        room_id: 2,
         hotelName: 'Da Nang Beach Resort',
         hotelImage: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400',
         roomType: 'Family Suite',
-        checkIn: '2025-09-20',
-        checkOut: '2025-09-25',
+        check_in_date: '2025-09-20',
+        check_out_date: '2025-09-25',
         nights: 5,
-        guests: 4,
-        totalPrice: 20125000,
-        status: 'completed',
-        bookingDate: '2025-08-15',
+        people: 4,
+        total_price: 20125000,
+        status: 'maintained',
+        created_at: '2025-08-15',
         paymentStatus: 'paid',
         paymentMethod: 'Thẻ tín dụng',
       },
       {
-        id: 'BK006',
-        userId: 'user-001',
-        hotelId: 'h2',
+        booking_id: 6,
+        user_id: 1,
+        room_id: 3,
         hotelName: 'Hanoi Pearl Hotel',
         hotelImage: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400',
         roomType: 'Deluxe Room',
-        checkIn: '2025-08-10',
-        checkOut: '2025-08-13',
+        check_in_date: '2025-08-10',
+        check_out_date: '2025-08-13',
         nights: 3,
-        guests: 2,
-        totalPrice: 5175000,
-        status: 'completed',
-        bookingDate: '2025-07-20',
+        people: 2,
+        total_price: 5175000,
+        status: 'maintained',
+        created_at: '2025-07-20',
         paymentStatus: 'paid',
         paymentMethod: 'Chuyển khoản',
       },
       {
-        id: 'BK007',
-        userId: 'user-001',
-        hotelId: 'h1',
+        booking_id: 7,
+        user_id: 1,
+        room_id: 1,
         hotelName: 'Grand Hotel Saigon',
         hotelImage: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400',
         roomType: 'Standard Room',
-        checkIn: '2025-07-05',
-        checkOut: '2025-07-07',
+        check_in_date: '2025-07-05',
+        check_out_date: '2025-07-07',
         nights: 2,
-        guests: 1,
-        totalPrice: 3680000,
+        people: 1,
+        total_price: 3680000,
         status: 'cancelled',
-        bookingDate: '2025-06-20',
+        created_at: '2025-06-20',
         paymentStatus: 'refunded',
         paymentMethod: 'Thẻ tín dụng',
       },
       {
-        id: 'BK008',
-        userId: 'user-001',
-        hotelId: 'h3',
+        booking_id: 8,
+        user_id: 1,
+        room_id: 2,
         hotelName: 'Da Nang Beach Resort',
         hotelImage: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400',
         roomType: 'Beach Villa',
-        checkIn: '2025-06-01',
-        checkOut: '2025-06-04',
+        check_in_date: '2025-06-01',
+        check_out_date: '2025-06-04',
         nights: 3,
-        guests: 2,
-        totalPrice: 15525000,
-        status: 'completed',
-        bookingDate: '2025-05-10',
+        people: 2,
+        total_price: 15525000,
+        status: 'maintained',
+        created_at: '2025-05-10',
         paymentStatus: 'paid',
         paymentMethod: 'Thẻ tín dụng',
       },
@@ -469,44 +517,50 @@ export const initializeMockData = () => {
     // Reviews
     const mockReviews: Review[] = [
       {
-        id: 'r1',
-        hotelId: 'h1',
-        userId: 'user-001',
+        review_id: 1,
+        hotel_id: 1,
+        destination_id: null,
+        room_id: null,
+        user_id: 1,
         userName: 'Nguyễn Văn A',
         userAvatar: 'https://i.pravatar.cc/150?u=user001',
         rating: 5,
         title: 'Trải nghiệm tuyệt vời!',
         comment: 'Khách sạn rất đẹp, phòng sạch sẽ, nhân viên thân thiện. View từ phòng nhìn ra thành phố rất đẹp. Bữa sáng buffet đa dạng và ngon. Chắc chắn sẽ quay lại!',
         images: [],
-        date: '2025-10-20',
+        date_created: '2025-10-20',
         helpful: 12,
         verified: true,
       },
       {
-        id: 'r2',
-        hotelId: 'h2',
-        userId: 'user-001',
+        review_id: 2,
+        hotel_id: 2,
+        destination_id: null,
+        room_id: null,
+        user_id: 1,
         userName: 'Nguyễn Văn A',
         userAvatar: 'https://i.pravatar.cc/150?u=user001',
         rating: 4,
         title: 'Tốt nhưng có thể cải thiện',
         comment: 'Vị trí khách sạn thuận tiện, gần phố cổ. Phòng đẹp và sạch sẽ. Tuy nhiên wifi hơi chậm, hy vọng khách sạn sẽ cải thiện điểm này.',
         images: [],
-        date: '2025-11-15',
+        date_created: '2025-11-15',
         helpful: 5,
         verified: true,
       },
       {
-        id: 'r3',
-        hotelId: 'h3',
-        userId: 'user-001',
+        review_id: 3,
+        hotel_id: 3,
+        destination_id: null,
+        room_id: null,
+        user_id: 1,
         userName: 'Nguyễn Văn A',
         userAvatar: 'https://i.pravatar.cc/150?u=user001',
         rating: 5,
         title: 'Hoàn hảo cho kỳ nghỉ gia đình',
         comment: 'Resort view biển tuyệt đẹp! Hồ bơi rộng rãi, bãi biển riêng sạch sẽ. Con tôi rất thích khu vui chơi trẻ em. Staff nhiệt tình và chu đáo.',
         images: [],
-        date: '2025-09-28',
+        date_created: '2025-09-28',
         helpful: 18,
         verified: true,
       },
@@ -516,43 +570,63 @@ export const initializeMockData = () => {
     // Coupons
     const mockCoupons: Coupon[] = [
       {
+        coupon_id: 1,
         id: 'coupon1',
         code: 'WELCOME15',
         hotelId: 'h1',
         hotelName: 'Grand Hotel Saigon',
+        discountType: 'percentage',
+        discountValue: 15,
         discount: 15,
+        minOrder: 500000,
         expiryDate: '2026-12-31',
+        description: 'Giảm 15% cho đơn đầu tiên',
       },
       {
+        coupon_id: 2,
         id: 'coupon2',
         code: 'DANANG20',
         hotelId: 'h3',
         hotelName: 'Da Nang Beach Resort',
+        discountType: 'percentage',
+        discountValue: 20,
         discount: 20,
+        minOrder: 1000000,
         expiryDate: '2026-06-30',
+        description: 'Giảm 20% tại Đà Nẵng',
       },
       {
+        coupon_id: 3,
         id: 'coupon3',
         code: 'HANOI10',
         hotelId: 'h2',
         hotelName: 'Hanoi Pearl Hotel',
+        discountType: 'percentage',
+        discountValue: 10,
         discount: 10,
+        minOrder: 300000,
         expiryDate: '2025-12-31',
+        description: 'Giảm 10% tại Hà Nội',
       },
       {
+        coupon_id: 4,
         id: 'coupon4',
         code: 'LASTMINUTE',
         hotelId: 'h5',
         hotelName: 'Dalat Palace Heritage Hotel',
+        discountType: 'percentage',
+        discountValue: 25,
         discount: 25,
+        minOrder: 800000,
         expiryDate: '2025-12-20',
+        description: 'Giảm 25% đặt phòng gấp',
       },
     ];
     localStorage.setItem('userCoupons', JSON.stringify(mockCoupons));
   }
 
   if (!localStorage.getItem('tourismSpots')) {
-    setMockTourismSpots(mockTourismSpots);
+    setMockTourismSpots(mockTourismSpots.map((spot, index) => normalizeTourismSpot(spot, index)));
   }
 
   if (!localStorage.getItem('roomTypes')) {
@@ -593,9 +667,9 @@ export const addMockBooking = (booking: Booking) => {
   setMockBookings(bookings);
 };
 
-export const updateMockBooking = (id: string, updates: Partial<Booking>) => {
+export const updateMockBooking = (id: number, updates: Partial<Booking>) => {
   const bookings = getMockBookings();
-  const index = bookings.findIndex(b => b.id === id);
+  const index = bookings.findIndex(b => b.booking_id === id);
   if (index !== -1) {
     bookings[index] = { ...bookings[index], ...updates };
     setMockBookings(bookings);
@@ -619,7 +693,8 @@ export const addMockReview = (review: Review) => {
 
 export const getMockHotels = (): Hotel[] => {
   const data = localStorage.getItem('hotels');
-  return data ? JSON.parse(data) : [];
+  const hotels = data ? JSON.parse(data) : [];
+  return hotels.map((hotel: Hotel, index: number) => normalizeHotel(hotel, index));
 };
 
 export const getMockCoupons = (): Coupon[] => {
@@ -629,7 +704,8 @@ export const getMockCoupons = (): Coupon[] => {
 
 export const getMockTourismSpots = (): TourismSpot[] => {
   const data = localStorage.getItem('tourismSpots');
-  return data ? JSON.parse(data) : mockTourismSpots;
+  const spots = data ? JSON.parse(data) : mockTourismSpots;
+  return spots.map((spot: TourismSpot, index: number) => normalizeTourismSpot(spot, index));
 };
 
 export const setMockTourismSpots = (spots: TourismSpot[]) => {

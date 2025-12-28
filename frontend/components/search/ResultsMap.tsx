@@ -35,9 +35,12 @@ export default function ResultsMap({ hotels }: ResultsMapProps) {
     return (
       <div className="w-full h-full bg-gray-200 flex items-center justify-center rounded-lg p-4">
         <div className="text-center">
-          <p className="font-semibold text-red-600">Lỗi: Google Maps API Key bị thiếu.</p>
+          <p className="font-semibold text-red-600">
+            Lỗi: Google Maps API Key bị thiếu.
+          </p>
           <p className="text-sm text-gray-700 mt-2">
-            Vui lòng cung cấp khóa API trong file <code>.env.local</code> với tên biến là <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>.
+            Vui lòng cung cấp khóa API trong file <code>.env.local</code> với
+            tên biến là <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>.
           </p>
         </div>
       </div>
@@ -53,9 +56,9 @@ export default function ResultsMap({ hotels }: ResultsMapProps) {
         gestureHandling={'greedy'}
         disableDefaultUI={true}
       >
-        {hotels.map((hotel) => (
+        {hotels.map((hotel, idx) => (
           <Marker
-            key={hotel.id}
+            key={idx}
             position={{ lat: hotel.latitude, lng: hotel.longitude }}
             title={hotel.name}
           />

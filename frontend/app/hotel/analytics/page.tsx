@@ -23,9 +23,12 @@ export default function HotelAnalyticsPage() {
     const loadData = async () => {
       try {
         const data = await bookingsApi.getAll();
-        setBookings(data);
+        // Backend returns { bookings: [...], total, limit, offset }
+        const bookingsArray = data?.bookings || data || [];
+        setBookings(Array.isArray(bookingsArray) ? bookingsArray : []);
       } catch (error) {
         console.error('Error loading analytics:', error);
+        setBookings([]);
       } finally {
         setLoading(false);
       }
@@ -45,24 +48,24 @@ export default function HotelAnalyticsPage() {
   // Calculate metrics
   const totalRevenue = bookings
     .filter((b) => b.paymentStatus === 'paid')
-    .reduce((sum, b) => sum + b.totalPrice, 0);
+    .reduce((sum, b) => sum + (b.total_price || 0), 0);
 
-  const confirmedBookings = bookings.filter((b) => b.status === 'confirmed');
-  const completedBookings = bookings.filter((b) => b.status === 'completed');
+  const confirmedBookings = bookings.filter((b) => b.status === 'accepted');
+  const completedBookings = bookings.filter((b) => b.status === 'maintained');
   const cancelledBookings = bookings.filter((b) => b.status === 'cancelled');
 
-  const totalNights = bookings.reduce((sum, b) => sum + b.nights, 0);
+  const totalNights = bookings.reduce((sum, b) => sum + (b.nights || 0), 0);
   const averageBookingValue =
     bookings.length > 0 ? totalRevenue / bookings.length : 0;
   const averageStayLength =
     bookings.length > 0 ? totalNights / bookings.length : 0;
 
   // Room type distribution
-  const roomTypeCounts = bookings.reduce((acc, b) => {
-    acc[b.roomType] = (acc[b.roomType] || 0) + 1;
+  const roomTypeCounts = bookings.reduce((acc: Record<string, number>, b) => {
+    const key = b.roomType ?? 'Unknown';
+    acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
-
   // Monthly revenue (mock data for chart)
   const monthlyData = [
     { month: 'T1', revenue: 85000000, bookings: 12 },

@@ -1,8 +1,3 @@
-/**
- * Checkout Page - Booking Flow
- * FE2: Search & Booking
- */
-
 'use client';
 
 import { useState } from 'react';
@@ -202,7 +197,14 @@ export default function CheckoutPage() {
                       type="radio"
                       value="credit_card"
                       checked={paymentMethod === 'credit_card'}
-                      onChange={(e) => setPaymentMethod(e.target.value as any)}
+                      onChange={(e) =>
+                        setPaymentMethod(
+                          e.target.value as
+                            | 'credit_card'
+                            | 'bank_transfer'
+                            | 'cash'
+                        )
+                      }
                       className="w-5 h-5 text-[#0071c2]"
                     />
                     <div className="ml-3 flex-1">
@@ -223,7 +225,14 @@ export default function CheckoutPage() {
                       type="radio"
                       value="bank_transfer"
                       checked={paymentMethod === 'bank_transfer'}
-                      onChange={(e) => setPaymentMethod(e.target.value as any)}
+                      onChange={(e) =>
+                        setPaymentMethod(
+                          e.target.value as
+                            | 'credit_card'
+                            | 'bank_transfer'
+                            | 'cash'
+                        )
+                      }
                       className="w-5 h-5 text-[#0071c2]"
                     />
                     <div className="ml-3 flex-1">
@@ -244,7 +253,14 @@ export default function CheckoutPage() {
                       type="radio"
                       value="cash"
                       checked={paymentMethod === 'cash'}
-                      onChange={(e) => setPaymentMethod(e.target.value as any)}
+                      onChange={(e) =>
+                        setPaymentMethod(
+                          e.target.value as
+                            | 'credit_card'
+                            | 'bank_transfer'
+                            | 'cash'
+                        )
+                      }
                       className="w-5 h-5 text-[#0071c2]"
                     />
                     <div className="ml-3 flex-1">

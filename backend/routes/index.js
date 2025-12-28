@@ -4,47 +4,31 @@ const router = express.Router({ mergeParams: true });
 const authRoutes = require("../modules/auth/routes/authRoutes");
 const hotelProfileRoutes = require("../modules/hotel-profile/routes/hotelProfileRoutes");
 const bookingRoutes = require("../modules/booking-engine/routes/bookingRoutes");
+const paymentRoutes = require("../modules/payment-gateway/routes/paymentRoutes");
 const userProfileRoutes = require("../modules/user-profile/routes/UserProfileRoute");
 const destinationRoutes = require("../modules/tourism-cms/routes/DestinationRoutes");
-const roomInventoryRoutes = require("../modules/room-inventory/routes/roomInventoryRoutes");
+const notificationRoutes = require("../modules/notification/routes/notificationRoutes");
 const pricingEngineRoutes = require("../modules/pricing-engine/routes/pricingEngineRoutes");
+const roomInventoryRoutes = require("../modules/room-inventory/routes/roomInventoryRoutes");
 const synchronizationRoutes = require("../modules/synchronization/routes/synchronizationRoutes");
-const adminRoutes = require("../modules/super-admin/routes/adminRoutes");
-const paymentRoutes = require("../modules/payment-gateway/routes/paymentRoutes");
-
 
 // Health check endpoint
 router.get("/health", (req, res) => {
   res.status(200).send({ status: "ok" });
 });
 
-// Auth routes
-router.use("/auth", authRoutes);
-
-// Hotel Profile routes
-router.use("/hotel-profile", hotelProfileRoutes);
-
-// Booking Engine routes
-router.use("/bookings", bookingRoutes);
-
-// User Profile routes
-router.use("/users", userProfileRoutes);
-
-// Tourism CMS routes
-router.use("/destinations", destinationRoutes);
-
-// Room & Inventory routes
-router.use('/rooms', roomInventoryRoutes);
-
-// Pricing Engine routes
-router.use('/pricing', pricingEngineRoutes);
-
-// Synchronization routes
-router.use('/sync', synchronizationRoutes);
-// Super Admin routes
-router.use('/admin', adminRoutes);
+// API v1 routes
+router.use("/api/v1/auth", authRoutes);
+router.use("/api/v1/hotel-profile", hotelProfileRoutes);
+router.use("/api/v1/bookings", bookingRoutes);
 
 // Payment Gateway routes
-router.use('/payments', paymentRoutes);
+router.use("/payments", paymentRoutes);
+router.use("/api/v1/users", userProfileRoutes);
+router.use("/api/v1/destinations", destinationRoutes);
+router.use("/api/v1/notifications", notificationRoutes);
+router.use("/api/v1/pricing", pricingEngineRoutes);
+router.use("/api/v1/rooms", roomInventoryRoutes);
+router.use("/api/v1/sync", synchronizationRoutes);
 
 module.exports = router;
