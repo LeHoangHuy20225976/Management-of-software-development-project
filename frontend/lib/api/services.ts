@@ -26,6 +26,10 @@ const ensureMockLayerReady = () => {
 
 // ============= HOTELS API =============
 export const hotelsApi = {
+  /**
+   * Get all hotels (public endpoint)
+   * GET /hotel-profile/all-hotels
+   */
   async getAll(filters?: SearchFilters): Promise<Hotel[]> {
     return apiClient.get<Hotel[]>(API_CONFIG.ENDPOINTS.ALL_HOTELS);
   },
@@ -48,6 +52,15 @@ export const hotelsApi = {
 
   async getReviews(hotelId: string): Promise<Review[]> {
     return apiClient.get<Review[]>(API_CONFIG.ENDPOINTS.ALL_REVIEWS, { hotel_id: hotelId });
+  },
+
+  /**
+   * Get all rooms across all hotels (public endpoint)
+   * Useful for admin/search functionality
+   * GET /hotel-profile/all-rooms
+   */
+  async getAllRooms(): Promise<Room[]> {
+    return apiClient.get<Room[]>(API_CONFIG.ENDPOINTS.ALL_ROOMS);
   },
 };
 
@@ -378,39 +391,6 @@ export const hotelManagerApi = {
     );
   },
 
-  // DEPRECATED: Kept for backward compatibility - use getRoomTypes() instead
-  async getPricing(hotelId: string = 'h1'): Promise<Record<string, unknown>> {
-    console.warn('getPricing() is deprecated. Use getRoomTypes() to get pricing per room type.');
-
-    if (API_CONFIG.USE_MOCK_DATA) {
-      ensureMockLayerReady();
-      await mockDelay();
-      const pricing = localStorage.getItem(`hotelPricing_${hotelId}`);
-      if (pricing) return JSON.parse(pricing) as Record<string, unknown>;
-      const defaultPricing = { basePrice: 1500000, weekendPrice: 2000000, holidayPrice: 2500000, seasonalRates: [] };
-      localStorage.setItem(`hotelPricing_${hotelId}`, JSON.stringify(defaultPricing));
-      return defaultPricing;
-    }
-    return {};
-  },
-
-  // DEPRECATED: Use updateRoomTypePrice() instead
-  async updatePricing(hotelId: string, pricing: Record<string, unknown>): Promise<Record<string, unknown>> {
-    console.warn('updatePricing() is deprecated. Use updateRoomTypePrice() instead.');
-
-    if (API_CONFIG.USE_MOCK_DATA) {
-      ensureMockLayerReady();
-      await mockDelay();
-      localStorage.setItem(`hotelPricing_${hotelId}`, JSON.stringify(pricing));
-      return pricing;
-    }
-
-    if (pricing.type_id) {
-      return this.updateRoomTypePrice(pricing.type_id as number, pricing as any);
-    }
-    throw new Error('updatePricing() requires type_id. Use updateRoomTypePrice() instead.');
-  },
-
   // Reviews Management
   async replyToReview(reviewId: string, reply: string): Promise<Review> {
     return apiClient.post<any>(API_CONFIG.ENDPOINTS.REPLY_REVIEW, { review_id: reviewId, reply });
@@ -424,26 +404,69 @@ export const hotelManagerApi = {
     return apiClient.put<any>(API_CONFIG.ENDPOINTS.UPDATE_HOTEL, { hotel_id: hotelId, hotelData: updates });
   },
 
+  /**
+   * Delete/disable hotel
+   * DELETE /hotel-profile/delete-hotel/:hotel_id
+   */
+  async deleteHotel(hotelId: string): Promise<void> {
+    return apiClient.delete(API_CONFIG.ENDPOINTS.DELETE_HOTEL, { hotel_id: hotelId });
+  },
+
+  /**
+   * Create a new hotel
+   * POST /hotel-profile/add-hotel
+   */
+  async createHotel(hotelData: {
+    name: string;
+    address: string;
+    description: string;
+    contact_phone: string;
+    longitude: number;
+    latitude: number;
+    thumbnail?: File;
+  }): Promise<Hotel> {
+    const formData = new FormData();
+    if (hotelData.thumbnail) {
+      formData.append('thumbnail', hotelData.thumbnail);
+    }
+    const { thumbnail, ...data } = hotelData;
+    formData.append('hotelData', JSON.stringify(data));
+
+    return apiClient.post<Hotel>(API_CONFIG.ENDPOINTS.ADD_HOTEL, formData);
+  },
+
   // Booking Management for Hotel Manager
   async getHotelBookings(hotelId: string): Promise<Booking[]> {
     return apiClient.get<Booking[]>(API_CONFIG.ENDPOINTS.BOOKING_HISTORY, { hotelId });
   },
 
   async updateBookingStatus(bookingId: string, status: string): Promise<Booking> {
-    return apiClient.patch<Booking>(API_CONFIG.ENDPOINTS.UPDATE_BOOKING_STATUS, { id: bookingId, status });
+    return apiClient.patch<Booking>(
+      API_CONFIG.ENDPOINTS.UPDATE_BOOKING_STATUS,
+      { status },
+      { id: bookingId }
+    );
   },
 
   async checkInBooking(bookingId: string): Promise<Booking> {
-    return apiClient.post<Booking>(API_CONFIG.ENDPOINTS.BOOKING_CHECKIN, { id: bookingId });
+    return apiClient.post<Booking>(API_CONFIG.ENDPOINTS.BOOKING_CHECKIN, {}, { id: bookingId });
   },
 
   async checkOutBooking(bookingId: string): Promise<Booking> {
-    return apiClient.post<Booking>(API_CONFIG.ENDPOINTS.BOOKING_CHECKOUT, { id: bookingId });
+    return apiClient.post<Booking>(API_CONFIG.ENDPOINTS.BOOKING_CHECKOUT, {}, { id: bookingId });
   },
 
   // Room Types Management
   async getRoomTypes(hotelId: string = 'h1'): Promise<RoomType[]> {
     return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ROOM_TYPES, { hotel_id: hotelId });
+  },
+
+  /**
+   * Get single room type by ID
+   * GET /hotel-profile/view-room-type/:type_id
+   */
+  async getRoomType(typeId: string): Promise<RoomType> {
+    return apiClient.get<RoomType>(API_CONFIG.ENDPOINTS.VIEW_ROOM_TYPE, { type_id: typeId });
   },
 
   async addRoomType(data: {
@@ -457,8 +480,24 @@ export const hotelManagerApi = {
     return apiClient.post<RoomType>(API_CONFIG.ENDPOINTS.ADD_ROOM_TYPE, data);
   },
 
+  /**
+   * Update room type details
+   * PUT /hotel-profile/update-room-type/:type_id
+   */
+  async updateRoomType(typeId: string, data: Partial<RoomType>): Promise<RoomType> {
+    return apiClient.put<RoomType>(API_CONFIG.ENDPOINTS.UPDATE_ROOM_TYPE, data, { type_id: typeId });
+  },
+
   async updateRoomPrice(typeId: string, newPrice: number): Promise<RoomType> {
     return apiClient.put<RoomType>(API_CONFIG.ENDPOINTS.UPDATE_PRICE, { type_id: typeId, base_price: newPrice });
+  },
+
+  /**
+   * Get single room by ID
+   * GET /hotel-profile/view-room/:room_id
+   */
+  async getRoom(roomId: string): Promise<Room> {
+    return apiClient.get<Room>(API_CONFIG.ENDPOINTS.VIEW_ROOM, { room_id: roomId });
   },
 
   // Facilities Management
@@ -539,7 +578,14 @@ export const hotelManagerApi = {
       }
       return [];
     }
-    return apiClient.get<any[]>(API_CONFIG.ENDPOINTS.VIEW_HOTEL, { hotel_id: hotelId }).then(data => (data as any).images || []);
+    try {
+      const hotelData = await apiClient.get<any>(API_CONFIG.ENDPOINTS.VIEW_HOTEL, { hotel_id: hotelId });
+      // Extract images from hotel data
+      return Array.isArray(hotelData?.images) ? hotelData.images : [];
+    } catch (error) {
+      console.error('Error fetching hotel images:', error);
+      return [];
+    }
   },
 
   async uploadImages(hotelId: string, files: File[], imageType: string, caption: string): Promise<{ id: number; url: string; type: string; caption: string }[]> {
@@ -602,6 +648,21 @@ export const hotelManagerApi = {
       hotel_id: hotelId,
       image_id: imageId,
     });
+  },
+
+  /**
+   * Upload multiple images for room
+   * POST /hotel-profile/upload-images-for-room/:room_id
+   */
+  async uploadRoomImages(roomId: string, images: File[]): Promise<Image[]> {
+    const formData = new FormData();
+    images.forEach(image => formData.append('images', image));
+
+    return apiClient.post<Image[]>(
+      API_CONFIG.ENDPOINTS.UPLOAD_ROOM_IMAGES,
+      formData,
+      { room_id: roomId }
+    );
   },
 };
 
@@ -704,6 +765,38 @@ export const roomInventoryApi = {
     held: number;
   }[]> {
     return apiClient.get<any>(API_CONFIG.ENDPOINTS.ROOM_INVENTORY_CALENDAR, { typeId, startDate, endDate });
+  },
+
+  /**
+   * Get room type by ID
+   * GET /rooms/types/:id
+   */
+  async getRoomType(typeId: string): Promise<RoomType | null> {
+    return apiClient.get<RoomType>(API_CONFIG.ENDPOINTS.ROOM_TYPE_BY_ID, { id: typeId });
+  },
+
+  /**
+   * Get all room types for a hotel
+   * GET /rooms/types/hotel/:hotelId
+   */
+  async getRoomTypesByHotel(hotelId: string): Promise<RoomType[]> {
+    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.ROOM_TYPES_BY_HOTEL, { hotelId });
+  },
+
+  /**
+   * Get room by ID
+   * GET /rooms/:id
+   */
+  async getRoom(roomId: string): Promise<Room | null> {
+    return apiClient.get<Room>(API_CONFIG.ENDPOINTS.ROOM_BY_ID, { id: roomId });
+  },
+
+  /**
+   * Get all rooms of a room type
+   * GET /rooms/type/:typeId
+   */
+  async getRoomsByType(typeId: string): Promise<Room[]> {
+    return apiClient.get<Room[]>(API_CONFIG.ENDPOINTS.ROOMS_BY_TYPE, { typeId });
   },
 };
 
@@ -877,297 +970,4 @@ export const notificationApi = {
   },
 };
 
-// ============= CHAT/MESSAGING API - KEEP MOCK (backend doesn't have this) =============
-export const chatApi = {
-  async getConversations(): Promise<any[]> {
-    if (API_CONFIG.USE_MOCK_DATA) {
-      await mockDelay();
-      const conversations = localStorage.getItem('chatConversations');
-      if (conversations) return JSON.parse(conversations);
 
-      const defaultConversations = [
-        {
-          id: 1,
-          hotelName: 'Vinpearl Resort',
-          lastMessage: 'Thank you for your inquiry',
-          timestamp: new Date().toISOString(),
-          unread: 2,
-        },
-      ];
-      localStorage.setItem('chatConversations', JSON.stringify(defaultConversations));
-      return defaultConversations;
-    }
-    // When backend implements this, replace with:
-    // return apiClient.get<any[]>(API_CONFIG.ENDPOINTS.CHAT_CONVERSATIONS);
-    return [];
-  },
-
-  async getMessages(conversationId: number): Promise<any[]> {
-    if (API_CONFIG.USE_MOCK_DATA) {
-      await mockDelay();
-      const messages = localStorage.getItem(`chatMessages_${conversationId}`);
-      if (messages) return JSON.parse(messages);
-
-      const defaultMessages = [
-        {
-          id: 1,
-          conversationId,
-          sender: 'hotel',
-          text: 'Hello! How can we help you?',
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-        },
-        {
-          id: 2,
-          conversationId,
-          sender: 'user',
-          text: 'I would like to know about room availability',
-          timestamp: new Date(Date.now() - 1800000).toISOString(),
-        },
-      ];
-      localStorage.setItem(`chatMessages_${conversationId}`, JSON.stringify(defaultMessages));
-      return defaultMessages;
-    }
-    // When backend implements this, replace with:
-    // return apiClient.get<any[]>(API_CONFIG.ENDPOINTS.CHAT_MESSAGES, { conversationId });
-    return [];
-  },
-
-  async sendMessage(conversationId: number, text: string): Promise<any> {
-    if (API_CONFIG.USE_MOCK_DATA) {
-      await mockDelay();
-      const messages = JSON.parse(localStorage.getItem(`chatMessages_${conversationId}`) || '[]');
-      const newMessage = {
-        id: Date.now(),
-        conversationId,
-        sender: 'user',
-        text,
-        timestamp: new Date().toISOString(),
-      };
-      messages.push(newMessage);
-      localStorage.setItem(`chatMessages_${conversationId}`, JSON.stringify(messages));
-      return newMessage;
-    }
-    // When backend implements this, replace with:
-    // return apiClient.post<any>(API_CONFIG.ENDPOINTS.CHAT_SEND_MESSAGE, { conversationId, text });
-    return null;
-  },
-};
-
-// ============= EXTENDED HOTEL MANAGER API =============
-// Additional functions for unused APIs
-export const hotelManagerApiExtended = {
-  /**
-   * Create a new hotel
-   * POST /hotel-profile/add-hotel
-   */
-  async createHotel(hotelData: {
-    name: string;
-    address: string;
-    description: string;
-    contact_phone: string;
-    longitude: number;
-    latitude: number;
-    thumbnail?: File;
-  }): Promise<Hotel> {
-    const formData = new FormData();
-    if (hotelData.thumbnail) {
-      formData.append('thumbnail', hotelData.thumbnail);
-    }
-    const { thumbnail, ...data } = hotelData;
-    formData.append('hotelData', JSON.stringify(data));
-
-    return apiClient.post<Hotel>(
-      API_CONFIG.ENDPOINTS.ADD_HOTEL,
-      formData
-    );
-  },
-
-  /**
-   * Delete/disable hotel
-   * DELETE /hotel-profile/delete-hotel/:hotel_id
-   */
-  async deleteHotel(hotelId: string): Promise<void> {
-    return apiClient.delete(
-      API_CONFIG.ENDPOINTS.DELETE_HOTEL,
-      { hotel_id: hotelId }
-    );
-  },
-
-  /**
-   * Add facilities to hotel
-   * POST /hotel-profile/add-facility/:hotel_id
-   */
-  async addFacilities(hotelId: string, facilities: string[]): Promise<void> {
-    return apiClient.post(
-      API_CONFIG.ENDPOINTS.ADD_FACILITY,
-      { facilities },
-      { hotel_id: hotelId }
-    );
-  },
-
-  /**
-   * Upload multiple images for hotel
-   * POST /hotel-profile/upload-images-for-hotel/:hotel_id
-   */
-  async uploadHotelImages(hotelId: string, images: File[]): Promise<Image[]> {
-    const formData = new FormData();
-    images.forEach(image => formData.append('images', image));
-
-    return apiClient.post<Image[]>(
-      API_CONFIG.ENDPOINTS.UPLOAD_HOTEL_IMAGES,
-      formData,
-      { hotel_id: hotelId }
-    );
-  },
-
-  /**
-   * Upload multiple images for room
-   * POST /hotel-profile/upload-images-for-room/:room_id
-   */
-  async uploadRoomImages(roomId: string, images: File[]): Promise<Image[]> {
-    const formData = new FormData();
-    images.forEach(image => formData.append('images', image));
-
-    return apiClient.post<Image[]>(
-      API_CONFIG.ENDPOINTS.UPLOAD_ROOM_IMAGES,
-      formData,
-      { room_id: roomId }
-    );
-  },
-};
-
-// ============= EXTENDED USER PROFILE API =============
-export const userProfileApiExtended = {
-  /**
-   * Get user's bookings
-   * GET /users/bookings
-   */
-  async getUserBookings(): Promise<Booking[]> {
-    return apiClient.get<Booking[]>(API_CONFIG.ENDPOINTS.USER_BOOKINGS);
-  },
-
-  /**
-   * Get profile image URL
-   * GET /users/profile/image
-   */
-  async getProfileImageUrl(): Promise<{ url: string }> {
-    return apiClient.get<{ url: string }>(API_CONFIG.ENDPOINTS.GET_PROFILE_IMAGE);
-  },
-};
-
-// ============= EXTENDED DESTINATIONS API =============
-export const destinationsApiExtended = {
-  /**
-   * Upload thumbnail for destination
-   * POST /destinations/:id/thumbnail
-   */
-  async uploadThumbnail(destinationId: string, thumbnail: File): Promise<void> {
-    const formData = new FormData();
-    formData.append('thumbnail', thumbnail);
-
-    return apiClient.post(
-      API_CONFIG.ENDPOINTS.DESTINATION_THUMBNAIL,
-      formData,
-      { id: destinationId }
-    );
-  },
-
-  /**
-   * Delete destination thumbnail
-   * DELETE /destinations/:id/thumbnail
-   */
-  async deleteThumbnail(destinationId: string): Promise<void> {
-    return apiClient.delete(
-      API_CONFIG.ENDPOINTS.DESTINATION_THUMBNAIL,
-      { id: destinationId }
-    );
-  },
-
-  /**
-   * Get all images for destination
-   * GET /destinations/:id/images
-   */
-  async getImages(destinationId: string): Promise<Image[]> {
-    return apiClient.get<Image[]>(
-      API_CONFIG.ENDPOINTS.DESTINATION_IMAGES,
-      { id: destinationId }
-    );
-  },
-
-  /**
-   * Upload image for destination
-   * POST /destinations/:id/images
-   */
-  async uploadImage(destinationId: string, image: File): Promise<Image> {
-    const formData = new FormData();
-    formData.append('image', image);
-
-    return apiClient.post<Image>(
-      API_CONFIG.ENDPOINTS.DESTINATION_IMAGES,
-      formData,
-      { id: destinationId }
-    );
-  },
-
-  /**
-   * Delete destination image
-   * DELETE /destinations/:id/images/:imageId
-   */
-  async deleteImage(destinationId: string, imageId: string): Promise<void> {
-    return apiClient.delete(
-      API_CONFIG.ENDPOINTS.DELETE_DESTINATION_IMAGE,
-      { id: destinationId, imageId }
-    );
-  },
-};
-
-// ============= EXTENDED ROOM INVENTORY API =============
-export const roomInventoryApiExtended = {
-  /**
-   * Get room type by ID
-   * GET /rooms/types/:id
-   */
-  async getRoomTypeById(typeId: string): Promise<RoomType> {
-    return apiClient.get<RoomType>(
-      API_CONFIG.ENDPOINTS.ROOM_TYPE_BY_ID,
-      { id: typeId }
-    );
-  },
-
-  /**
-   * Get room by ID
-   * GET /rooms/:id
-   */
-  async getRoomById(roomId: string): Promise<Room> {
-    return apiClient.get<Room>(
-      API_CONFIG.ENDPOINTS.ROOM_BY_ID,
-      { id: roomId }
-    );
-  },
-
-  /**
-   * Get all rooms of a specific room type
-   * GET /rooms/type/:typeId
-   */
-  async getRoomsByType(typeId: string): Promise<Room[]> {
-    return apiClient.get<Room[]>(
-      API_CONFIG.ENDPOINTS.ROOMS_BY_TYPE,
-      { typeId }
-    );
-  },
-};
-
-// ============= EXTENDED PAYMENT API =============
-export const paymentApiExtended = {
-  /**
-   * Cancel pending payment
-   * POST /payments/:id/cancel
-   */
-  async cancelPayment(paymentId: string): Promise<void> {
-    return apiClient.post(
-      API_CONFIG.ENDPOINTS.PAYMENT_CANCEL,
-      {},
-      { id: paymentId }
-    );
-  },
-};

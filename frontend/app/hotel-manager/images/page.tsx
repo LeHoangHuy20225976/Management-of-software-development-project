@@ -101,10 +101,8 @@ export default function HotelManagerImagesPage() {
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [hotelId, setHotelId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // TODO: Get actual hotel ID from auth context or props
-  const hotelId = '1';
 
   const [uploadForm, setUploadForm] = useState({
     type: 'hotel' as HotelImage['type'],
@@ -113,23 +111,39 @@ export default function HotelManagerImagesPage() {
   });
 
   useEffect(() => {
-    const loadImages = async () => {
+    const loadHotelAndImages = async () => {
       try {
-        const savedImages = await hotelManagerApi.getImages(hotelId);
-        if (savedImages && savedImages.length > 0) {
-          setImages(savedImages as HotelImage[]);
+        // Get hotel ID first
+        const myHotels = await hotelManagerApi.getMyHotels();
+        if (myHotels && myHotels.length > 0) {
+          const currentHotelId = String((myHotels[0] as any).hotel_id || (myHotels[0] as any).id);
+          setHotelId(currentHotelId);
+
+          // Load images for this hotel
+          try {
+            const savedImages = await hotelManagerApi.getImages(currentHotelId);
+            if (savedImages && savedImages.length > 0) {
+              setImages(savedImages as HotelImage[]);
+            } else {
+              setImages(defaultImages);
+            }
+          } catch (error) {
+            console.error('Error loading images:', error);
+            setImages(defaultImages);
+          }
         } else {
-          setImages(defaultImages);
+          console.warn('No hotels found');
+          setImages([]);
         }
       } catch (error) {
-        console.error('Error loading images:', error);
-        setImages(defaultImages);
+        console.error('Error loading hotel:', error);
+        setImages([]);
       } finally {
         setLoading(false);
       }
     };
-    loadImages();
-  }, [hotelId]);
+    loadHotelAndImages();
+  }, []);
 
   const saveImages = async (newImages: HotelImage[]) => {
     setImages(newImages);

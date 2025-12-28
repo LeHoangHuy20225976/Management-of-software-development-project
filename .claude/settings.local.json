@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(comm:*)",
+      "Bash(node scripts/seed-mock-data.js:*)",
+      "Bash(node scripts/seed-additional-data.js:*)"
+    ]
+  }
+}

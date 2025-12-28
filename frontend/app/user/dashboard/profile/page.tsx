@@ -57,13 +57,16 @@ export default function UserProfilePage() {
     // Load stats from API
     const loadStats = async () => {
       try {
-        const [bookings, reviews] = await Promise.all([
-          bookingsApi.getAll(),
-          reviewsApi.getAll(''), // Empty hotelId for user's all reviews
-        ]);
+        const bookingsData = await bookingsApi.getAll();
+        const bookingsArray = Array.isArray(bookingsData?.bookings)
+          ? bookingsData.bookings
+          : Array.isArray(bookingsData)
+          ? bookingsData
+          : [];
+
         setStats({
-          bookings: bookings.length,
-          reviews: reviews.length,
+          bookings: bookingsArray.length,
+          reviews: 0, // TODO: Need user reviews endpoint from backend
         });
       } catch (error) {
         console.error('Error loading stats:', error);

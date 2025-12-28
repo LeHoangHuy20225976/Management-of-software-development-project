@@ -163,31 +163,55 @@ export default function HotelRoomsPage() {
         </div>
       </div>
 
+      {/* Hotel Selector */}
+      {hotels.length > 1 && (
+        <Card>
+          <div className="flex items-center gap-4">
+            <label className="text-gray-900 font-semibold">Chọn khách sạn:</label>
+            <select
+              value={selectedHotelId}
+              onChange={(e) => setSelectedHotelId(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[300px] text-gray-900"
+            >
+              {hotels.map((hotel) => (
+                <option
+                  key={String((hotel as any).hotel_id || (hotel as any).id)}
+                  value={String((hotel as any).hotel_id || (hotel as any).id)}
+                  className="text-gray-900"
+                >
+                  {String((hotel as any).name || 'Khách sạn')} - ID: {String((hotel as any).hotel_id || (hotel as any).id)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <div className="text-center">
-            <div className="text-4xl mb-2">Phòng</div>
+            <div className="text-4xl mb-2 font-bold text-gray-700">Phòng</div>
             <div className="text-3xl font-bold text-[#0071c2]">{totalRooms}</div>
             <div className="text-gray-900 font-medium">Tổng số phòng</div>
           </div>
         </Card>
         <Card>
           <div className="text-center">
-            <div className="text-4xl mb-2">Trống</div>
+            <div className="text-4xl mb-2 font-bold text-green-600">Trống</div>
             <div className="text-3xl font-bold text-green-600">{availableRooms}</div>
             <div className="text-gray-900 font-medium">Phòng trống</div>
           </div>
         </Card>
         <Card>
           <div className="text-center">
-            <div className="text-4xl mb-2">Đã đặt</div>
-            <div className="text-3xl font-bold text-yellow-600">{occupiedRooms}</div>
+            <div className="text-4xl mb-2 font-bold text-orange-600">Đã đặt</div>
+            <div className="text-3xl font-bold text-orange-600">{occupiedRooms}</div>
             <div className="text-gray-900 font-medium">Đang có khách</div>
           </div>
         </Card>
         <Card>
           <div className="text-center">
-            <div className="text-4xl mb-2">Tỉ lệ</div>
+            <div className="text-4xl mb-2 font-bold text-blue-600">Tỉ lệ</div>
             <div className="text-3xl font-bold text-blue-600">{occupancyRate}%</div>
             <div className="text-gray-900 font-medium">Tỷ lệ lấp đầy</div>
           </div>
@@ -217,31 +241,6 @@ export default function HotelRoomsPage() {
           Đang có khách ({rooms.filter((r) => !r.availability).length})
         </Button>
       </div>
-
-      <Card>
-        <div className="flex flex-col md:flex-row md:items-center gap-3">
-          <div className="text-sm font-semibold text-gray-900">Khách sạn</div>
-          <select
-            value={selectedHotelId}
-            onChange={(e) => setSelectedHotelId(e.target.value)}
-            className="w-full md:w-[420px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] text-gray-900 disabled:bg-gray-100"
-            disabled={hotels.length === 0}
-          >
-            {hotels.length === 0 ? (
-              <option value="">Chưa có khách sạn</option>
-            ) : (
-              hotels.map((h) => (
-                <option
-                  key={String((h as any).hotel_id ?? (h as any).id)}
-                  value={String((h as any).hotel_id ?? (h as any).id)}
-                >
-                  {String((h as any).name ?? 'Unnamed hotel')}
-                </option>
-              ))
-            )}
-          </select>
-        </div>
-      </Card>
 
       {filteredRooms.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

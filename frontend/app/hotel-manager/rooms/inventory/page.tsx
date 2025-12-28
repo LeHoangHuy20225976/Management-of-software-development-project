@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
-import { roomInventoryApi } from '@/lib/api/services';
+import { roomInventoryApi, hotelManagerApi, bookingsApi } from '@/lib/api/services';
 import Link from 'next/link';
 
 interface InventoryDay {
@@ -25,6 +25,8 @@ export default function RoomInventoryCalendarPage() {
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedRoomType, setSelectedRoomType] = useState<number | null>(null);
+  const [hotels, setHotels] = useState<Array<Record<string, unknown>>>([]);
+  const [selectedHotelId, setSelectedHotelId] = useState<string>('');
 
   // Generate days of current month
   const daysInMonth = useMemo(() => {
@@ -44,80 +46,90 @@ export default function RoomInventoryCalendarPage() {
   const endDate = daysInMonth[daysInMonth.length - 1]?.toISOString().split('T')[0] || '';
 
   useEffect(() => {
-    loadInventory();
-  }, [currentMonth]);
+    const loadHotels = async () => {
+      try {
+        const myHotels = await hotelManagerApi.getMyHotels();
+        const normalized = (myHotels as unknown as Array<Record<string, unknown>>) ?? [];
+        setHotels(normalized);
+        const firstId = normalized.length
+          ? String((normalized[0] as any).hotel_id ?? (normalized[0] as any).id)
+          : '';
+        setSelectedHotelId(firstId);
+      } catch (error) {
+        console.error('Error loading hotels:', error);
+      }
+    };
+    loadHotels();
+  }, []);
+
+  useEffect(() => {
+    if (selectedHotelId) {
+      loadInventory();
+    }
+  }, [currentMonth, selectedHotelId]);
 
   const loadInventory = async () => {
+    if (!selectedHotelId) return;
+
     setLoading(true);
     try {
-      // In mock mode, generate sample data
-      const mockData: RoomInventory[] = [
-        {
-          room_type_id: 1,
-          room_type_name: 'Phòng Standard',
-          inventory: daysInMonth.map((day) => {
-            const dateStr = day.toISOString().split('T')[0];
-            const booked = Math.floor(Math.random() * 5);
-            const held = Math.floor(Math.random() * 2);
-            return {
-              date: dateStr,
-              total: 10,
-              booked,
-              held,
-              available: Math.max(0, 10 - booked - held),
-            };
-          }),
-        },
-        {
-          room_type_id: 2,
-          room_type_name: 'Phòng Deluxe',
-          inventory: daysInMonth.map((day) => {
-            const dateStr = day.toISOString().split('T')[0];
-            const booked = Math.floor(Math.random() * 3);
-            const held = Math.floor(Math.random() * 1);
-            return {
-              date: dateStr,
-              total: 5,
-              booked,
-              held,
-              available: Math.max(0, 5 - booked - held),
-            };
-          }),
-        },
-        {
-          room_type_id: 3,
-          room_type_name: 'Phòng Suite',
-          inventory: daysInMonth.map((day) => {
-            const dateStr = day.toISOString().split('T')[0];
-            const booked = Math.floor(Math.random() * 2);
-            const held = 0;
-            return {
-              date: dateStr,
-              total: 3,
-              booked,
-              held,
-              available: Math.max(0, 3 - booked - held),
-            };
-          }),
-        },
-      ];
+      // Get room types for this hotel
+      const roomTypes = await hotelManagerApi.getRoomTypes(selectedHotelId);
 
-      // Try API first, fallback to mock
-      try {
-        const data = await roomInventoryApi.getInventoryCalendar(
-          '1', // hotelId - would come from context
-          startDate,
-          endDate
-        );
-        // Transform API response if needed
-        if (Array.isArray(data) && data.length > 0 && 'room_type_id' in data[0]) {
-          setInventoryData(data as unknown as RoomInventory[]);
-        } else {
-          setInventoryData(mockData);
-        }
-      } catch {
-        setInventoryData(mockData);
+      if (!roomTypes || roomTypes.length === 0) {
+        console.warn('No room types found for hotel');
+        setInventoryData([]);
+        setLoading(false);
+        return;
       }
+
+      // Load bookings to calculate real inventory
+      const bookingData = await bookingsApi.getAll();
+      const bookingsArray = Array.isArray(bookingData?.bookings)
+        ? bookingData.bookings
+        : Array.isArray(bookingData)
+        ? bookingData
+        : [];
+
+      // Calculate inventory for each room type based on real bookings
+      const inventoryPromises = roomTypes.map(async (roomType: any) => {
+        const typeId = Number(roomType.type_id || roomType.id);
+        const typeName = roomType.type || roomType.name || 'Unknown';
+        const quantity = roomType.quantity || 5;
+
+        return {
+          room_type_id: typeId,
+          room_type_name: typeName,
+          inventory: daysInMonth.map((day) => {
+            const dateStr = day.toISOString().split('T')[0];
+
+            // Count bookings for this room type on this date
+            const booked = bookingsArray.filter((booking: any) => {
+              // Check if booking is for this room type
+              const bookingRoomType = booking.roomType || booking.room_type;
+              if (bookingRoomType !== typeName) return false;
+
+              // Check if this date falls within booking period
+              const checkIn = new Date(booking.check_in_date);
+              const checkOut = new Date(booking.check_out_date);
+              const currentDate = new Date(dateStr);
+
+              return currentDate >= checkIn && currentDate < checkOut;
+            }).length;
+
+            return {
+              date: dateStr,
+              total: quantity,
+              booked,
+              held: 0, // No held data available from API
+              available: Math.max(0, quantity - booked),
+            };
+          }),
+        };
+      });
+
+      const results = await Promise.all(inventoryPromises);
+      setInventoryData(results);
     } catch (error) {
       console.error('Error loading inventory:', error);
     } finally {
@@ -183,6 +195,30 @@ export default function RoomInventoryCalendarPage() {
           <Button variant="outline">← Quản lý phòng</Button>
         </Link>
       </div>
+
+      {/* Hotel Selector */}
+      {hotels.length > 1 && (
+        <Card>
+          <div className="flex items-center gap-4">
+            <label className="text-gray-900 font-semibold">Chọn khách sạn:</label>
+            <select
+              value={selectedHotelId}
+              onChange={(e) => setSelectedHotelId(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[300px] text-gray-900"
+            >
+              {hotels.map((hotel) => (
+                <option
+                  key={String((hotel as any).hotel_id || (hotel as any).id)}
+                  value={String((hotel as any).hotel_id || (hotel as any).id)}
+                  className="text-gray-900"
+                >
+                  {String((hotel as any).name || 'Khách sạn')} - ID: {String((hotel as any).hotel_id || (hotel as any).id)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Card>
+      )}
 
       {/* Month Navigation */}
       <Card>

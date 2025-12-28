@@ -11,6 +11,9 @@ export default function HotelReviewsPage() {
   const { user } = useAuth();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hotelId, setHotelId] = useState<string | null>(null);
+  const [hotels, setHotels] = useState<Array<Record<string, unknown>>>([]);
+  const [selectedHotelId, setSelectedHotelId] = useState<string>('');
   const [filter, setFilter] = useState<'all' | 'unreplied' | '5star' | 'low'>(
     'all'
   );
@@ -18,16 +21,37 @@ export default function HotelReviewsPage() {
   const [replyText, setReplyText] = useState('');
 
   useEffect(() => {
-    loadReviews();
+    const loadHotels = async () => {
+      try {
+        const myHotels = await hotelManagerApi.getMyHotels();
+        const normalized = (myHotels as unknown as Array<Record<string, unknown>>) ?? [];
+        setHotels(normalized);
+        const firstId = normalized.length
+          ? String((normalized[0] as any).hotel_id ?? (normalized[0] as any).id)
+          : '';
+        setSelectedHotelId(firstId);
+        setHotelId(firstId);
+      } catch (error) {
+        console.error('Error loading hotels:', error);
+      }
+    };
+    loadHotels();
   }, []);
 
+  useEffect(() => {
+    if (selectedHotelId) {
+      loadReviews();
+    }
+  }, [selectedHotelId]);
+
   const loadReviews = async () => {
+    if (!selectedHotelId) return;
+
     try {
       setLoading(true);
-      // Get hotel of current manager - assuming hotel_id = 1 for now
-      // TODO: Get actual hotel_id from user context or API
-      const hotelId = '1';
-      const data = await reviewsApi.getByHotel(hotelId);
+      setHotelId(selectedHotelId);
+
+      const data = await reviewsApi.getAll(selectedHotelId);
       const transformedReviews = data.map((review: any) => ({
         review_id: review.review_id?.toString() || '',
         guestName: review.User?.name || 'Khách hàng',
@@ -110,6 +134,30 @@ export default function HotelReviewsPage() {
           <p className="text-2xl font-bold text-[#0071c2]">{reviews.length}</p>
         </div>
       </div>
+
+      {/* Hotel Selector */}
+      {hotels.length > 1 && (
+        <Card>
+          <div className="flex items-center gap-4">
+            <label className="text-gray-900 font-semibold">Chọn khách sạn:</label>
+            <select
+              value={selectedHotelId}
+              onChange={(e) => setSelectedHotelId(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[300px] text-gray-900"
+            >
+              {hotels.map((hotel) => (
+                <option
+                  key={String((hotel as any).hotel_id || (hotel as any).id)}
+                  value={String((hotel as any).hotel_id || (hotel as any).id)}
+                  className="text-gray-900"
+                >
+                  {String((hotel as any).name || 'Khách sạn')} - ID: {String((hotel as any).hotel_id || (hotel as any).id)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Card>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -270,13 +318,9 @@ export default function HotelReviewsPage() {
                         {[1, 2, 3, 4, 5].map((star) => (
                           <span
                             key={star}
-                            className={`text-lg ${
-                              star <= review.rating
-                                ? 'text-yellow-500'
-                                : 'text-gray-300'
-                            }`}
+                            className="text-lg text-yellow-500"
                           >
-                            ⭐
+                            {star <= review.rating ? '⭐' : '☆'}
                           </span>
                         ))}
                       </div>
