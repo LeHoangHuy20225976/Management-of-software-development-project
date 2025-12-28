@@ -16,7 +16,7 @@ import { API_CONFIG } from '@/lib/api/config';
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filter, setFilter] = useState<
-    'all' | 'accepted' | 'maintained' | 'cancelled'
+    'all' | 'pending' | 'accepted' | 'cancelled'
   >('all');
   const [loading, setLoading] = useState(true);
 
@@ -94,19 +94,19 @@ export default function BookingsPage() {
             Tất cả ({bookings.length})
           </Button>
           <Button
+            variant={filter === 'pending' ? 'primary' : 'outline'}
+            size="sm"
+            onClick={() => setFilter('pending')}
+          >
+            Sắp tới ({bookings.filter((b) => b.status === 'pending').length})
+          </Button>
+          <Button
             variant={filter === 'accepted' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setFilter('accepted')}
           >
-            Sắp tới ({bookings.filter((b) => b.status === 'accepted').length})
-          </Button>
-          <Button
-            variant={filter === 'maintained' ? 'primary' : 'outline'}
-            size="sm"
-            onClick={() => setFilter('maintained')}
-          >
             Đã hoàn thành (
-            {bookings.filter((b) => b.status === 'maintained').length})
+            {bookings.filter((b) => b.status === 'accepted').length})
           </Button>
           <Button
             variant={filter === 'cancelled' ? 'primary' : 'outline'}
