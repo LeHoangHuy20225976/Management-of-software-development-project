@@ -126,30 +126,30 @@ export const Header = () => {
           <span className="mr-3">📋</span>
           Đơn đặt phòng
         </Link>
-        <Link
+        {/* <Link
           href="/user/reviews"
           className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
           onClick={() => setShowUserMenu(false)}
         >
           <span className="mr-3">⭐</span>
           Đánh giá của tôi
-        </Link>
-        <Link
+        </Link> */}
+        {/* <Link
           href="/user/my-vouchers"
           className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
           onClick={() => setShowUserMenu(false)}
         >
           <span className="mr-3">🎟️</span>
           Mã giảm giá của tôi
-        </Link>
-        <Link
+        </Link> */}
+        {/* <Link
           href="/user/chat-history"
           className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
           onClick={() => setShowUserMenu(false)}
         >
           <span className="mr-3">💬</span>
           Lịch sử chat
-        </Link>
+        </Link> */}
         <Link
           href="/user/dashboard/profile"
           className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
