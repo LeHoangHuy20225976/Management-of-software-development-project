@@ -507,6 +507,7 @@ export default function CreateRoomPage() {
                     setFormData({ ...formData, basic_price: Number(e.target.value) })
                   }
                   min={0}
+                  step="any"
                   disabled={typeMode === 'existing' && roomTypes.length > 0}
                 />
               </div>
@@ -519,6 +520,7 @@ export default function CreateRoomPage() {
                   value={formData.special_price}
                   onChange={(e) => setFormData({ ...formData, special_price: e.target.value })}
                   min={0}
+                  step="any"
                   disabled={typeMode === 'existing' && roomTypes.length > 0}
                 />
               </div>
@@ -531,6 +533,8 @@ export default function CreateRoomPage() {
                   value={formData.discount}
                   onChange={(e) => setFormData({ ...formData, discount: Number(e.target.value) })}
                   min={0}
+                  max={1}
+                  step="0.01"
                   disabled={typeMode === 'existing' && roomTypes.length > 0}
                 />
               </div>

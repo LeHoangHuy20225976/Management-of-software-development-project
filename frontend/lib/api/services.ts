@@ -699,6 +699,10 @@ export const paymentApi = {
     return apiClient.post<any>(API_CONFIG.ENDPOINTS.PAYMENT_REFUND, { id: paymentId, amount });
   },
 
+  async cancelPayment(paymentId: string): Promise<void> {
+    return apiClient.post(API_CONFIG.ENDPOINTS.PAYMENT_CANCEL, {}, { id: paymentId });
+  },
+
   // Mark payment as completed (for mock/testing)
   async completePayment(paymentId: string): Promise<Payment> {
     // Real API would handle this via VNPay callback
@@ -973,6 +977,16 @@ export const destinationsApi = {
   async getImages(destinationId: string): Promise<Image[]> {
     return apiClient.get<Image[]>(API_CONFIG.ENDPOINTS.DESTINATION_IMAGES, { id: destinationId });
   },
+
+  async uploadThumbnail(id: string, file: File): Promise<void> {
+    const formData = new FormData();
+    formData.append('thumbnail', file);
+    return apiClient.postFormData(API_CONFIG.ENDPOINTS.DESTINATION_THUMBNAIL, { id }, formData);
+  },
+
+  async deleteImage(id: string, imageId: string): Promise<void> {
+    return apiClient.delete(API_CONFIG.ENDPOINTS.DELETE_DESTINATION_IMAGE, { id, imageId });
+  },
 };
 
 // ============= USER PROFILE EXTENDED API =============
@@ -987,17 +1001,11 @@ export const userProfileApi = {
     const formData = new FormData();
     formData.append('image', file);
 
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.UPLOAD_PROFILE_IMAGE}`, {
-      method: 'POST',
-      credentials: 'include',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to upload image');
-    }
-
-    return response.json();
+    return apiClient.postFormData<{ imageUrl: string }>(
+      API_CONFIG.ENDPOINTS.UPLOAD_PROFILE_IMAGE,
+      {},
+      formData
+    );
   },
 
   async getProfileImage(): Promise<{ imageUrl: string | null }> {
@@ -1010,6 +1018,14 @@ export const userProfileApi = {
 
   async getAllUsers(): Promise<User[]> {
     return apiClient.get<User[]>(API_CONFIG.ENDPOINTS.GET_ALL_USERS);
+  },
+
+  async getUserBookings(): Promise<Booking[]> {
+    return apiClient.get<Booking[]>(API_CONFIG.ENDPOINTS.USER_BOOKINGS);
+  },
+
+  async createUser(userData: Partial<User>): Promise<User> {
+    return apiClient.post<User>(API_CONFIG.ENDPOINTS.CREATE_USER, userData);
   },
 
   // User coupons/vouchers - KEEP MOCK (backend doesn't have this)
@@ -1112,4 +1128,64 @@ export const notificationApi = {
   },
 };
 
+// ============= ADMIN API =============
+export const adminApi = {
+  // Dashboard & Metrics
+  async getDashboardStats(): Promise<any> {
+    return apiClient.get(API_CONFIG.ENDPOINTS.ADMIN_DASHBOARD);
+  },
 
+  async getRevenueMetrics(period?: string): Promise<any> {
+    return apiClient.get(API_CONFIG.ENDPOINTS.ADMIN_REVENUE_METRICS, { period: period || 'month' });
+  },
+
+  async getBookingKPIs(): Promise<any> {
+    return apiClient.get(API_CONFIG.ENDPOINTS.ADMIN_BOOKING_KPIS);
+  },
+
+  async getRecentActivity(): Promise<any[]> {
+    return apiClient.get<any[]>(API_CONFIG.ENDPOINTS.ADMIN_RECENT_ACTIVITY);
+  },
+
+  // User Management
+  async getUsers(filters?: any): Promise<User[]> {
+    return apiClient.get<User[]>(API_CONFIG.ENDPOINTS.ADMIN_USERS, filters);
+  },
+
+  async getUserById(id: string): Promise<User> {
+    return apiClient.get<User>(API_CONFIG.ENDPOINTS.ADMIN_USER_BY_ID, { id });
+  },
+
+  async updateUserRole(id: string, role: string): Promise<User> {
+    return apiClient.put<User>(API_CONFIG.ENDPOINTS.ADMIN_UPDATE_USER_ROLE, { role }, { id });
+  },
+
+  async updateUser(id: string, data: Partial<User>): Promise<User> {
+    return apiClient.put<User>(API_CONFIG.ENDPOINTS.ADMIN_UPDATE_USER, data, { id });
+  },
+
+  async deleteUser(id: string): Promise<void> {
+    return apiClient.delete(API_CONFIG.ENDPOINTS.ADMIN_DELETE_USER, { id });
+  },
+
+  // Hotel Management
+  async getHotelManagers(): Promise<User[]> {
+    return apiClient.get<User[]>(API_CONFIG.ENDPOINTS.ADMIN_HOTEL_MANAGERS);
+  },
+
+  async getPendingHotels(): Promise<Hotel[]> {
+    return apiClient.get<Hotel[]>(API_CONFIG.ENDPOINTS.ADMIN_PENDING_HOTELS);
+  },
+
+  async approveHotel(id: string): Promise<void> {
+    return apiClient.post(API_CONFIG.ENDPOINTS.ADMIN_APPROVE_HOTEL, {}, { id });
+  },
+
+  async lockHotel(id: string): Promise<void> {
+    return apiClient.post(API_CONFIG.ENDPOINTS.ADMIN_LOCK_HOTEL, {}, { id });
+  },
+
+  async updateHotelStatus(id: string, status: string): Promise<void> {
+    return apiClient.put(API_CONFIG.ENDPOINTS.ADMIN_UPDATE_HOTEL_STATUS, { status }, { id });
+  },
+};
