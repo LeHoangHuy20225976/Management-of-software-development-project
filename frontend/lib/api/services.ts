@@ -779,6 +779,10 @@ export const paymentApi = {
     return apiClient.post<any>(API_CONFIG.ENDPOINTS.PAYMENT_REFUND, { id: paymentId, amount });
   },
 
+  async cancelPayment(paymentId: string): Promise<void> {
+    return apiClient.post(API_CONFIG.ENDPOINTS.PAYMENT_CANCEL, {}, { id: paymentId });
+  },
+
   // Mark payment as completed (for mock/testing)
   async completePayment(paymentId: string): Promise<Payment> {
     // Real API would handle this via VNPay callback
@@ -1205,6 +1209,14 @@ export const userProfileApi = {
 
   async getAllUsers(): Promise<User[]> {
     return apiClient.get<User[]>(API_CONFIG.ENDPOINTS.GET_ALL_USERS);
+  },
+
+  async getUserBookings(): Promise<Booking[]> {
+    return apiClient.get<Booking[]>(API_CONFIG.ENDPOINTS.USER_BOOKINGS);
+  },
+
+  async createUser(userData: Partial<User>): Promise<User> {
+    return apiClient.post<User>(API_CONFIG.ENDPOINTS.CREATE_USER, userData);
   },
 
   // User coupons/vouchers - KEEP MOCK (backend doesn't have this)
