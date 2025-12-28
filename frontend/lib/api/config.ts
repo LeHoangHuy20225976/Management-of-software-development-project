@@ -11,8 +11,8 @@ export const API_CONFIG = {
     process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true"
       ? true
       : process.env.NEXT_PUBLIC_USE_MOCK_DATA === "false"
-      ? false
-      : false,
+        ? false
+        : false,
 
   // Backend API URL
   BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000",
@@ -141,6 +141,12 @@ export const API_CONFIG = {
     DESTINATION_THUMBNAIL: "/api/v1/destinations/:id/thumbnail",
     DESTINATION_IMAGES: "/api/v1/destinations/:id/images",
     DELETE_DESTINATION_IMAGE: "/api/v1/destinations/:id/images/:imageId",
+
+    // Loving List APIs
+    ADD_TO_LOVING_LIST: "/api/v1/destinations/:id/loving-list",
+    REMOVE_FROM_LOVING_LIST: "/api/v1/destinations/:id/loving-list",
+    GET_LOVING_LIST: "/api/v1/destinations/loving-list",
+    CHECK_LOVING_LIST_STATUS: "/api/v1/destinations/:id/loving-list/status",
 
     // Booking Extended (Hotel Manager)
     BOOKING_CHECKIN: "/api/v1/bookings/:id/checkin",

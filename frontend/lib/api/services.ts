@@ -4,39 +4,40 @@
  * Mock data is stored in localStorage for persistence
  */
 
-import { API_CONFIG } from './config';
-import { apiClient } from './client';
+import { API_CONFIG } from "./config";
+import { apiClient } from "./client";
 import {
   getMockUser,
   updateMockUser,
   initializeMockData,
   getMockHotels,
-} from '../utils/mockData';
-import type { 
-  Hotel, 
-  TourismSpot, 
-  Review, 
-  Booking, 
-  User, 
-  SearchFilters, 
-  RoomType, 
-  Payment, 
-  Room, 
-  Destination, 
-  Image, 
+} from "../utils/mockData";
+import type {
+  Hotel,
+  TourismSpot,
+  Review,
+  Booking,
+  User,
+  SearchFilters,
+  RoomType,
+  Payment,
+  Room,
+  Destination,
+  Image,
   Coupon,
   AdminDashboard,
   AdminActivity,
   AdminUser,
   AdminHotel,
-  RevenueMetrics
-} from '@/types';
+  RevenueMetrics,
+} from "@/types";
 
 // Helper to simulate API delay for mock data
-const mockDelay = (ms: number = 500) => new Promise(resolve => setTimeout(resolve, ms));
+const mockDelay = (ms: number = 500) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
 const ensureMockLayerReady = () => {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return;
   }
   initializeMockData();
@@ -53,7 +54,9 @@ export const hotelsApi = {
   },
 
   async getById(id: string): Promise<Hotel | null> {
-    return apiClient.get<Hotel>(API_CONFIG.ENDPOINTS.VIEW_HOTEL, { hotel_id: id });
+    return apiClient.get<Hotel>(API_CONFIG.ENDPOINTS.VIEW_HOTEL, {
+      hotel_id: id,
+    });
   },
 
   async getBySlug(slug: string): Promise<Hotel | null> {
@@ -61,15 +64,21 @@ export const hotelsApi = {
   },
 
   async getRooms(hotelId: string): Promise<RoomType[]> {
-    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ALL_ROOMS, { hotel_id: hotelId });
+    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ALL_ROOMS, {
+      hotel_id: hotelId,
+    });
   },
 
   async getRoomTypes(hotelId: string): Promise<RoomType[]> {
-    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ROOM_TYPES, { hotel_id: hotelId });
+    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ROOM_TYPES, {
+      hotel_id: hotelId,
+    });
   },
 
   async getReviews(hotelId: string): Promise<Review[]> {
-    return apiClient.get<Review[]>(API_CONFIG.ENDPOINTS.ALL_REVIEWS, { hotel_id: hotelId });
+    return apiClient.get<Review[]>(API_CONFIG.ENDPOINTS.ALL_REVIEWS, {
+      hotel_id: hotelId,
+    });
   },
 
   /**
@@ -89,7 +98,9 @@ export const tourismApi = {
   },
 
   async getById(id: string): Promise<TourismSpot | null> {
-    return apiClient.get<TourismSpot>(API_CONFIG.ENDPOINTS.VIEW_DESTINATION, { destination_id: id });
+    return apiClient.get<TourismSpot>(API_CONFIG.ENDPOINTS.VIEW_DESTINATION, {
+      destination_id: id,
+    });
   },
 
   async getBySlug(slug: string): Promise<TourismSpot | null> {
@@ -97,64 +108,82 @@ export const tourismApi = {
   },
 
   async search(query: string): Promise<TourismSpot[]> {
-    return apiClient.get<TourismSpot[]>(API_CONFIG.ENDPOINTS.SEARCH_DESTINATIONS, { q: query });
+    return apiClient.get<TourismSpot[]>(
+      API_CONFIG.ENDPOINTS.SEARCH_DESTINATIONS,
+      { q: query }
+    );
   },
 
   async getByType(type: string): Promise<TourismSpot[]> {
-    return apiClient.get<TourismSpot[]>(API_CONFIG.ENDPOINTS.DESTINATIONS_BY_TYPE.replace(':type', type));
+    return apiClient.get<TourismSpot[]>(
+      API_CONFIG.ENDPOINTS.DESTINATIONS_BY_TYPE.replace(":type", type)
+    );
   },
 
   // Admin methods
   async create(data: Partial<Destination>): Promise<Destination> {
-    return apiClient.post<Destination>(API_CONFIG.ENDPOINTS.CREATE_DESTINATION, data);
+    return apiClient.post<Destination>(
+      API_CONFIG.ENDPOINTS.CREATE_DESTINATION,
+      data
+    );
   },
 
   async update(id: number, data: Partial<Destination>): Promise<Destination> {
     return apiClient.put<Destination>(
-      API_CONFIG.ENDPOINTS.UPDATE_DESTINATION.replace(':id', id.toString()),
+      API_CONFIG.ENDPOINTS.UPDATE_DESTINATION.replace(":id", id.toString()),
       data
     );
   },
 
   async delete(id: number): Promise<{ success: boolean }> {
     return apiClient.delete<any>(
-      API_CONFIG.ENDPOINTS.DELETE_DESTINATION.replace(':id', id.toString())
+      API_CONFIG.ENDPOINTS.DELETE_DESTINATION.replace(":id", id.toString())
     );
   },
 
-  async uploadThumbnail(id: number | string, file: File): Promise<{ success: boolean; url: string }> {
+  async uploadThumbnail(
+    id: number | string,
+    file: File
+  ): Promise<{ success: boolean; url: string }> {
     const formData = new FormData();
-    formData.append('thumbnail', file);
+    formData.append("thumbnail", file);
     return apiClient.post<any>(
-      API_CONFIG.ENDPOINTS.DESTINATION_THUMBNAIL.replace(':id', id.toString()),
+      API_CONFIG.ENDPOINTS.DESTINATION_THUMBNAIL.replace(":id", id.toString()),
       formData,
       undefined,
-      { 'Content-Type': 'multipart/form-data' }
+      { "Content-Type": "multipart/form-data" }
     );
   },
 
-  async uploadImage(id: number | string, file: File): Promise<{ success: boolean; url: string }> {
+  async uploadImage(
+    id: number | string,
+    file: File
+  ): Promise<{ success: boolean; url: string }> {
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append("image", file);
     return apiClient.post<any>(
-      API_CONFIG.ENDPOINTS.DESTINATION_IMAGES.replace(':id', id.toString()),
+      API_CONFIG.ENDPOINTS.DESTINATION_IMAGES.replace(":id", id.toString()),
       formData,
       undefined,
-      { 'Content-Type': 'multipart/form-data' }
+      { "Content-Type": "multipart/form-data" }
     );
   },
 
   async getImages(id: number | string): Promise<Image[]> {
     return apiClient.get<Image[]>(
-      API_CONFIG.ENDPOINTS.DESTINATION_IMAGES.replace(':id', id.toString())
+      API_CONFIG.ENDPOINTS.DESTINATION_IMAGES.replace(":id", id.toString())
     );
   },
 
-  async deleteImage(destinationId: number | string, imageId: number | string): Promise<{ success: boolean }> {
+  async deleteImage(
+    destinationId: number | string,
+    imageId: number | string
+  ): Promise<{ success: boolean }> {
     return apiClient.delete<any>(
-      API_CONFIG.ENDPOINTS.DELETE_DESTINATION_IMAGE
-        .replace(':id', destinationId.toString())
-        .replace(':imageId', imageId.toString())
+      API_CONFIG.ENDPOINTS.DELETE_DESTINATION_IMAGE.replace(
+        ":id",
+        destinationId.toString()
+      ).replace(":imageId", imageId.toString())
     );
   },
 };
@@ -170,7 +199,10 @@ export const bookingsApi = {
   },
 
   async create(bookingData: Partial<Booking>): Promise<Booking> {
-    return apiClient.post<Booking>(API_CONFIG.ENDPOINTS.ADD_BOOKING, bookingData);
+    return apiClient.post<Booking>(
+      API_CONFIG.ENDPOINTS.ADD_BOOKING,
+      bookingData
+    );
   },
 
   async cancel(id: string): Promise<boolean> {
@@ -178,24 +210,47 @@ export const bookingsApi = {
   },
 
   async update(id: string, bookingData: Partial<Booking>): Promise<Booking> {
-    return apiClient.put<Booking>(API_CONFIG.ENDPOINTS.UPDATE_BOOKING, { id, ...bookingData });
+    return apiClient.put<Booking>(API_CONFIG.ENDPOINTS.UPDATE_BOOKING, {
+      id,
+      ...bookingData,
+    });
   },
 
-  async checkAvailability(data: { room_id: number; check_in_date: string; check_out_date: string }): Promise<{ available: boolean }> {
-    return apiClient.post<{ available: boolean }>(API_CONFIG.ENDPOINTS.CHECK_AVAILABILITY, data);
+  async checkAvailability(data: {
+    room_id: number;
+    check_in_date: string;
+    check_out_date: string;
+  }): Promise<{ available: boolean }> {
+    return apiClient.post<{ available: boolean }>(
+      API_CONFIG.ENDPOINTS.CHECK_AVAILABILITY,
+      data
+    );
   },
 
-  async calculatePrice(data: { room_id: number; check_in_date: string; check_out_date: string; people: number }): Promise<{ total_price: number }> {
-    return apiClient.post<{ total_price: number }>(API_CONFIG.ENDPOINTS.CALCULATE_PRICE, data);
+  async calculatePrice(data: {
+    room_id: number;
+    check_in_date: string;
+    check_out_date: string;
+    people: number;
+  }): Promise<{ total_price: number }> {
+    return apiClient.post<{ total_price: number }>(
+      API_CONFIG.ENDPOINTS.CALCULATE_PRICE,
+      data
+    );
   },
 
-  async getAvailableRooms(hotelId: string, checkInDate: string, checkOutDate: string, guests: number): Promise<any[]> {
+  async getAvailableRooms(
+    hotelId: string,
+    checkInDate: string,
+    checkOutDate: string,
+    guests: number
+  ): Promise<any[]> {
     return apiClient.get<any[]>(
-      API_CONFIG.ENDPOINTS.AVAILABLE_ROOMS.replace(':hotelId', hotelId),
+      API_CONFIG.ENDPOINTS.AVAILABLE_ROOMS.replace(":hotelId", hotelId),
       {
         check_in_date: checkInDate,
         check_out_date: checkOutDate,
-        guests: guests.toString()
+        guests: guests.toString(),
       }
     );
   },
@@ -215,29 +270,32 @@ export const userApi = {
   async getNotifications(): Promise<any[]> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
-      const notifications = localStorage.getItem('userNotifications');
+      const notifications = localStorage.getItem("userNotifications");
       if (notifications) return JSON.parse(notifications);
 
       // Default mock notifications
       const defaultNotifications = [
         {
           id: 1,
-          type: 'booking',
-          title: 'Booking Confirmed',
-          message: 'Your booking at Vinpearl Resort has been confirmed',
+          type: "booking",
+          title: "Booking Confirmed",
+          message: "Your booking at Vinpearl Resort has been confirmed",
           timestamp: new Date().toISOString(),
           read: false,
         },
         {
           id: 2,
-          type: 'payment',
-          title: 'Payment Received',
-          message: 'Payment of 2,500,000₫ received successfully',
+          type: "payment",
+          title: "Payment Received",
+          message: "Payment of 2,500,000₫ received successfully",
           timestamp: new Date(Date.now() - 3600000).toISOString(),
           read: false,
         },
       ];
-      localStorage.setItem('userNotifications', JSON.stringify(defaultNotifications));
+      localStorage.setItem(
+        "userNotifications",
+        JSON.stringify(defaultNotifications)
+      );
       return defaultNotifications;
     }
     // When backend implements this, replace with:
@@ -248,11 +306,13 @@ export const userApi = {
   async markNotificationRead(id: number): Promise<boolean> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
-      const notifications = JSON.parse(localStorage.getItem('userNotifications') || '[]');
+      const notifications = JSON.parse(
+        localStorage.getItem("userNotifications") || "[]"
+      );
       const updated = notifications.map((n: any) =>
         n.id === id ? { ...n, read: true } : n
       );
-      localStorage.setItem('userNotifications', JSON.stringify(updated));
+      localStorage.setItem("userNotifications", JSON.stringify(updated));
       return true;
     }
     // When backend implements this, replace with:
@@ -264,7 +324,9 @@ export const userApi = {
 // ============= REVIEWS API =============
 export const reviewsApi = {
   async getAll(hotelId: string): Promise<Review[]> {
-    return apiClient.get<Review[]>(API_CONFIG.ENDPOINTS.ALL_REVIEWS, { hotel_id: hotelId });
+    return apiClient.get<Review[]>(API_CONFIG.ENDPOINTS.ALL_REVIEWS, {
+      hotel_id: hotelId,
+    });
   },
 
   async create(reviewData: Partial<Review>): Promise<Review> {
@@ -272,11 +334,16 @@ export const reviewsApi = {
   },
 
   async update(id: string, reviewData: Partial<Review>): Promise<Review> {
-    return apiClient.put<Review>(API_CONFIG.ENDPOINTS.UPDATE_REVIEW, { review_id: id, ...reviewData });
+    return apiClient.put<Review>(API_CONFIG.ENDPOINTS.UPDATE_REVIEW, {
+      review_id: id,
+      ...reviewData,
+    });
   },
 
   async delete(id: string): Promise<boolean> {
-    return apiClient.delete<boolean>(API_CONFIG.ENDPOINTS.DELETE_REVIEW, { review_id: id });
+    return apiClient.delete<boolean>(API_CONFIG.ENDPOINTS.DELETE_REVIEW, {
+      review_id: id,
+    });
   },
 };
 
@@ -287,7 +354,7 @@ export const couponsApi = {
       ensureMockLayerReady();
       await mockDelay();
       // Get coupons from localStorage or return default coupons
-      const cached = localStorage.getItem('userCoupons');
+      const cached = localStorage.getItem("userCoupons");
       if (cached) {
         return JSON.parse(cached);
       }
@@ -295,73 +362,79 @@ export const couponsApi = {
       const defaultCoupons: Coupon[] = [
         {
           coupon_id: 1,
-          code: 'WELCOME2024',
-          description: 'Giảm 10% cho đơn đặt phòng đầu tiên',
-          discountType: 'percentage',
+          code: "WELCOME2024",
+          description: "Giảm 10% cho đơn đặt phòng đầu tiên",
+          discountType: "percentage",
           discountValue: 10,
           minOrder: 500000,
           maxDiscount: 200000,
-          expiryDate: '2025-03-31',
+          expiryDate: "2025-03-31",
           usageCount: 0,
           maxUsage: 1,
         },
         {
           coupon_id: 2,
-          code: 'NEWYEAR25',
-          description: 'Giảm 500K cho đơn từ 2 triệu',
-          discountType: 'fixed',
+          code: "NEWYEAR25",
+          description: "Giảm 500K cho đơn từ 2 triệu",
+          discountType: "fixed",
           discountValue: 500000,
           minOrder: 2000000,
-          expiryDate: '2025-01-31',
+          expiryDate: "2025-01-31",
           usageCount: 0,
           maxUsage: 2,
         },
         {
           coupon_id: 3,
-          code: 'SUMMER2024',
-          description: 'Giảm 15% cho kỳ nghỉ hè',
-          discountType: 'percentage',
+          code: "SUMMER2024",
+          description: "Giảm 15% cho kỳ nghỉ hè",
+          discountType: "percentage",
           discountValue: 15,
           minOrder: 1000000,
           maxDiscount: 500000,
-          expiryDate: '2024-09-30',
+          expiryDate: "2024-09-30",
           usageCount: 1,
           maxUsage: 1,
         },
       ];
-      localStorage.setItem('userCoupons', JSON.stringify(defaultCoupons));
+      localStorage.setItem("userCoupons", JSON.stringify(defaultCoupons));
       return defaultCoupons;
     }
 
     // Real API - backend may need to implement this endpoint
     try {
-      return await apiClient.get<Coupon[]>('/coupons/user');
+      return await apiClient.get<Coupon[]>("/coupons/user");
     } catch {
-      console.warn('Coupons API endpoint not available, returning empty array');
+      console.warn("Coupons API endpoint not available, returning empty array");
       return [];
     }
   },
 
-  async validateCoupon(code: string, orderAmount: number): Promise<{ valid: boolean; discount?: number; message?: string }> {
+  async validateCoupon(
+    code: string,
+    orderAmount: number
+  ): Promise<{ valid: boolean; discount?: number; message?: string }> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
       const coupons = await this.getAll();
-      const coupon = coupons.find(c => c.code === code);
-      
+      const coupon = coupons.find((c) => c.code === code);
+
       if (!coupon) {
-        return { valid: false, message: 'Mã giảm giá không tồn tại' };
+        return { valid: false, message: "Mã giảm giá không tồn tại" };
       }
-      
+
       if (new Date(coupon.expiryDate) < new Date()) {
-        return { valid: false, message: 'Mã giảm giá đã hết hạn' };
+        return { valid: false, message: "Mã giảm giá đã hết hạn" };
       }
-      
+
       if (orderAmount < coupon.minOrder) {
-        return { valid: false, message: `Đơn hàng tối thiểu ${coupon.minOrder.toLocaleString()}đ` };
+        return {
+          valid: false,
+          message: `Đơn hàng tối thiểu ${coupon.minOrder.toLocaleString()}đ`,
+        };
       }
-      
+
       let discount = 0;
-      if (coupon.discountType === 'percentage') {
+      if (coupon.discountType === "percentage") {
         discount = (orderAmount * coupon.discountValue) / 100;
         if (coupon.maxDiscount) {
           discount = Math.min(discount, coupon.maxDiscount);
@@ -369,11 +442,15 @@ export const couponsApi = {
       } else {
         discount = coupon.discountValue;
       }
-      
+
       return { valid: true, discount };
     }
 
-    return apiClient.post<{ valid: boolean; discount?: number; message?: string }>('/coupons/validate', { code, orderAmount });
+    return apiClient.post<{
+      valid: boolean;
+      discount?: number;
+      message?: string;
+    }>("/coupons/validate", { code, orderAmount });
   },
 };
 
@@ -390,13 +467,13 @@ export const searchApi = {
       await mockDelay(200);
       // Simple mock suggestions
       const suggestions = [
-        'Hanoi',
-        'Ho Chi Minh City',
-        'Da Nang',
-        'Hoi An',
-        'Nha Trang',
-        'Phu Quoc',
-      ].filter(s => s.toLowerCase().includes(query.toLowerCase()));
+        "Hanoi",
+        "Ho Chi Minh City",
+        "Da Nang",
+        "Hoi An",
+        "Nha Trang",
+        "Phu Quoc",
+      ].filter((s) => s.toLowerCase().includes(query.toLowerCase()));
       return suggestions.slice(0, 5);
     }
     // When backend implements this, replace with:
@@ -420,8 +497,13 @@ export const hotelManagerApi = {
 
   // Rooms Management
 
-  async createRoom(hotelId: string, roomData: Partial<RoomType>): Promise<RoomType> {
-    return apiClient.post<RoomType>(API_CONFIG.ENDPOINTS.ADD_ROOM, { roomData });
+  async createRoom(
+    hotelId: string,
+    roomData: Partial<RoomType>
+  ): Promise<RoomType> {
+    return apiClient.post<RoomType>(API_CONFIG.ENDPOINTS.ADD_ROOM, {
+      roomData,
+    });
   },
 
   async updateRoom(roomId: string, updates: Partial<Room>): Promise<Room> {
@@ -433,7 +515,9 @@ export const hotelManagerApi = {
   },
 
   async deleteRoom(roomId: string): Promise<void> {
-    return apiClient.delete(API_CONFIG.ENDPOINTS.ROOM_INVENTORY_DELETE, { room_id: roomId });
+    return apiClient.delete(API_CONFIG.ENDPOINTS.ROOM_INVENTORY_DELETE, {
+      room_id: roomId,
+    });
   },
 
   // Pricing Management
@@ -454,7 +538,7 @@ export const hotelManagerApi = {
       discount?: number;
       event?: string;
       start_date?: string; // ISO8601 format
-      end_date?: string;   // ISO8601 format
+      end_date?: string; // ISO8601 format
     }
   ): Promise<{ message: string }> {
     return apiClient.put<{ message: string }>(
@@ -470,15 +554,32 @@ export const hotelManagerApi = {
 
   // Reviews Management
   async replyToReview(reviewId: string, reply: string): Promise<Review> {
-    return apiClient.post<any>(API_CONFIG.ENDPOINTS.REPLY_REVIEW, { review_id: reviewId, reply });
+    return apiClient.post<any>(API_CONFIG.ENDPOINTS.REPLY_REVIEW, {
+      review_id: reviewId,
+      reply,
+    });
   },
   // Hotel Info Management
-  async getHotelInfo(hotelId: string = 'h1'): Promise<Hotel & { settings?: Record<string, unknown> }> {
-    return apiClient.get<any>(API_CONFIG.ENDPOINTS.VIEW_HOTEL, { hotel_id: hotelId });
+  async getHotelInfo(
+    hotelId: string = "h1"
+  ): Promise<Hotel & { settings?: Record<string, unknown> }> {
+    return apiClient.get<any>(API_CONFIG.ENDPOINTS.VIEW_HOTEL, {
+      hotel_id: hotelId,
+    });
   },
 
-  async updateHotelInfo(hotelId: string, updates: Partial<Hotel> & { phone?: string; email?: string; settings?: Record<string, unknown> }): Promise<{ success: boolean }> {
-    return apiClient.put<any>(API_CONFIG.ENDPOINTS.UPDATE_HOTEL, { hotel_id: hotelId, hotelData: updates });
+  async updateHotelInfo(
+    hotelId: string,
+    updates: Partial<Hotel> & {
+      phone?: string;
+      email?: string;
+      settings?: Record<string, unknown>;
+    }
+  ): Promise<{ success: boolean }> {
+    return apiClient.put<any>(API_CONFIG.ENDPOINTS.UPDATE_HOTEL, {
+      hotel_id: hotelId,
+      hotelData: updates,
+    });
   },
 
   /**
@@ -486,7 +587,9 @@ export const hotelManagerApi = {
    * DELETE /hotel-profile/delete-hotel/:hotel_id
    */
   async deleteHotel(hotelId: string): Promise<void> {
-    return apiClient.delete(API_CONFIG.ENDPOINTS.DELETE_HOTEL, { hotel_id: hotelId });
+    return apiClient.delete(API_CONFIG.ENDPOINTS.DELETE_HOTEL, {
+      hotel_id: hotelId,
+    });
   },
 
   /**
@@ -504,20 +607,25 @@ export const hotelManagerApi = {
   }): Promise<Hotel> {
     const formData = new FormData();
     if (hotelData.thumbnail) {
-      formData.append('thumbnail', hotelData.thumbnail);
+      formData.append("thumbnail", hotelData.thumbnail);
     }
     const { thumbnail, ...data } = hotelData;
-    formData.append('hotelData', JSON.stringify(data));
+    formData.append("hotelData", JSON.stringify(data));
 
     return apiClient.post<Hotel>(API_CONFIG.ENDPOINTS.ADD_HOTEL, formData);
   },
 
   // Booking Management for Hotel Manager
   async getHotelBookings(hotelId: string): Promise<Booking[]> {
-    return apiClient.get<Booking[]>(API_CONFIG.ENDPOINTS.BOOKING_HISTORY, { hotelId });
+    return apiClient.get<Booking[]>(API_CONFIG.ENDPOINTS.BOOKING_HISTORY, {
+      hotelId,
+    });
   },
 
-  async updateBookingStatus(bookingId: string, status: string): Promise<Booking> {
+  async updateBookingStatus(
+    bookingId: string,
+    status: string
+  ): Promise<Booking> {
     return apiClient.patch<Booking>(
       API_CONFIG.ENDPOINTS.UPDATE_BOOKING_STATUS,
       { status },
@@ -526,15 +634,22 @@ export const hotelManagerApi = {
   },
 
   async checkInBooking(bookingId: string): Promise<Booking> {
-    return apiClient.post<Booking>(API_CONFIG.ENDPOINTS.BOOKING_CHECKIN, {}, { id: bookingId });
+    return apiClient.post<Booking>(
+      API_CONFIG.ENDPOINTS.BOOKING_CHECKIN,
+      {},
+      { id: bookingId }
+    );
   },
 
   async checkOutBooking(bookingId: string): Promise<Booking> {
-    return apiClient.post<Booking>(API_CONFIG.ENDPOINTS.BOOKING_CHECKOUT, {}, { id: bookingId });
+    return apiClient.post<Booking>(
+      API_CONFIG.ENDPOINTS.BOOKING_CHECKOUT,
+      {},
+      { id: bookingId }
+    );
   },
 
   // Room Types Management
-
 
   async addRoomType(data: {
     type: string;
@@ -551,12 +666,22 @@ export const hotelManagerApi = {
    * Update room type details
    * PUT /hotel-profile/update-room-type/:type_id
    */
-  async updateRoomType(typeId: string, data: Partial<RoomType>): Promise<RoomType> {
-    return apiClient.put<RoomType>(API_CONFIG.ENDPOINTS.UPDATE_ROOM_TYPE, data, { type_id: typeId });
+  async updateRoomType(
+    typeId: string,
+    data: Partial<RoomType>
+  ): Promise<RoomType> {
+    return apiClient.put<RoomType>(
+      API_CONFIG.ENDPOINTS.UPDATE_ROOM_TYPE,
+      data,
+      { type_id: typeId }
+    );
   },
 
   async updateRoomPrice(typeId: string, newPrice: number): Promise<RoomType> {
-    return apiClient.put<RoomType>(API_CONFIG.ENDPOINTS.UPDATE_PRICE, { type_id: typeId, base_price: newPrice });
+    return apiClient.put<RoomType>(API_CONFIG.ENDPOINTS.UPDATE_PRICE, {
+      type_id: typeId,
+      base_price: newPrice,
+    });
   },
 
   /**
@@ -564,7 +689,9 @@ export const hotelManagerApi = {
    * GET /hotel-profile/view-room/:room_id
    */
   async getRoom(roomId: string): Promise<Room> {
-    return apiClient.get<Room>(API_CONFIG.ENDPOINTS.VIEW_ROOM, { room_id: roomId });
+    return apiClient.get<Room>(API_CONFIG.ENDPOINTS.VIEW_ROOM, {
+      room_id: roomId,
+    });
   },
 
   // Facilities Management
@@ -591,12 +718,14 @@ export const hotelManagerApi = {
       hotel_facilities: Array<{ facility_id: number }>;
     }>(API_CONFIG.ENDPOINTS.VIEW_FACILITIES, { hotel_id: hotelId });
 
-    const activeIds = new Set((data.hotel_facilities ?? []).map((f) => Number(f.facility_id)));
+    const activeIds = new Set(
+      (data.hotel_facilities ?? []).map((f) => Number(f.facility_id))
+    );
     return (data.facilities ?? []).map((f) => ({
       id: Number(f.facility_id),
-      name: String(f.name ?? ''),
-      icon: '',
-      category: 'general',
+      name: String(f.name ?? ""),
+      icon: "",
+      category: "general",
       isActive: activeIds.has(Number(f.facility_id)),
     }));
   },
@@ -614,10 +743,15 @@ export const hotelManagerApi = {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
-      localStorage.setItem(`hotelFacilities_${hotelId}`, JSON.stringify(facilities));
+      localStorage.setItem(
+        `hotelFacilities_${hotelId}`,
+        JSON.stringify(facilities)
+      );
       return { success: true };
     }
-    const selected = facilities.filter((f) => f.isActive).map((f) => ({ facility_id: f.id }));
+    const selected = facilities
+      .filter((f) => f.isActive)
+      .map((f) => ({ facility_id: f.id }));
     await apiClient.post(
       API_CONFIG.ENDPOINTS.ADD_FACILITY,
       { facilityData: { hotel_id: Number(hotelId), facilities: selected } },
@@ -646,11 +780,14 @@ export const hotelManagerApi = {
       return [];
     }
     try {
-      const hotelData = await apiClient.get<any>(API_CONFIG.ENDPOINTS.VIEW_HOTEL, { hotel_id: hotelId });
+      const hotelData = await apiClient.get<any>(
+        API_CONFIG.ENDPOINTS.VIEW_HOTEL,
+        { hotel_id: hotelId }
+      );
       // Extract images from hotel data
       return Array.isArray(hotelData?.images) ? hotelData.images : [];
     } catch (error) {
-      console.error('Error fetching hotel images:', error);
+      console.error("Error fetching hotel images:", error);
       return [];
     }
   },
@@ -658,13 +795,24 @@ export const hotelManagerApi = {
   async getAllImages(hotelId: string): Promise<{
     thumbnail: string | null;
     hotelImages: { image_id: number; url: string }[];
-    rooms: { room_id: number; room_name: string | null; images: { image_id: number; url: string }[] }[];
+    rooms: {
+      room_id: number;
+      room_name: string | null;
+      images: { image_id: number; url: string }[];
+    }[];
     all: any[];
   }> {
-    return apiClient.get<any>(API_CONFIG.ENDPOINTS.HOTEL_ALL_IMAGES, { hotel_id: hotelId });
+    return apiClient.get<any>(API_CONFIG.ENDPOINTS.HOTEL_ALL_IMAGES, {
+      hotel_id: hotelId,
+    });
   },
 
-  async uploadImages(hotelId: string, files: File[], imageType: string, caption: string): Promise<{ id: number; url: string; type: string; caption: string }[]> {
+  async uploadImages(
+    hotelId: string,
+    files: File[],
+    imageType: string,
+    caption: string
+  ): Promise<{ id: number; url: string; type: string; caption: string }[]> {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
@@ -674,7 +822,7 @@ export const hotelManagerApi = {
         type: imageType,
         caption: caption,
         isThumbnail: false,
-        uploadedAt: new Date().toISOString().split('T')[0],
+        uploadedAt: new Date().toISOString().split("T")[0],
       }));
       const cached = localStorage.getItem(`hotelImages_${hotelId}`);
       const existingImages = cached ? JSON.parse(cached) : [];
@@ -684,13 +832,20 @@ export const hotelManagerApi = {
     }
     // Real API: Use FormData for file upload
     const formData = new FormData();
-    files.forEach(file => formData.append('images', file));
-    formData.append('type', imageType);
-    formData.append('caption', caption);
-    return apiClient.postFormData<any[]>(API_CONFIG.ENDPOINTS.UPLOAD_HOTEL_IMAGES, { hotel_id: hotelId }, formData);
+    files.forEach((file) => formData.append("images", file));
+    formData.append("type", imageType);
+    formData.append("caption", caption);
+    return apiClient.postFormData<any[]>(
+      API_CONFIG.ENDPOINTS.UPLOAD_HOTEL_IMAGES,
+      { hotel_id: hotelId },
+      formData
+    );
   },
 
-  async deleteImage(hotelId: string, imageId: number): Promise<{ success: boolean }> {
+  async deleteImage(
+    hotelId: string,
+    imageId: number
+  ): Promise<{ success: boolean }> {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
@@ -698,14 +853,22 @@ export const hotelManagerApi = {
       if (cached) {
         const images = JSON.parse(cached);
         const filtered = images.filter((img: any) => img.id !== imageId);
-        localStorage.setItem(`hotelImages_${hotelId}`, JSON.stringify(filtered));
+        localStorage.setItem(
+          `hotelImages_${hotelId}`,
+          JSON.stringify(filtered)
+        );
       }
       return { success: true };
     }
-    return apiClient.delete<any>('/hotel-profile/delete-image/:image_id', { image_id: String(imageId) });
+    return apiClient.delete<any>("/hotel-profile/delete-image/:image_id", {
+      image_id: String(imageId),
+    });
   },
 
-  async setThumbnail(hotelId: string, imageId: number): Promise<{ success: boolean }> {
+  async setThumbnail(
+    hotelId: string,
+    imageId: number
+  ): Promise<{ success: boolean }> {
     if (API_CONFIG.USE_MOCK_DATA) {
       ensureMockLayerReady();
       await mockDelay();
@@ -714,9 +877,12 @@ export const hotelManagerApi = {
         const images = JSON.parse(cached);
         const updatedImages = images.map((img: any) => ({
           ...img,
-          isThumbnail: img.id === imageId
+          isThumbnail: img.id === imageId,
         }));
-        localStorage.setItem(`hotelImages_${hotelId}`, JSON.stringify(updatedImages));
+        localStorage.setItem(
+          `hotelImages_${hotelId}`,
+          JSON.stringify(updatedImages)
+        );
       }
       return { success: true };
     }
@@ -732,7 +898,7 @@ export const hotelManagerApi = {
    */
   async uploadRoomImages(roomId: string, images: File[]): Promise<Image[]> {
     const formData = new FormData();
-    images.forEach(image => formData.append('images', image));
+    images.forEach((image) => formData.append("images", image));
 
     return apiClient.post<Image[]>(
       API_CONFIG.ENDPOINTS.UPLOAD_ROOM_IMAGES,
@@ -744,7 +910,10 @@ export const hotelManagerApi = {
 
 // ============= PAYMENT API =============
 export const paymentApi = {
-  async getConfig(): Promise<{ supportedMethods: string[]; bankCodes: { code: string; name: string }[] }> {
+  async getConfig(): Promise<{
+    supportedMethods: string[];
+    bankCodes: { code: string; name: string }[];
+  }> {
     return apiClient.get<any>(API_CONFIG.ENDPOINTS.PAYMENT_CONFIG);
   },
 
@@ -764,19 +933,33 @@ export const paymentApi = {
   },
 
   async getById(paymentId: string): Promise<Payment | null> {
-    return apiClient.get<Payment>(API_CONFIG.ENDPOINTS.PAYMENT_DETAILS, { id: paymentId });
+    return apiClient.get<Payment>(API_CONFIG.ENDPOINTS.PAYMENT_DETAILS, {
+      id: paymentId,
+    });
   },
 
   async getByBooking(bookingId: string): Promise<Payment | null> {
-    return apiClient.get<Payment>(API_CONFIG.ENDPOINTS.PAYMENT_BY_BOOKING, { bookingId });
+    return apiClient.get<Payment>(API_CONFIG.ENDPOINTS.PAYMENT_BY_BOOKING, {
+      bookingId,
+    });
   },
 
-  async queryStatus(paymentId: string): Promise<{ status: string; vnp_response_code?: string }> {
-    return apiClient.get<any>(API_CONFIG.ENDPOINTS.PAYMENT_QUERY_STATUS, { id: paymentId });
+  async queryStatus(
+    paymentId: string
+  ): Promise<{ status: string; vnp_response_code?: string }> {
+    return apiClient.get<any>(API_CONFIG.ENDPOINTS.PAYMENT_QUERY_STATUS, {
+      id: paymentId,
+    });
   },
 
-  async refund(paymentId: string, amount?: number): Promise<{ success: boolean; refund_id?: string }> {
-    return apiClient.post<any>(API_CONFIG.ENDPOINTS.PAYMENT_REFUND, { id: paymentId, amount });
+  async refund(
+    paymentId: string,
+    amount?: number
+  ): Promise<{ success: boolean; refund_id?: string }> {
+    return apiClient.post<any>(API_CONFIG.ENDPOINTS.PAYMENT_REFUND, {
+      id: paymentId,
+      amount,
+    });
   },
 
   async cancelPayment(paymentId: string): Promise<void> {
@@ -821,16 +1004,26 @@ export const pricingEngineApi = {
     return apiClient.post(API_CONFIG.ENDPOINTS.PRICING_CALCULATE, data);
   },
 
-  async getPriceForDate(typeId: number, date: string): Promise<{
+  async getPriceForDate(
+    typeId: number,
+    date: string
+  ): Promise<{
     price: number;
     base_price: number;
     event?: string;
     discount: number;
   }> {
-    return apiClient.get(API_CONFIG.ENDPOINTS.PRICING_GET_PRICE, { typeId: typeId.toString(), date });
+    return apiClient.get(API_CONFIG.ENDPOINTS.PRICING_GET_PRICE, {
+      typeId: typeId.toString(),
+      date,
+    });
   },
 
-  async getPriceRange(typeId: number, startDate: string, endDate: string): Promise<{
+  async getPriceRange(
+    typeId: number,
+    startDate: string,
+    endDate: string
+  ): Promise<{
     minPrice: number;
     maxPrice: number;
     averagePrice: number;
@@ -845,18 +1038,21 @@ export const pricingEngineApi = {
     return apiClient.get(API_CONFIG.ENDPOINTS.PRICING_GET_RANGE, {
       typeId: typeId.toString(),
       start_date: startDate,
-      end_date: endDate
+      end_date: endDate,
     });
   },
 
-  async updatePricing(typeId: number, pricingData: {
-    basic_price?: number;
-    special_price?: number;
-    discount?: number;
-    event?: string;
-    start_date?: string;
-    end_date?: string;
-  }): Promise<{
+  async updatePricing(
+    typeId: number,
+    pricingData: {
+      basic_price?: number;
+      special_price?: number;
+      discount?: number;
+      event?: string;
+      start_date?: string;
+      end_date?: string;
+    }
+  ): Promise<{
     message: string;
     pricing: {
       type_id: number;
@@ -868,13 +1064,19 @@ export const pricingEngineApi = {
       end_date?: string;
     };
   }> {
-    return apiClient.put(API_CONFIG.ENDPOINTS.PRICING_UPDATE, pricingData, { typeId: typeId.toString() });
+    return apiClient.put(API_CONFIG.ENDPOINTS.PRICING_UPDATE, pricingData, {
+      typeId: typeId.toString(),
+    });
   },
 };
 
 // ============= SYNCHRONIZATION API =============
 export const synchronizationApi = {
-  async syncHotelAvailability(hotelId: number, startDate: string, endDate: string): Promise<{
+  async syncHotelAvailability(
+    hotelId: number,
+    startDate: string,
+    endDate: string
+  ): Promise<{
     synced: boolean;
     records: number;
     timestamp: string;
@@ -897,10 +1099,14 @@ export const synchronizationApi = {
       }>;
     };
   }> {
-    return apiClient.post(API_CONFIG.ENDPOINTS.SYNC_HOTEL_AVAILABILITY, {
-      start_date: startDate,
-      end_date: endDate
-    }, { hotelId: hotelId.toString() });
+    return apiClient.post(
+      API_CONFIG.ENDPOINTS.SYNC_HOTEL_AVAILABILITY,
+      {
+        start_date: startDate,
+        end_date: endDate,
+      },
+      { hotelId: hotelId.toString() }
+    );
   },
 
   async syncHotelPricing(hotelId: number): Promise<{
@@ -923,31 +1129,45 @@ export const synchronizationApi = {
       }>;
     };
   }> {
-    return apiClient.post(API_CONFIG.ENDPOINTS.SYNC_HOTEL_PRICING, {}, { hotelId: hotelId.toString() });
+    return apiClient.post(
+      API_CONFIG.ENDPOINTS.SYNC_HOTEL_PRICING,
+      {},
+      { hotelId: hotelId.toString() }
+    );
   },
 
-  async syncHotelData(hotelId: number, startDate: string, endDate: string): Promise<{
+  async syncHotelData(
+    hotelId: number,
+    startDate: string,
+    endDate: string
+  ): Promise<{
     availability: any;
     pricing: any;
     synced_at: string;
   }> {
-    return apiClient.post(API_CONFIG.ENDPOINTS.SYNC_HOTEL_DATA, {
-      start_date: startDate,
-      end_date: endDate
-    }, { hotelId: hotelId.toString() });
+    return apiClient.post(
+      API_CONFIG.ENDPOINTS.SYNC_HOTEL_DATA,
+      {
+        start_date: startDate,
+        end_date: endDate,
+      },
+      { hotelId: hotelId.toString() }
+    );
   },
 
   async syncMultipleHotels(data: {
     hotel_ids: number[];
     start_date: string;
     end_date: string;
-  }): Promise<Array<{
-    hotel_id: number;
-    success: boolean;
-    error?: string;
-    availability?: any;
-    pricing?: any;
-  }>> {
+  }): Promise<
+    Array<{
+      hotel_id: number;
+      success: boolean;
+      error?: string;
+      availability?: any;
+      pricing?: any;
+    }>
+  > {
     return apiClient.post(API_CONFIG.ENDPOINTS.SYNC_MULTIPLE_HOTELS, data);
   },
 
@@ -958,7 +1178,9 @@ export const synchronizationApi = {
     room_types_count: number;
     pricing_configured: boolean;
   }> {
-    return apiClient.get(API_CONFIG.ENDPOINTS.SYNC_STATUS, { hotelId: hotelId.toString() });
+    return apiClient.get(API_CONFIG.ENDPOINTS.SYNC_STATUS, {
+      hotelId: hotelId.toString(),
+    });
   },
 };
 
@@ -970,22 +1192,36 @@ export const roomInventoryApi = {
     checkOutDate: string;
     quantity?: number;
   }): Promise<{ available: boolean; availableCount: number }> {
-    return apiClient.post<any>(API_CONFIG.ENDPOINTS.ROOM_CHECK_AVAILABILITY, data);
+    return apiClient.post<any>(
+      API_CONFIG.ENDPOINTS.ROOM_CHECK_AVAILABILITY,
+      data
+    );
   },
 
-  async getAvailableRooms(hotelId: string, checkIn?: string, checkOut?: string): Promise<RoomType[]> {
+  async getAvailableRooms(
+    hotelId: string,
+    checkIn?: string,
+    checkOut?: string
+  ): Promise<RoomType[]> {
     const params: Record<string, string> = { hotelId };
     if (checkIn) params.checkIn = checkIn;
     if (checkOut) params.checkOut = checkOut;
-    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.ROOM_AVAILABLE, params);
+    return apiClient.get<RoomType[]>(
+      API_CONFIG.ENDPOINTS.ROOM_AVAILABLE,
+      params
+    );
   },
 
   async getRoomType(typeId: string): Promise<RoomType | null> {
-    return apiClient.get<RoomType>(API_CONFIG.ENDPOINTS.ROOM_TYPE_BY_ID, { id: typeId });
+    return apiClient.get<RoomType>(API_CONFIG.ENDPOINTS.ROOM_TYPE_BY_ID, {
+      id: typeId,
+    });
   },
 
   async getRoomTypesByHotel(hotelId: string): Promise<RoomType[]> {
-    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.ROOM_TYPES_BY_HOTEL, { hotelId });
+    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.ROOM_TYPES_BY_HOTEL, {
+      hotelId,
+    });
   },
 
   async getRoom(roomId: string): Promise<Room | null> {
@@ -993,7 +1229,9 @@ export const roomInventoryApi = {
   },
 
   async getRoomsByType(typeId: string): Promise<Room[]> {
-    return apiClient.get<Room[]>(API_CONFIG.ENDPOINTS.ROOMS_BY_TYPE, { typeId });
+    return apiClient.get<Room[]>(API_CONFIG.ENDPOINTS.ROOMS_BY_TYPE, {
+      typeId,
+    });
   },
 
   async createHold(data: {
@@ -1007,19 +1245,29 @@ export const roomInventoryApi = {
   },
 
   async releaseHold(holdId: string): Promise<{ success: boolean }> {
-    return apiClient.post<any>(API_CONFIG.ENDPOINTS.ROOM_HOLD_RELEASE, { holdId });
+    return apiClient.post<any>(API_CONFIG.ENDPOINTS.ROOM_HOLD_RELEASE, {
+      holdId,
+    });
   },
 
-  async getInventoryCalendar(typeId: string, startDate: string, endDate: string): Promise<{
-    date: string;
-    available: number;
-    booked: number;
-    held: number;
-  }[]> {
-    return apiClient.get<any>(API_CONFIG.ENDPOINTS.ROOM_INVENTORY_CALENDAR, { typeId, startDate, endDate });
+  async getInventoryCalendar(
+    typeId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<
+    {
+      date: string;
+      available: number;
+      booked: number;
+      held: number;
+    }[]
+  > {
+    return apiClient.get<any>(API_CONFIG.ENDPOINTS.ROOM_INVENTORY_CALENDAR, {
+      typeId,
+      startDate,
+      endDate,
+    });
   },
-
-
 };
 
 // ============= DESTINATIONS EXTENDED API =============
@@ -1166,9 +1414,43 @@ export const destinationsApi = {
       { id: destinationId }
     );
   },
+
+  async addToLovingList(
+    destinationId: string
+  ): Promise<{ message: string; data: any }> {
+    console.log(
+      API_CONFIG.ENDPOINTS.ADD_TO_LOVING_LIST.replace(":id", destinationId)
+    );
+    return apiClient.post<any>(
+      API_CONFIG.ENDPOINTS.ADD_TO_LOVING_LIST.replace(":id", destinationId),
+      { id: destinationId }
+    );
+  },
+
+  async removeFromLovingList(
+    destinationId: string
+  ): Promise<{ message: string }> {
+    return apiClient.delete<{ message: string }>(
+      API_CONFIG.ENDPOINTS.REMOVE_FROM_LOVING_LIST.replace(":id", destinationId)
+    );
+  },
+
+  async getLovingList(): Promise<Destination[]> {
+    console.log(100);
+    return apiClient.get<Destination[]>(API_CONFIG.ENDPOINTS.GET_LOVING_LIST);
+  },
+
+  async checkLovingListStatus(
+    destinationId: string
+  ): Promise<{ isInLovingList: boolean }> {
+    return apiClient.get<{ isInLovingList: boolean }>(
+      API_CONFIG.ENDPOINTS.CHECK_LOVING_LIST_STATUS.replace(
+        ":id",
+        destinationId
+      )
+    );
+  },
 };
-
-
 
 // ============= USER PROFILE EXTENDED API =============
 export const userProfileApi = {
@@ -1178,29 +1460,36 @@ export const userProfileApi = {
     return apiClient.delete<boolean>(API_CONFIG.ENDPOINTS.DELETE_PROFILE);
   },
 
-  async uploadProfileImage(file: File): Promise<{ imageUrl: string; message: string }> {
+  async uploadProfileImage(
+    file: File
+  ): Promise<{ imageUrl: string; message: string }> {
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append("image", file);
 
-    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.UPLOAD_PROFILE_IMAGE}`, {
-      method: 'POST',
-      credentials: 'include',
-      body: formData,
-    });
+    const response = await fetch(
+      `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.UPLOAD_PROFILE_IMAGE}`,
+      {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      }
+    );
 
     if (!response.ok) {
-      throw new Error('Failed to upload image');
+      throw new Error("Failed to upload image");
     }
 
     const data = await response.json();
     return {
       imageUrl: data.profile_image,
-      message: data.message
+      message: data.message,
     };
   },
 
   async getProfileImage(): Promise<{ imageUrl: string | null }> {
-    return apiClient.get<{ imageUrl: string | null }>(API_CONFIG.ENDPOINTS.GET_PROFILE_IMAGE);
+    return apiClient.get<{ imageUrl: string | null }>(
+      API_CONFIG.ENDPOINTS.GET_PROFILE_IMAGE
+    );
   },
 
   async deleteProfileImage(): Promise<boolean> {
@@ -1223,31 +1512,31 @@ export const userProfileApi = {
   async getCoupons(): Promise<any[]> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
-      const coupons = localStorage.getItem('userCoupons');
+      const coupons = localStorage.getItem("userCoupons");
       if (coupons) return JSON.parse(coupons);
 
       // Default mock coupons
       const defaultCoupons = [
         {
           id: 1,
-          code: 'SUMMER2024',
+          code: "SUMMER2024",
           discount: 15,
-          type: 'percentage',
+          type: "percentage",
           minAmount: 500000,
-          expiresAt: '2024-12-31',
+          expiresAt: "2024-12-31",
           isActive: true,
         },
         {
           id: 2,
-          code: 'NEWUSER',
+          code: "NEWUSER",
           discount: 100000,
-          type: 'fixed',
+          type: "fixed",
           minAmount: 200000,
-          expiresAt: '2024-12-31',
+          expiresAt: "2024-12-31",
           isActive: true,
         },
       ];
-      localStorage.setItem('userCoupons', JSON.stringify(defaultCoupons));
+      localStorage.setItem("userCoupons", JSON.stringify(defaultCoupons));
       return defaultCoupons;
     }
     // When backend implements this, replace with:
@@ -1255,10 +1544,13 @@ export const userProfileApi = {
     return [];
   },
 
-  async applyCoupon(code: string, bookingAmount: number): Promise<{ valid: boolean; discount: number }> {
+  async applyCoupon(
+    code: string,
+    bookingAmount: number
+  ): Promise<{ valid: boolean; discount: number }> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
-      const coupons = JSON.parse(localStorage.getItem('userCoupons') || '[]');
+      const coupons = JSON.parse(localStorage.getItem("userCoupons") || "[]");
       const coupon = coupons.find((c: any) => c.code === code && c.isActive);
 
       if (!coupon) {
@@ -1269,9 +1561,10 @@ export const userProfileApi = {
         return { valid: false, discount: 0 };
       }
 
-      const discount = coupon.type === 'percentage'
-        ? Math.floor(bookingAmount * coupon.discount / 100)
-        : coupon.discount;
+      const discount =
+        coupon.type === "percentage"
+          ? Math.floor((bookingAmount * coupon.discount) / 100)
+          : coupon.discount;
 
       return { valid: true, discount };
     }
@@ -1284,7 +1577,9 @@ export const userProfileApi = {
 // ============= NOTIFICATION API =============
 export const notificationApi = {
   async sendTestEmail(email: string): Promise<{ success: boolean }> {
-    return apiClient.post<any>(API_CONFIG.ENDPOINTS.NOTIFICATION_TEST, { email });
+    return apiClient.post<any>(API_CONFIG.ENDPOINTS.NOTIFICATION_TEST, {
+      email,
+    });
   },
 
   async sendBookingConfirmation(bookingData: {
@@ -1299,23 +1594,50 @@ export const notificationApi = {
     check_out_date: string;
     totalPrice: number;
   }): Promise<{ success: boolean }> {
-    return apiClient.post<any>(API_CONFIG.ENDPOINTS.NOTIFICATION_BOOKING_CONFIRM, bookingData);
+    return apiClient.post<any>(
+      API_CONFIG.ENDPOINTS.NOTIFICATION_BOOKING_CONFIRM,
+      bookingData
+    );
   },
 
-  async sendBookingCancellation(bookingId: number, email: string): Promise<{ success: boolean }> {
-    return apiClient.post<any>(API_CONFIG.ENDPOINTS.NOTIFICATION_BOOKING_CANCEL, { bookingId, email });
+  async sendBookingCancellation(
+    bookingId: number,
+    email: string
+  ): Promise<{ success: boolean }> {
+    return apiClient.post<any>(
+      API_CONFIG.ENDPOINTS.NOTIFICATION_BOOKING_CANCEL,
+      { bookingId, email }
+    );
   },
 
-  async sendPasswordReset(email: string, resetUrl: string): Promise<{ success: boolean }> {
-    return apiClient.post<any>(API_CONFIG.ENDPOINTS.NOTIFICATION_PASSWORD_RESET, { email, resetUrl });
+  async sendPasswordReset(
+    email: string,
+    resetUrl: string
+  ): Promise<{ success: boolean }> {
+    return apiClient.post<any>(
+      API_CONFIG.ENDPOINTS.NOTIFICATION_PASSWORD_RESET,
+      { email, resetUrl }
+    );
   },
 
-  async sendWelcomeEmail(email: string, name: string): Promise<{ success: boolean }> {
-    return apiClient.post<any>(API_CONFIG.ENDPOINTS.NOTIFICATION_WELCOME, { email, name });
+  async sendWelcomeEmail(
+    email: string,
+    name: string
+  ): Promise<{ success: boolean }> {
+    return apiClient.post<any>(API_CONFIG.ENDPOINTS.NOTIFICATION_WELCOME, {
+      email,
+      name,
+    });
   },
 
-  async sendPaymentConfirmation(paymentId: number, email: string): Promise<{ success: boolean }> {
-    return apiClient.post<any>(API_CONFIG.ENDPOINTS.NOTIFICATION_PAYMENT_CONFIRM, { paymentId, email });
+  async sendPaymentConfirmation(
+    paymentId: number,
+    email: string
+  ): Promise<{ success: boolean }> {
+    return apiClient.post<any>(
+      API_CONFIG.ENDPOINTS.NOTIFICATION_PAYMENT_CONFIRM,
+      { paymentId, email }
+    );
   },
 };
 
@@ -1337,30 +1659,33 @@ export const adminApi = {
         recentActivity: [
           {
             id: 1,
-            type: 'booking',
-            description: 'Booking mới #3456 - Khách sạn ABC',
+            type: "booking",
+            description: "Booking mới #3456 - Khách sạn ABC",
             timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-            userName: 'Nguyễn Văn A',
-            hotelName: 'Khách sạn ABC',
+            userName: "Nguyễn Văn A",
+            hotelName: "Khách sạn ABC",
           },
           {
             id: 2,
-            type: 'hotel',
-            description: 'Khách sạn XYZ đã được duyệt',
+            type: "hotel",
+            description: "Khách sạn XYZ đã được duyệt",
             timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-            hotelName: 'Khách sạn XYZ',
+            hotelName: "Khách sạn XYZ",
           },
           {
             id: 3,
-            type: 'user',
-            description: 'User mới đăng ký: Trần Thị B',
+            type: "user",
+            description: "User mới đăng ký: Trần Thị B",
             timestamp: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-            userName: 'Trần Thị B',
+            userName: "Trần Thị B",
           },
         ],
         revenueChart: {
-          labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'],
-          data: [300000000, 450000000, 520000000, 480000000, 630000000, 700000000, 550000000],
+          labels: ["T1", "T2", "T3", "T4", "T5", "T6", "T7"],
+          data: [
+            300000000, 450000000, 520000000, 480000000, 630000000, 700000000,
+            550000000,
+          ],
         },
         bookingKPIs: {
           totalBookings: 3456,
@@ -1382,48 +1707,48 @@ export const adminApi = {
       const mockUsers: AdminUser[] = [
         {
           user_id: 1,
-          name: 'Administrator',
-          email: 'admin@hotel.com',
-          role: 'admin',
-          phone_number: '0123456789',
-          password: '',
+          name: "Administrator",
+          email: "admin@hotel.com",
+          role: "admin",
+          phone_number: "0123456789",
+          password: "",
           gender: null,
           date_of_birth: null,
           profile_image: null,
-          createdAt: '2024-01-01',
-          updatedAt: '2024-01-01',
+          createdAt: "2024-01-01",
+          updatedAt: "2024-01-01",
           bookingCount: 0,
           totalSpent: 0,
           lastLogin: new Date().toISOString(),
         },
         {
           user_id: 2,
-          name: 'Nguyễn Văn A',
-          email: 'customer1@email.com',
-          role: 'customer',
-          phone_number: '0987654321',
-          password: '',
-          gender: 'male',
-          date_of_birth: '1990-01-01',
+          name: "Nguyễn Văn A",
+          email: "customer1@email.com",
+          role: "customer",
+          phone_number: "0987654321",
+          password: "",
+          gender: "male",
+          date_of_birth: "1990-01-01",
           profile_image: null,
-          createdAt: '2024-02-15',
-          updatedAt: '2024-02-15',
+          createdAt: "2024-02-15",
+          updatedAt: "2024-02-15",
           bookingCount: 12,
           totalSpent: 15000000,
           lastLogin: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
         },
         {
           user_id: 3,
-          name: 'Trần Thị B',
-          email: 'manager1@hotel.com',
-          role: 'hotel_manager',
-          phone_number: '0912345678',
-          password: '',
-          gender: 'female',
-          date_of_birth: '1985-05-15',
+          name: "Trần Thị B",
+          email: "manager1@hotel.com",
+          role: "hotel_manager",
+          phone_number: "0912345678",
+          password: "",
+          gender: "female",
+          date_of_birth: "1985-05-15",
           profile_image: null,
-          createdAt: '2024-03-01',
-          updatedAt: '2024-03-01',
+          createdAt: "2024-03-01",
+          updatedAt: "2024-03-01",
           bookingCount: 0,
           totalSpent: 0,
           lastLogin: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
@@ -1434,13 +1759,19 @@ export const adminApi = {
     return apiClient.get<AdminUser[]>(API_CONFIG.ENDPOINTS.ADMIN_USERS);
   },
 
-  async updateUserRole(userId: number, newRole: 'customer' | 'hotel_manager' | 'admin'): Promise<{ success: boolean }> {
+  async updateUserRole(
+    userId: number,
+    newRole: "customer" | "hotel_manager" | "admin"
+  ): Promise<{ success: boolean }> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
       return { success: true };
     }
     return apiClient.put<any>(
-      API_CONFIG.ENDPOINTS.ADMIN_USER_UPDATE_ROLE.replace(':userId', userId.toString()),
+      API_CONFIG.ENDPOINTS.ADMIN_USER_UPDATE_ROLE.replace(
+        ":userId",
+        userId.toString()
+      ),
       { role: newRole }
     );
   },
@@ -1451,7 +1782,10 @@ export const adminApi = {
       return { success: true };
     }
     return apiClient.delete<any>(
-      API_CONFIG.ENDPOINTS.ADMIN_USER_DELETE.replace(':userId', userId.toString())
+      API_CONFIG.ENDPOINTS.ADMIN_USER_DELETE.replace(
+        ":userId",
+        userId.toString()
+      )
     );
   },
 
@@ -1462,24 +1796,26 @@ export const adminApi = {
         {
           hotel_id: 101,
           hotel_owner: 3,
-          name: 'Khách sạn Pending ABC',
-          address: '123 Đường ABC, TP.HCM',
+          name: "Khách sạn Pending ABC",
+          address: "123 Đường ABC, TP.HCM",
           status: 0,
           rating: 0,
           longitude: 106.6296638,
           latitude: 10.8230989,
-          description: 'Khách sạn 4 sao',
-          contact_phone: '0281234567',
-          thumbnail: '',
-          createdAt: '2024-06-01',
-          updatedAt: '2024-06-01',
-          ownerEmail: 'manager@abc.com',
-          ownerPhone: '0912345678',
+          description: "Khách sạn 4 sao",
+          contact_phone: "0281234567",
+          thumbnail: "",
+          createdAt: "2024-06-01",
+          updatedAt: "2024-06-01",
+          ownerEmail: "manager@abc.com",
+          ownerPhone: "0912345678",
         },
       ];
       return mockHotels;
     }
-    return apiClient.get<AdminHotel[]>(API_CONFIG.ENDPOINTS.ADMIN_HOTELS_PENDING);
+    return apiClient.get<AdminHotel[]>(
+      API_CONFIG.ENDPOINTS.ADMIN_HOTELS_PENDING
+    );
   },
 
   async approveHotel(hotelId: number): Promise<{ success: boolean }> {
@@ -1488,18 +1824,27 @@ export const adminApi = {
       return { success: true };
     }
     return apiClient.post<any>(
-      API_CONFIG.ENDPOINTS.ADMIN_HOTEL_APPROVE.replace(':hotelId', hotelId.toString()),
+      API_CONFIG.ENDPOINTS.ADMIN_HOTEL_APPROVE.replace(
+        ":hotelId",
+        hotelId.toString()
+      ),
       {}
     );
   },
 
-  async rejectHotel(hotelId: number, reason: string): Promise<{ success: boolean }> {
+  async rejectHotel(
+    hotelId: number,
+    reason: string
+  ): Promise<{ success: boolean }> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
       return { success: true };
     }
     return apiClient.post<any>(
-      API_CONFIG.ENDPOINTS.ADMIN_HOTEL_REJECT.replace(':hotelId', hotelId.toString()),
+      API_CONFIG.ENDPOINTS.ADMIN_HOTEL_REJECT.replace(
+        ":hotelId",
+        hotelId.toString()
+      ),
       { reason }
     );
   },
@@ -1510,7 +1855,10 @@ export const adminApi = {
       return { success: true };
     }
     return apiClient.post<any>(
-      API_CONFIG.ENDPOINTS.ADMIN_HOTEL_LOCK.replace(':hotelId', hotelId.toString()),
+      API_CONFIG.ENDPOINTS.ADMIN_HOTEL_LOCK.replace(
+        ":hotelId",
+        hotelId.toString()
+      ),
       {}
     );
   },
@@ -1524,20 +1872,39 @@ export const adminApi = {
         lastMonthRevenue: 580000000,
         growth: 12.1,
         dailyRevenue: Array.from({ length: 30 }, (_, i) => ({
-          date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
           revenue: Math.floor(Math.random() * 30000000) + 15000000,
         })),
         topHotels: [
-          { hotel_id: 1, hotel_name: 'Khách sạn A', revenue: 150000000, bookings: 45 },
-          { hotel_id: 2, hotel_name: 'Khách sạn B', revenue: 120000000, bookings: 38 },
-          { hotel_id: 3, hotel_name: 'Khách sạn C', revenue: 95000000, bookings: 32 },
+          {
+            hotel_id: 1,
+            hotel_name: "Khách sạn A",
+            revenue: 150000000,
+            bookings: 45,
+          },
+          {
+            hotel_id: 2,
+            hotel_name: "Khách sạn B",
+            revenue: 120000000,
+            bookings: 38,
+          },
+          {
+            hotel_id: 3,
+            hotel_name: "Khách sạn C",
+            revenue: 95000000,
+            bookings: 32,
+          },
         ],
       };
     }
-    return apiClient.get<RevenueMetrics>(API_CONFIG.ENDPOINTS.ADMIN_REVENUE_METRICS);
+    return apiClient.get<RevenueMetrics>(
+      API_CONFIG.ENDPOINTS.ADMIN_REVENUE_METRICS
+    );
   },
 
-  async getBookingKPIs(): Promise<AdminDashboard['bookingKPIs']> {
+  async getBookingKPIs(): Promise<AdminDashboard["bookingKPIs"]> {
     if (API_CONFIG.USE_MOCK_DATA) {
       await mockDelay();
       return {
@@ -1550,7 +1917,9 @@ export const adminApi = {
         averageBookingValue: 1320000,
       };
     }
-    return apiClient.get<AdminDashboard['bookingKPIs']>(API_CONFIG.ENDPOINTS.ADMIN_BOOKING_KPIS);
+    return apiClient.get<AdminDashboard["bookingKPIs"]>(
+      API_CONFIG.ENDPOINTS.ADMIN_BOOKING_KPIS
+    );
   },
 
   async getRecentActivity(): Promise<AdminActivity[]> {
@@ -1559,24 +1928,32 @@ export const adminApi = {
       return [
         {
           id: 1,
-          type: 'booking',
-          description: 'Booking mới #3456 - Khách sạn ABC',
+          type: "booking",
+          description: "Booking mới #3456 - Khách sạn ABC",
           timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          userName: 'Nguyễn Văn A',
-          hotelName: 'Khách sạn ABC',
+          userName: "Nguyễn Văn A",
+          hotelName: "Khách sạn ABC",
         },
         {
           id: 2,
-          type: 'hotel',
-          description: 'Khách sạn XYZ đã được duyệt',
+          type: "hotel",
+          description: "Khách sạn XYZ đã được duyệt",
           timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-          hotelName: 'Khách sạn XYZ',
+          hotelName: "Khách sạn XYZ",
         },
       ];
     }
-    return apiClient.get<AdminActivity[]>(API_CONFIG.ENDPOINTS.ADMIN_RECENT_ACTIVITY);
+    return apiClient.get<AdminActivity[]>(
+      API_CONFIG.ENDPOINTS.ADMIN_RECENT_ACTIVITY
+    );
   },
 };
 
 // Export types for convenience
-export type { AdminDashboard, AdminActivity, AdminUser, AdminHotel, RevenueMetrics };
+export type {
+  AdminDashboard,
+  AdminActivity,
+  AdminUser,
+  AdminHotel,
+  RevenueMetrics,
+};

@@ -31,6 +31,15 @@ const upload = multer({
 router.get("/", DestinationController.getAllDestinations); // GET /destinations - Get all destinations
 router.get("/search", DestinationController.searchDestinations); // GET /destinations/search?q= - Search destinations
 router.get("/type/:type", DestinationController.getDestinationsByType); // GET /destinations/type/:type - Get by type
+
+// Loving list routes (specific routes first to avoid conflicts)
+router.get(
+  "/loving-list",
+  authMiddleware,
+  DestinationController.getUserLovingListDestinations
+); // GET /destinations/loving-list - Get user's loving list destinations
+
+// Generic route for destination by ID (must be after specific routes)
 router.get("/:id", DestinationController.getDestinationById); // GET /destinations/:id - Get destination by ID
 
 // Admin routes (có thể thêm authMiddleware sau)
@@ -64,5 +73,28 @@ router.delete(
   "/:id/images/:imageId",
   DestinationController.deleteDestinationImage
 ); // DELETE /destinations/:id/images/:imageId - Delete specific image
+
+// Loving list routes
+// Define specific routes first to avoid conflicts with generic routes
+// router.get(
+//   "/loving-list",
+//   authMiddleware,
+//   DestinationController.getUserLovingListDestinations
+// ); // GET /destinations/loving-list - Get user's loving list destinations
+router.get(
+  "/:id/loving-list/status",
+  authMiddleware,
+  DestinationController.checkDestinationInLovingList
+); // GET /destinations/:id/loving-list/status - Check if destination is in loving list
+router.post(
+  "/:id/loving-list",
+  authMiddleware,
+  DestinationController.addDestinationToLovingList
+); // POST /destinations/:id/loving-list - Add destination to loving list
+router.delete(
+  "/:id/loving-list",
+  authMiddleware,
+  DestinationController.removeDestinationFromLovingList
+); // DELETE /destinations/:id/loving-list - Remove destination from loving list
 
 module.exports = router;
