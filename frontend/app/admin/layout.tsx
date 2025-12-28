@@ -1,10 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/context/AuthContext';
+import { useEffect } from 'react';
 
 const adminNav = [
-  { href: '/admin', label: 'Dashboard', icon: '📊' },
+  { href: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
   { href: '/admin/users', label: 'Quản lý người dùng', icon: '👥' },
   { href: '/admin/hotels', label: 'Quản lý khách sạn', icon: '🏨' },
   { href: '/admin/destinations', label: 'Điểm đến du lịch', icon: '🗺️' },
@@ -19,6 +21,40 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, isLoading, logout } = useAuth();
+
+  // Redirect to login if not authenticated as admin
+  useEffect(() => {
+    // Skip redirect for login page and root admin page (which has its own redirect logic)
+    if (pathname === '/admin/login' || pathname === '/admin') return;
+    
+    if (!isLoading && (!user || user.role !== 'admin')) {
+      router.replace('/admin/login');
+    }
+  }, [user, isLoading, pathname, router]);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-gray-800 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If on login page, render without layout
+  if (pathname === '/admin/login' || pathname === '/admin') {
+    return <>{children}</>;
+  }
+
+  // If not admin, don't render layout (redirect will handle)
+  if (!user || user.role !== 'admin') {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -27,18 +63,27 @@ export default function AdminLayout({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
-              <Link href="/admin" className="text-xl font-bold">
+              <Link href="/admin/dashboard" className="text-xl font-bold">
                 🔐 Admin Panel
               </Link>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-300">Super Admin</span>
+              <span className="text-sm text-gray-300">👤 {user?.name || 'Admin'}</span>
               <Link
                 href="/"
                 className="text-sm text-gray-300 hover:text-white"
               >
                 ← Về trang chủ
               </Link>
+              <button
+                onClick={() => {
+                  logout();
+                  router.push('/admin');
+                }}
+                className="text-sm text-red-300 hover:text-red-100"
+              >
+                🚪 Đăng xuất
+              </button>
             </div>
           </div>
         </div>
