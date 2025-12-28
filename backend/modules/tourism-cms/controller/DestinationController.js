@@ -405,6 +405,91 @@ const DestinationController = {
       return responseUtils.error(res, error.message);
     }
   },
+
+  /**
+   * Add destination to user's loving list
+   * POST /destinations/:id/loving-list
+   * Requires: authMiddleware
+   */
+  addDestinationToLovingList: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.user_id;
+
+      const result = await DestinationService.addDestinationToLovingList(userId, id);
+      return responseUtils.ok(res, {
+        message: "Destination added to loving list successfully",
+        data: result
+      });
+    } catch (error) {
+      console.error("Add destination to loving list error:", error);
+      if (error.message === "Destination not found") {
+        return responseUtils.notFound(res);
+      }
+      if (error.message === "Destination already in loving list") {
+        return responseUtils.invalidated(res, [
+          { field: "destination", message: error.message },
+        ]);
+      }
+      return responseUtils.error(res, error.message);
+    }
+  },
+
+  /**
+   * Remove destination from user's loving list
+   * DELETE /destinations/:id/loving-list
+   * Requires: authMiddleware
+   */
+  removeDestinationFromLovingList: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.user_id;
+
+      const result = await DestinationService.removeDestinationFromLovingList(userId, id);
+      return responseUtils.ok(res, result);
+    } catch (error) {
+      console.error("Remove destination from loving list error:", error);
+      if (error.message === "Destination not found in loving list") {
+        return responseUtils.notFound(res);
+      }
+      return responseUtils.error(res, error.message);
+    }
+  },
+
+  /**
+   * Get user's loving list destinations
+   * GET /destinations/loving-list
+   * Requires: authMiddleware
+   */
+  getUserLovingListDestinations: async (req, res) => {
+    try {
+      const userId = req.user.user_id;
+      console.log(userId);
+      const destinations = await DestinationService.getUserLovingListDestinations(userId);
+      return responseUtils.ok(res, destinations);
+    } catch (error) {
+      console.error("Get user loving list destinations error:", error);
+      return responseUtils.error(res, error.message);
+    }
+  },
+
+  /**
+   * Check if destination is in user's loving list
+   * GET /destinations/:id/loving-list/status
+   * Requires: authMiddleware
+   */
+  checkDestinationInLovingList: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.user_id;
+
+      const isInList = await DestinationService.isDestinationInLovingList(userId, id);
+      return responseUtils.ok(res, { isInLovingList: isInList });
+    } catch (error) {
+      console.error("Check destination in loving list error:", error);
+      return responseUtils.error(res, error.message);
+    }
+  },
 };
 
 module.exports = DestinationController;
