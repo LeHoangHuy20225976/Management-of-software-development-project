@@ -4,8 +4,19 @@ Kết nối với NVIDIA API sử dụng OpenAI client
 """
 from openai import OpenAI
 from src.infrastructure.config import get_settings
+from pathlib import Path
 
 settings = get_settings()
+
+# Load system prompt từ file
+def load_system_prompt() -> str:
+    """Load system prompt từ file system_prompt.txt"""
+    prompt_file = Path(__file__).parent / "system_prompt.txt"
+    if prompt_file.exists():
+        return prompt_file.read_text(encoding='utf-8')
+    return "You are a helpful hotel AI assistant."
+
+SYSTEM_PROMPT = load_system_prompt()
 
 class GPTClient:
     """Client để tương tác với LLM API (NVIDIA)"""
@@ -33,7 +44,10 @@ class GPTClient:
         try:
             response = self.client.chat.completions.create(
                 model=self.model_name,
-                messages=[{"role": "user", "content": prompt}],
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt}
+                ],
                 temperature=0.7,
                 max_tokens=1024,
                 reasoning_effort= "low"
@@ -54,8 +68,14 @@ class GPTClient:
             str: Response từ LLM
         """
         try:
-            # Tạo messages từ history
-            messages = history.copy() if history else []
+            # Tạo messages với system prompt
+            messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+            
+            # Thêm history nếu có
+            if history:
+                messages.extend(history)
+            
+            # Thêm message hiện tại
             messages.append({"role": "user", "content": message})
             
             response = self.client.chat.completions.create(

@@ -3,6 +3,35 @@ Query Engine for RAG System
 """
 from llama_index.core import PromptTemplate
 from typing import Optional
+from pathlib import Path
+
+# Load system prompt từ file
+def load_system_prompt() -> str:
+    """Load system prompt từ file system_prompt.txt"""
+    prompt_file = Path(__file__).parent.parent / "system_prompt.txt"
+    if prompt_file.exists():
+        return prompt_file.read_text(encoding='utf-8')
+    return "You are a helpful hotel AI assistant."
+
+SYSTEM_PROMPT = load_system_prompt()
+
+# RAG prompt template với system prompt
+RAG_QA_TEMPLATE = f"""
+{SYSTEM_PROMPT}
+
+THÔNG TIN TỪ TÀI LIỆU:
+{{context_str}}
+
+CÂU HỎI:
+{{query_str}}
+
+HƯỚNG DẪN TRẢ LỜI:
+- Sử dụng thông tin từ tài liệu ở trên để trả lời
+- Nếu không tìm thấy thông tin trong tài liệu, hãy nói rõ "Hiện tại tôi chưa có thông tin chính xác về vấn đề này"
+- Trả lời ngắn gọn, chính xác và lịch sự
+
+TRẢ LỜI:
+"""
 
 
 class PDFQueryEngine:
@@ -29,12 +58,12 @@ class PDFQueryEngine:
             response_mode="compact"
         )
         
-        # Custom prompt nếu cần
-        if custom_prompt:
-            qa_prompt = PromptTemplate(custom_prompt)
-            self.query_engine.update_prompts(
-                {"response_synthesizer:text_qa_template": qa_prompt}
-            )
+        # Sử dụng RAG prompt template với system prompt
+        prompt_to_use = custom_prompt if custom_prompt else RAG_QA_TEMPLATE
+        qa_prompt = PromptTemplate(prompt_to_use)
+        self.query_engine.update_prompts(
+            {"response_synthesizer:text_qa_template": qa_prompt}
+        )
     
     def query(self, question: str) -> str:
         """
