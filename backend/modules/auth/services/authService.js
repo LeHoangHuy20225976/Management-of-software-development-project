@@ -21,10 +21,12 @@ const authService = {
                 ]
             }
         });
+        console.log(user);
         if (!user) {
             throw new Error(INVALID_CREDENTIALS);
         }
         let isMatch = await bcrypt.compare(password, user.password);
+        
         if (!isMatch) {
             throw new Error(INVALID_CREDENTIALS);
         }

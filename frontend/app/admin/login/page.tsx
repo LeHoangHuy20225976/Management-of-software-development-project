@@ -8,10 +8,10 @@ import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
 import { useAuth } from '@/lib/context/AuthContext';
 
-export default function LoginPage() {
+export default function AdminLoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { login, isAuthenticated, user, isLoading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -26,16 +26,21 @@ export default function LoginPage() {
     if (searchParams.get('expired') === 'true') {
       setSessionExpired(true);
       // Clear the query param from URL without refresh
-      router.replace('/login', { scroll: false });
+      router.replace('/admin/login', { scroll: false });
     }
   }, [searchParams, router]);
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated as admin
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
-      router.push('/user/dashboard');
+      if (user?.role === 'admin') {
+        router.push('/admin/dashboard');
+      } else {
+        // Not an admin, redirect to user dashboard
+        router.push('/user/dashboard');
+      }
     }
-  }, [isAuthenticated, authLoading, router]);
+  }, [isAuthenticated, authLoading, user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,12 +49,10 @@ export default function LoginPage() {
     setSessionExpired(false);
 
     try {
-      await login(formData.email, formData.password, 'customer');
-      
-      // Redirect to customer dashboard
-      router.push('/user/dashboard');
+      await login(formData.email, formData.password, 'admin');
+      router.push('/admin/dashboard');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra. Vui lòng thử lại!';
+      const errorMessage = err instanceof Error ? err.message : 'Email hoặc mật khẩu không đúng!';
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -76,8 +79,13 @@ export default function LoginPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-md mx-auto">
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold text-gray-900 mb-3">Đăng nhập</h1>
-              <p className="text-gray-600">Chào mừng bạn quay trở lại VietStay</p>
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl mb-4 shadow-lg">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-3">Quản trị viên</h1>
+              <p className="text-gray-600">Đăng nhập vào hệ thống quản trị VietStay</p>
             </div>
 
             <Card className="p-8">
@@ -109,7 +117,7 @@ export default function LoginPage() {
                     required
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="example@email.com"
+                    placeholder="admin@hotel.com"
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900 placeholder:text-gray-400"
                     disabled={isLoading}
                   />
@@ -141,9 +149,6 @@ export default function LoginPage() {
                     />
                     <span className="ml-2 text-sm text-gray-700">Ghi nhớ đăng nhập</span>
                   </label>
-                  <Link href="/forgot-password" className="text-sm font-medium text-[#0071c2] hover:text-[#005999] transition-colors">
-                    Quên mật khẩu?
-                  </Link>
                 </div>
 
                 <button
@@ -165,49 +170,20 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
+              {/* Demo Credentials */}
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                <p className="text-xs font-semibold text-blue-900 mb-2">🔐 Tài khoản demo:</p>
+                <div className="text-xs text-blue-700 space-y-1">
+                  <p>Email: <code className="bg-blue-100 px-2 py-0.5 rounded">admin@hotel.com</code></p>
+                  <p>Password: <code className="bg-blue-100 px-2 py-0.5 rounded">password123</code></p>
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white text-gray-500">Hoặc đăng nhập với</span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <button 
-                  type="button"
-                  className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                  disabled={isLoading}
-                >
-                  <span className="text-xl">📘</span>
-                  <span className="font-medium text-gray-700">Facebook</span>
-                </button>
-                <button 
-                  type="button"
-                  className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                  disabled={isLoading}
-                >
-                  <span className="text-xl">🔍</span>
-                  <span className="font-medium text-gray-700">Google</span>
-                </button>
-              </div>
-
-              <div className="mt-6 text-center">
-                <p className="text-gray-600">
-                  Chưa có tài khoản?{' '}
-                  <Link href="/register" className="font-semibold text-[#0071c2] hover:text-[#005999] transition-colors">
-                    Đăng ký ngay
-                  </Link>
-                </p>
               </div>
             </Card>
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                Bạn là chủ khách sạn?{' '}
-                <Link href="/hotel-manager/login" className="font-semibold text-[#0071c2] hover:text-[#005999] transition-colors">
-                  Đăng nhập tại đây
+                <Link href="/" className="font-semibold text-[#0071c2] hover:text-[#005999] transition-colors">
+                  ← Quay về trang chủ
                 </Link>
               </p>
             </div>
