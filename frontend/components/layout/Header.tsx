@@ -110,14 +110,14 @@ export const Header = () => {
     // Default: customer menu
     return (
       <>
-        <Link
+        {/* <Link
           href="/user/dashboard"
           className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
           onClick={() => setShowUserMenu(false)}
         >
           <span className="mr-3">📊</span>
           Tổng quan
-        </Link>
+        </Link> */}
         <Link
           href="/user/dashboard/bookings"
           className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
@@ -126,30 +126,30 @@ export const Header = () => {
           <span className="mr-3">📋</span>
           Đơn đặt phòng
         </Link>
-        <Link
+        {/* <Link
           href="/user/reviews"
           className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
           onClick={() => setShowUserMenu(false)}
         >
           <span className="mr-3">⭐</span>
           Đánh giá của tôi
-        </Link>
-        <Link
+        </Link> */}
+        {/* <Link
           href="/user/my-vouchers"
           className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
           onClick={() => setShowUserMenu(false)}
         >
           <span className="mr-3">🎟️</span>
           Mã giảm giá của tôi
-        </Link>
-        <Link
+        </Link> */}
+        {/* <Link
           href="/user/chat-history"
           className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
           onClick={() => setShowUserMenu(false)}
         >
           <span className="mr-3">💬</span>
           Lịch sử chat
-        </Link>
+        </Link> */}
         <Link
           href="/user/dashboard/profile"
           className="flex items-center px-4 py-2 text-sm text-gray-900 hover:bg-gray-100 transition-colors"
@@ -194,11 +194,11 @@ export const Header = () => {
     // Default: customer menu
     return (
       <>
-        <Link href="/user/dashboard" onClick={() => setIsMenuOpen(false)}>
+        {/* <Link href="/user/dashboard" onClick={() => setIsMenuOpen(false)}>
           <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
             📊 Tổng quan
           </button>
-        </Link>
+        </Link> */}
         <Link href="/user/dashboard/bookings" onClick={() => setIsMenuOpen(false)}>
           <button className="w-full px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 rounded transition-colors text-left">
             📋 Đơn đặt phòng

@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
-import { adminApi, AdminUser } from '@/lib/api/services';
+import { userProfileApi } from '@/lib/api/services';
+import type { User } from '@/types';
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'customer' | 'hotel_manager' | 'admin'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -129,9 +130,9 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">👥 Quản lý người dùng</h1>
+        <h1 className="text-3xl font-bold text-gray-900">👥 User Management</h1>
         <div className="text-gray-600">
-          Tổng: <strong>{users.length}</strong> người dùng
+          Total: <strong>{users.length}</strong> users
         </div>
       </div>
 
@@ -189,7 +190,7 @@ export default function AdminUsersPage() {
           <div className="flex-1">
             <input
               type="text"
-              placeholder="🔍 Tìm kiếm theo tên hoặc email..."
+              placeholder="🔍 Search by name or email..."
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -201,14 +202,14 @@ export default function AdminUsersPage() {
               size="sm"
               onClick={() => setFilter('all')}
             >
-              Tất cả
+              All
             </Button>
             <Button
               variant={filter === 'customer' ? 'primary' : 'outline'}
               size="sm"
               onClick={() => setFilter('customer')}
             >
-              Khách hàng
+              Customer
             </Button>
             <Button
               variant={filter === 'hotel_manager' ? 'primary' : 'outline'}
@@ -235,13 +236,11 @@ export default function AdminUsersPage() {
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-4 font-medium text-gray-600">ID</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Tên</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-600">Name</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-600">Email</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">SĐT</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Vai trò</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Trạng thái</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Ngày tạo</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-600">Hành động</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-600">Phone</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-600">Role</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-600">Created Date</th>
               </tr>
             </thead>
             <tbody>
@@ -249,7 +248,7 @@ export default function AdminUsersPage() {
                 <tr key={user.user_id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-3 px-4 text-gray-900">#{user.user_id}</td>
                   <td className="py-3 px-4">
-                    <div className="font-medium text-gray-900">{user.name}</div>
+                    <div className="font-medium text-gray-900">{user.name || 'N/A'}</div>
                   </td>
                   <td className="py-3 px-4 text-gray-900">{user.email}</td>
                   <td className="py-3 px-4 text-gray-900">{user.phone_number || '-'}</td>
@@ -304,7 +303,7 @@ export default function AdminUsersPage() {
         {filteredUsers.length === 0 && (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">👤</div>
-            <p className="text-gray-600">Không tìm thấy người dùng nào</p>
+            <p className="text-gray-600">No users found</p>
           </div>
         )}
       </Card>

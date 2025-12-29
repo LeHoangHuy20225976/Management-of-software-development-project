@@ -108,9 +108,9 @@ export default function HotelRoomsPage() {
     }
 
     try {
-      alert('Backend chưa hỗ trợ xoá phòng ở màn này.');
-      return;
-      // loadRooms(selectedHotelId);
+      await apiClient.delete(API_CONFIG.ENDPOINTS.ROOM_INVENTORY_DELETE, { room_id: roomId });
+      alert('Xóa phòng thành công!');
+      loadRooms(selectedHotelId);
     } catch (error) {
       console.error('Error deleting room:', error);
       alert('Đã có lỗi khi xóa phòng!');

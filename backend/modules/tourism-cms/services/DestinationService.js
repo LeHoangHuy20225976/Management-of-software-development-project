@@ -231,6 +231,32 @@ const DestinationService = {
   },
 
   /**
+   * Get all reviews for a destination
+   */
+  async getDestinationReviews(destinationId) {
+    const destination = await db.Destination.findByPk(destinationId);
+    if (!destination) {
+      throw new Error("Destination not found");
+    }
+
+    const reviews = await db.Review.findAll({
+      where: {
+        destination_id: destinationId,
+      },
+      attributes: ["review_id", "rating", "comment", "date_created"],
+      include: [
+        {
+          model: db.User,
+          attributes: ["user_id", "name", "profile_image"],
+        },
+      ],
+      order: [["date_created", "DESC"]],
+    });
+
+    return reviews;
+  },
+
+  /**
    * Add a review for a destination
    * destination_id is set, hotel_id and room_id are null
    */
@@ -257,6 +283,107 @@ const DestinationService = {
     });
 
     return review;
+  },
+
+  /**
+   * Add destination to user's loving list
+   */
+  async addDestinationToLovingList(userId, destinationId) {
+    // Check if destination exists
+    const destination = await db.Destination.findByPk(destinationId);
+    if (!destination) {
+      throw new Error("Destination not found");
+    }
+
+    // Check if user already has this destination in loving list
+    const existingEntry = await db.LovingList.findOne({
+      where: {
+        user_id: userId,
+        destination_id: destinationId,
+        hotel_id: null, // For destination loving list, hotel_id is null
+      },
+    });
+
+    if (existingEntry) {
+      throw new Error("Destination already in loving list");
+    }
+
+    // Add to loving list
+    const lovingListEntry = await db.LovingList.create({
+      user_id: userId,
+      destination_id: destinationId,
+      hotel_id: null,
+    });
+
+    return lovingListEntry;
+  },
+
+  /**
+   * Remove destination from user's loving list
+   */
+  async removeDestinationFromLovingList(userId, destinationId) {
+    const deletedCount = await db.LovingList.destroy({
+      where: {
+        user_id: userId,
+        destination_id: destinationId,
+        hotel_id: null,
+      },
+    });
+
+    if (deletedCount === 0) {
+      throw new Error("Destination not found in loving list");
+    }
+
+    return { message: "Destination removed from loving list successfully" };
+  },
+
+  /**
+   * Get user's loving list destinations
+   */
+  async getUserLovingListDestinations(userId) {
+    const lovingList = await db.LovingList.findAll({
+      where: {
+        user_id: userId,
+        destination_id: { [db.Sequelize.Op.ne]: null }, // Only destinations, not hotels
+      },
+      include: [
+        {
+          model: db.Destination,
+          attributes: [
+            "destination_id",
+            "name",
+            "rating",
+            "location",
+            "thumbnail",
+            "description"
+          ],
+        },
+      ],
+      order: [["destination_id", "ASC"]],
+    });
+
+    // Extract destinations from the result
+    const destinations = lovingList
+      .map((item) => item.Destination)
+      .filter((destination) => destination !== null);
+      console.log(destinations);
+
+    return destinations;
+  },
+
+  /**
+   * Check if destination is in user's loving list
+   */
+  async isDestinationInLovingList(userId, destinationId) {
+    const entry = await db.LovingList.findOne({
+      where: {
+        user_id: userId,
+        destination_id: destinationId,
+        hotel_id: null,
+      },
+    });
+
+    return entry !== null;
   },
 };
 

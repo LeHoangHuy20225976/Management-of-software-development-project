@@ -173,35 +173,33 @@ export default function HotelPricingPage() {
       const data = formData[typeId];
       if (!data?.basic_price || Number.isNaN(Number(data.basic_price))) {
         alert('Vui lòng nhập giá cơ bản hợp lệ');
+        setSavingTypeId(null);
+        return;
+      }
+
+      const specialPrice = data.special_price.trim() === '' ? null : Number(data.special_price);
+      if (specialPrice !== null && Number.isNaN(specialPrice)) {
+        alert('Giá đặc biệt không hợp lệ');
+        setSavingTypeId(null);
+        return;
+      }
+
+      const discount = data.discount.trim() === '' ? null : Number(data.discount);
+      if (discount !== null && Number.isNaN(discount)) {
+        alert('Giảm giá không hợp lệ');
+        setSavingTypeId(null);
         return;
       }
 
       const priceData: Record<string, unknown> = {
         type_id: typeId,
         basic_price: Number(data.basic_price),
+        special_price: specialPrice,
+        discount: discount,
+        event: data.event.trim() === '' ? null : data.event.trim(),
+        start_date: data.start_date || null,
+        end_date: data.end_date || null,
       };
-
-      if (data.special_price.trim() !== '') {
-        const special = Number(data.special_price);
-        if (Number.isNaN(special)) {
-          alert('Giá đặc biệt không hợp lệ');
-          return;
-        }
-        priceData.special_price = special;
-      }
-
-      if (data.discount.trim() !== '') {
-        const discount = Number(data.discount);
-        if (Number.isNaN(discount)) {
-          alert('Giảm giá không hợp lệ');
-          return;
-        }
-        priceData.discount = discount;
-      }
-
-      if (data.event.trim() !== '') priceData.event = data.event.trim();
-      if (data.start_date) priceData.start_date = data.start_date;
-      if (data.end_date) priceData.end_date = data.end_date;
 
       await pricingEngineApi.updatePricing(typeId, priceData);
 
@@ -210,7 +208,13 @@ export default function HotelPricingPage() {
       if (selectedHotelId) await loadRoomTypes(selectedHotelId);
     } catch (e) {
       console.error('Error updating pricing:', e);
-      alert(e instanceof Error ? e.message : 'Có lỗi khi cập nhật giá');
+      const message =
+        e instanceof Error && (e as any).response?.data?.message
+          ? (e as any).response.data.message
+          : e instanceof Error
+          ? e.message
+          : 'Có lỗi khi cập nhật giá';
+      alert(message);
     } finally {
       setSavingTypeId(null);
     }
@@ -380,9 +384,10 @@ export default function HotelPricingPage() {
                       type="number"
                       step="0.01"
                       min="0"
+                      max="1"
                       value={data?.discount ?? ''}
                       onChange={(e) => updateFormField(roomType.type_id, 'discount', e.target.value)}
-                      placeholder="VD: 0.15"
+                      placeholder="VD: 0.15 (từ 0-1)"
                     />
                   ) : (
                     <div className="text-2xl font-bold text-gray-900">{discountLabel}</div>

@@ -7,9 +7,11 @@ import { Button } from '@/components/common/Button';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { destinationsApi } from '@/lib/api/services';
+import { useAuth } from '@/lib/context/AuthContext';
 import type { TourismSpot } from '@/types';
 
 export default function TourismPage() {
+  const { user, isAuthenticated } = useAuth();
   const [tourismSpots, setTourismSpots] = useState<TourismSpot[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'north' | 'central' | 'south'>('all');
@@ -17,6 +19,10 @@ export default function TourismPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'rating' | 'name' | 'popular'>('rating');
   const [minRating, setMinRating] = useState<number>(0);
+
+  // Loving list states
+  const [lovingList, setLovingList] = useState<Set<number>>(new Set());
+  const [lovingListLoading, setLovingListLoading] = useState<Set<number>>(new Set());
 
   // Get unique types from data
   const [types, setTypes] = useState<string[]>([]);
@@ -26,10 +32,15 @@ export default function TourismPage() {
       try {
         const data = await destinationsApi.getAll();
         setTourismSpots(data);
-        
+
         // Extract unique types
         const uniqueTypes = [...new Set(data.map(s => s.type).filter(Boolean))];
         setTypes(uniqueTypes);
+
+        // Load loving list status if user is authenticated
+        if (isAuthenticated && user) {
+          await loadLovingListStatus(data);
+        }
       } catch (error) {
         console.error('Error loading tourism:', error);
       } finally {
@@ -37,7 +48,7 @@ export default function TourismPage() {
       }
     };
     loadTourism();
-  }, []);
+  }, [isAuthenticated, user]);
 
   // Handle search with API
   const handleSearch = async () => {
@@ -46,7 +57,7 @@ export default function TourismPage() {
       setTourismSpots(data);
       return;
     }
-    
+
     setLoading(true);
     try {
       const results = await destinationsApi.search(searchQuery);
@@ -70,11 +81,13 @@ export default function TourismPage() {
       let matchesRegion = true;
       if (filter !== 'all') {
         const region =
-          spot.location.includes('Hà Nội') || spot.location.includes('Hạ Long') || spot.location.includes('Sa Pa') || spot.location.includes('Ninh Bình')
+          spot.location.includes('Hanoi') || spot.location.includes('Ha Long') || spot.location.includes('Sapa') || spot.location.includes('Ninh Binh')
             ? 'north'
-            : spot.location.includes('Huế') || spot.location.includes('Đà Nẵng') || spot.location.includes('Hội An') || spot.location.includes('Nha Trang')
-            ? 'central'
-            : 'south';
+            : spot.location.includes('Hue') || spot.location.includes('Da Nang') || spot.location.includes('Hoi An') || spot.location.includes('Nha Trang') || spot.location.includes('Khanh Hoa') || spot.location.includes('Binh Thuan')
+              ? 'central'
+              : spot.location.includes('Ho Chi Minh City') || spot.location.includes('Phu Quoc') || spot.location.includes('Can Tho') || spot.location.includes('Vung Tau') || spot.location.includes('Da Lat') || spot.location.includes('Tay Ninh') || spot.location.includes('Lam Dong')
+                ? 'south'
+                : null;
         matchesRegion = region === filter;
       }
 
@@ -91,6 +104,69 @@ export default function TourismPage() {
       if (sortBy === 'name') return a.name.localeCompare(b.name);
       return 0; // popular - keep original order
     });
+
+  // Load loving list status for all destinations
+  const loadLovingListStatus = async (spots: TourismSpot[]) => {
+    if (!isAuthenticated) return;
+
+    try {
+      const statusPromises = spots.map(async (spot) => {
+        try {
+          const status = await destinationsApi.checkLovingListStatus(spot.destination_id.toString());
+          return status.isInLovingList ? spot.destination_id : null;
+        } catch (error) {
+          console.error(`Error checking loving list status for ${spot.destination_id}:`, error);
+          return null;
+        }
+      });
+
+      const results = await Promise.all(statusPromises);
+      const lovingListIds = new Set(results.filter(id => id !== null));
+      setLovingList(lovingListIds);
+    } catch (error) {
+      console.error('Error loading loving list status:', error);
+    }
+  };
+
+  // Handle toggle loving list
+  const handleToggleLovingList = async (destinationId: number, event: React.MouseEvent) => {
+    event.preventDefault(); // Prevent navigation to destination page
+    event.stopPropagation(); // Prevent event bubbling
+
+    if (!isAuthenticated) {
+      alert('Vui lòng đăng nhập để sử dụng tính năng này!');
+      return;
+    }
+
+    const isInList = lovingList.has(destinationId);
+    const newLoadingSet = new Set(lovingListLoading);
+    newLoadingSet.add(destinationId);
+    setLovingListLoading(newLoadingSet);
+
+    try {
+      if (isInList) {
+        // Remove from loving list
+        await destinationsApi.removeFromLovingList(destinationId.toString());
+        const newLovingList = new Set(lovingList);
+        newLovingList.delete(destinationId);
+        setLovingList(newLovingList);
+      } else {
+        // Add to loving list
+        console.log("added to loving list")
+        await destinationsApi.addToLovingList(destinationId.toString());
+        const newLovingList = new Set(lovingList);
+        newLovingList.add(destinationId);
+        setLovingList(newLovingList);
+      }
+    } catch (error) {
+      console.error('Error toggling loving list:', error);
+      alert('Có lỗi xảy ra, vui lòng thử lại!');
+    } finally {
+      const newLoadingSet = new Set(lovingListLoading);
+      newLoadingSet.delete(destinationId);
+      setLovingListLoading(newLoadingSet);
+    }
+  };
 
   return (
     <>
@@ -117,7 +193,7 @@ export default function TourismPage() {
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                     className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0071c2] focus:border-[#0071c2] transition-all text-gray-900 placeholder:text-gray-400"
                   />
-                  <button 
+                  <button
                     onClick={handleSearch}
                     className="px-8 py-3 bg-[#0071c2] hover:bg-[#005999] text-white font-semibold rounded-lg transition-colors"
                   >
@@ -206,7 +282,7 @@ export default function TourismPage() {
                 >
                   <option value="rating">Đánh giá cao nhất</option>
                   <option value="name">Tên A-Z</option>
-                  <option value="popular">Phổ biến nhất</option>
+                  {/* <option value="popular">Phổ biến nhất</option> */}
                 </select>
               </div>
             </div>
@@ -249,8 +325,27 @@ export default function TourismPage() {
                     key={spot.destination_id}
                     href={`/tourism/${spot.destination_id}`}
                   >
-                    <div className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden hover:border-[#0071c2] hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group">
+                    <div className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden hover:border-[#0071c2] hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 group relative">
                       <div className="relative h-64 overflow-hidden">
+                        {/* Loving list heart button */}
+                        {isAuthenticated && (
+                          <button
+                            onClick={(e) => handleToggleLovingList(spot.destination_id, e)}
+                            disabled={lovingListLoading.has(spot.destination_id)}
+                            className="absolute top-3 right-3 z-10 p-2 rounded-full bg-white/90 backdrop-blur-sm shadow-lg hover:bg-white transition-all duration-200 disabled:opacity-50"
+                          >
+                            {lovingListLoading.has(spot.destination_id) ? (
+                              <div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <span className={`text-xl transition-colors ${lovingList.has(spot.destination_id)
+                                ? 'text-red-500'
+                                : 'text-gray-400 hover:text-red-400'
+                                }`}>
+                                {lovingList.has(spot.destination_id) ? '❤️' : '🤍'}
+                              </span>
+                            )}
+                          </button>
+                        )}
                         <div
                           className="absolute inset-0 bg-cover bg-center transform group-hover:scale-110 transition-transform duration-500"
                           style={{

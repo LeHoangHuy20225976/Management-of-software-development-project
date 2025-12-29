@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
@@ -24,6 +25,11 @@ export default function HotelProfilePage() {
   const [selectedHotelId, setSelectedHotelId] = useState<string>('');
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
 
+  const MapPicker = useMemo(() => dynamic(
+    () => import('@/components/common/MapPicker').then((mod) => mod.MapPicker),
+    { ssr: false, loading: () => <p>Đang tải bản đồ...</p> }
+  ), []);
+
   const selectedHotel = useMemo(() => {
     if (!selectedHotelId) return null;
     return hotels.find((h) => String((h as any).hotel_id ?? (h as any).id) === selectedHotelId) ?? null;
@@ -40,6 +46,15 @@ export default function HotelProfilePage() {
     latitude: '',
     thumbnail: '',
   });
+
+  const mapPosition = useMemo((): [number, number] => {
+    const lat = parseFloat(hotelInfo.latitude);
+    const lng = parseFloat(hotelInfo.longitude);
+    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+      return [lat, lng];
+    }
+    return [16.054456, 108.202166]; // Default to Da Nang
+  }, [hotelInfo.latitude, hotelInfo.longitude]);
 
   useEffect(() => {
     const loadHotelInfo = async () => {
@@ -170,6 +185,14 @@ export default function HotelProfilePage() {
       setDeletingHotel(false);
       setShowDeleteModal(false);
     }
+  };
+
+  const handlePositionChange = (position: { lat: number; lng: number }) => {
+    setHotelInfo((prev) => ({
+      ...prev,
+      latitude: position.lat.toFixed(6),
+      longitude: position.lng.toFixed(6),
+    }));
   };
 
   return (
@@ -345,24 +368,21 @@ export default function HotelProfilePage() {
               </div>
             </div>
 
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                Chọn vị trí trên bản đồ
+              </label>
+              <MapPicker
+                position={mapPosition}
+                onPositionChange={handlePositionChange}
+                isEditing={isEditing}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {isEditing ? 'Nhấp vào bản đồ để chọn lại vị trí.' : 'Bản đồ chỉ xem.'}
+              </p>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2">
-                  Kinh độ (longitude)
-                </label>
-                <Input
-                  type="number"
-                  step="0.000001"
-                  value={hotelInfo.longitude}
-                  onChange={(e) =>
-                    setHotelInfo({
-                      ...hotelInfo,
-                      longitude: e.target.value,
-                    })
-                  }
-                  disabled={!isEditing}
-                />
-              </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2">
                   Vĩ độ (latitude)
@@ -377,7 +397,24 @@ export default function HotelProfilePage() {
                       latitude: e.target.value,
                     })
                   }
-                  disabled={!isEditing}
+                  disabled
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Kinh độ (longitude)
+                </label>
+                <Input
+                  type="number"
+                  step="0.000001"
+                  value={hotelInfo.longitude}
+                  onChange={(e) =>
+                    setHotelInfo({
+                      ...hotelInfo,
+                      longitude: e.target.value,
+                    })
+                  }
+                  disabled
                 />
               </div>
             </div>
