@@ -74,7 +74,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-100 text-sm">Tổng người dùng</p>
-              <p className="text-3xl font-bold mt-1">{dashboard?.totalUsers.toLocaleString()}</p>
+              <p className="text-3xl font-bold mt-1">{(dashboard?.totalUsers || 0).toLocaleString()}</p>
             </div>
             <div className="text-5xl opacity-50">👥</div>
           </div>
@@ -102,7 +102,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-purple-100 text-sm">Tổng đặt phòng</p>
-              <p className="text-3xl font-bold mt-1">{dashboard?.totalBookings.toLocaleString()}</p>
+              <p className="text-3xl font-bold mt-1">{(dashboard?.totalBookings || 0).toLocaleString()}</p>
             </div>
             <div className="text-5xl opacity-50">📋</div>
           </div>
@@ -170,7 +170,7 @@ export default function AdminDashboardPage() {
       <Card>
         <h2 className="text-xl font-bold text-gray-900 mb-4">🕐 Hoạt động gần đây</h2>
         <div className="space-y-4">
-          {dashboard?.recentActivity.map((activity: AdminActivity) => (
+          {(dashboard?.recentActivity || []).map((activity: AdminActivity) => (
             <div
               key={activity.id}
               className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg"
