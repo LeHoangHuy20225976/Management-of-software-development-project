@@ -9,11 +9,17 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // Many to one relationship between Image and Hotel
-      Image.belongsTo(models.Hotel, { foreignKey: "hotel_id" });
+      Image.belongsTo(models.Hotel, {
+        foreignKey: "hotel_id",
+        onDelete: 'CASCADE'
+      });
       // Many to one relationship between Image and Destination
       Image.belongsTo(models.Destination, { foreignKey: "destination_id" });
       // Many to one relationship between Image and Room
-      Image.belongsTo(models.Room, { foreignKey: "room_id" });
+      Image.belongsTo(models.Room, {
+        foreignKey: "room_id",
+        onDelete: 'CASCADE'
+      });
     }
   }
   Image.init(

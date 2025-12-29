@@ -139,8 +139,11 @@ export default function UserProfilePage() {
 
   // Handle delete account
   const handleDeleteAccount = async () => {
-    if (deleteConfirmText !== 'XÓA TÀI KHOẢN') {
-      alert('Vui lòng nhập đúng "XÓA TÀI KHOẢN" để xác nhận!');
+    const normalizedInput = deleteConfirmText.trim().toUpperCase();
+    const expectedText = 'XÓA TÀI KHOẢN';
+
+    if (normalizedInput !== expectedText) {
+      alert(`Vui lòng nhập đúng "${expectedText}" để xác nhận!`);
       return;
     }
 
@@ -650,14 +653,17 @@ export default function UserProfilePage() {
 
             <div className="mb-6">
               <label className="block text-sm font-semibold text-gray-900 mb-2">
-                Nhập <span className="text-red-600">XÓA TÀI KHOẢN</span> để xác nhận:
+                Nhập <span className="text-red-600 font-bold">XÓA TÀI KHOẢN</span> để xác nhận:
               </label>
               <Input
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder="XÓA TÀI KHOẢN"
-                className="text-center"
+                className={`text-center ${deleteConfirmText.trim().toUpperCase() === 'XÓA TÀI KHOẢN' ? 'border-green-500' : ''}`}
               />
+              {deleteConfirmText && deleteConfirmText.trim().toUpperCase() !== 'XÓA TÀI KHOẢN' && (
+                <p className="text-xs text-red-500 mt-1">Vui lòng nhập đúng "XÓA TÀI KHOẢN"</p>
+              )}
             </div>
 
             <div className="flex space-x-3">
@@ -676,7 +682,7 @@ export default function UserProfilePage() {
                 variant="danger"
                 className="flex-1"
                 onClick={handleDeleteAccount}
-                disabled={deleteConfirmText !== 'XÓA TÀI KHOẢN' || deletingAccount}
+                disabled={deleteConfirmText.trim().toUpperCase() !== 'XÓA TÀI KHOẢN' || deletingAccount}
               >
                 {deletingAccount ? (
                   <span className="flex items-center justify-center gap-2">

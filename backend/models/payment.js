@@ -11,7 +11,10 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // Payment belongs to a Booking
-      Payment.belongsTo(models.Booking, { foreignKey: 'booking_id' });
+      Payment.belongsTo(models.Booking, {
+        foreignKey: 'booking_id',
+        onDelete: 'CASCADE'
+      });
     }
   }
   Payment.init({

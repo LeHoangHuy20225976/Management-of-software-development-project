@@ -38,8 +38,32 @@ export default function HomePage() {
           hotelsApi.getAll(),
           tourismApi.getAll(),
         ]);
-        setFeaturedHotels(hotels.slice(0, 3));
-        setPopularDestinations(tourism.slice(0, 3));
+
+        // Filter và sắp xếp theo rating trong frontend
+        const sortedHotels = hotels
+          .filter(hotel => hotel.rating && hotel.rating > 0) // Chỉ lấy hotel có rating > 0
+          .sort((a, b) => {
+            // Sắp xếp theo rating cao nhất, nếu bằng nhau thì theo thời gian tạo mới nhất
+            if (b.rating !== a.rating) {
+              return b.rating - a.rating;
+            }
+            return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+          })
+          .slice(0, 3); // Lấy 3 hotel đầu tiên
+
+        const sortedDestinations = tourism
+          .filter(dest => dest.rating && dest.rating > 0) // Chỉ lấy destination có rating > 0
+          .sort((a, b) => {
+            // Sắp xếp theo rating cao nhất, nếu bằng nhau thì theo thời gian tạo mới nhất
+            if (b.rating !== a.rating) {
+              return b.rating - a.rating;
+            }
+            return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+          })
+          .slice(0, 3); // Lấy 3 destination đầu tiên
+
+        setFeaturedHotels(sortedHotels);
+        setPopularDestinations(sortedDestinations);
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -69,7 +93,7 @@ export default function HomePage() {
             <div className="absolute top-1/2 -left-20 w-72 h-72 bg-blue-400/10 rounded-full blur-3xl animate-pulse animation-delay-2000"></div>
             <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-cyan-400/10 rounded-full blur-3xl animate-pulse animation-delay-4000"></div>
           </div>
-          
+
           <div className="container mx-auto px-4 relative z-10">
             <div className="text-center mb-12 animate-fade-in">
               <span className="inline-block px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full text-white/90 text-sm font-medium mb-6 border border-white/20">
@@ -80,11 +104,11 @@ export default function HomePage() {
                 <span className="relative">
                   <span className="bg-gradient-to-r from-yellow-300 to-yellow-500 bg-clip-text text-transparent">hoàn hảo</span>
                   <svg className="absolute -bottom-2 left-0 w-full" height="8" viewBox="0 0 200 8" fill="none">
-                    <path d="M2 6C50 2 150 2 198 6" stroke="url(#gradient)" strokeWidth="3" strokeLinecap="round"/>
+                    <path d="M2 6C50 2 150 2 198 6" stroke="url(#gradient)" strokeWidth="3" strokeLinecap="round" />
                     <defs>
                       <linearGradient id="gradient" x1="0" y1="0" x2="200" y2="0">
-                        <stop stopColor="#fcd34d"/>
-                        <stop offset="1" stopColor="#f59e0b"/>
+                        <stop stopColor="#fcd34d" />
+                        <stop offset="1" stopColor="#f59e0b" />
                       </linearGradient>
                     </defs>
                   </svg>
@@ -152,7 +176,7 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          
+
           {/* Scroll Indicator */}
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
             <div className="w-6 h-10 rounded-full border-2 border-white/30 flex items-start justify-center p-2">
@@ -189,7 +213,7 @@ export default function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {featuredHotels.map((hotel, index) => (
                 <Link key={hotel.hotel_id} href={`/hotel/${hotel.hotel_id}`}>
-                  <div 
+                  <div
                     className="card-interactive group h-full"
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
@@ -199,13 +223,13 @@ export default function HomePage() {
                         style={{ backgroundImage: `url('${hotel.thumbnail}')` }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                      
+
                       {/* Rating Badge */}
                       <div className="absolute top-4 right-4 flex items-center gap-1 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-lg">
                         <span className="text-yellow-500">⭐</span>
                         <span className="font-bold text-gray-900">{hotel.rating}</span>
                       </div>
-                      
+
                       {/* Quick Action on Hover */}
                       <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
                         <button className="w-full py-2.5 bg-white/95 backdrop-blur-sm rounded-xl font-semibold text-[#0071c2] shadow-lg hover:bg-white transition-colors">
@@ -213,7 +237,7 @@ export default function HomePage() {
                         </button>
                       </div>
                     </div>
-                    
+
                     <div className="p-5">
                       <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-[#0071c2] transition-colors line-clamp-1">
                         {hotel.name}
@@ -245,7 +269,7 @@ export default function HomePage() {
                 </Link>
               ))}
             </div>
-            
+
             {/* Mobile View All Button */}
             <div className="mt-8 text-center md:hidden">
               <Link href="/search">
@@ -285,7 +309,7 @@ export default function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {popularDestinations.map((spot, index) => (
                 <Link key={spot.destination_id} href={`/tourism/${spot.destination_id}`}>
-                  <div 
+                  <div
                     className="relative group h-80 rounded-3xl overflow-hidden cursor-pointer"
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
@@ -294,7 +318,7 @@ export default function HomePage() {
                       style={{ backgroundImage: `url('${spot.thumbnail}')` }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent group-hover:from-black/90 transition-all duration-300" />
-                    
+
                     {/* Content */}
                     <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
                       <div className="flex items-center gap-2 mb-3">
@@ -311,7 +335,7 @@ export default function HomePage() {
                         {spot.location}
                       </p>
                     </div>
-                    
+
                     {/* Hover Overlay */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       <button className="px-6 py-3 bg-white/95 backdrop-blur-sm rounded-xl font-semibold text-gray-900 shadow-xl hover:bg-white transition-colors transform -translate-y-2 group-hover:translate-y-0 transition-transform">
@@ -332,7 +356,7 @@ export default function HomePage() {
             <div className="absolute top-20 left-10 w-72 h-72 bg-blue-100 rounded-full blur-3xl"></div>
             <div className="absolute bottom-20 right-10 w-96 h-96 bg-yellow-100 rounded-full blur-3xl"></div>
           </div>
-          
+
           <div className="container mx-auto px-4 relative z-10">
             <div className="text-center mb-16">
               <span className="inline-block px-4 py-2 bg-[#0071c2]/10 text-[#0071c2] text-sm font-semibold rounded-full mb-4">
@@ -346,7 +370,7 @@ export default function HomePage() {
                 Trải nghiệm đặt phòng tuyệt vời nhất với những tính năng hàng đầu
               </p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {/* Feature 1 */}
               <div className="group p-8 bg-white rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_rgba(0,113,194,0.15)] transition-all duration-500 hover:-translate-y-2 border border-gray-100">
@@ -409,7 +433,7 @@ export default function HomePage() {
             <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
             <div className="absolute bottom-0 left-0 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
           </div>
-          
+
           <div className="container mx-auto px-4 relative z-10 text-center">
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
               Sẵn sàng cho chuyến đi tiếp theo?

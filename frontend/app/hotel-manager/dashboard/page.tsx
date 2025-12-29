@@ -48,9 +48,12 @@ export default function HotelManagerDashboardPage() {
 
         // Load bookings - this is the main data source
         try {
+          // const bookingsArray = bookingData?.bookings || bookingData || [];
           const bookingData = await bookingsApi.getAll();
           const bookingsArray = bookingData?.bookings || bookingData || [];
           setBookings(Array.isArray(bookingsArray) ? bookingsArray : []);
+          console.log('bookingsArray', bookingsArray);
+          // setBookings(Array.isArray(bookingsArray) ? bookingsArray : []);
         } catch (err) {
           console.error('Error loading bookings:', err);
           setBookings([]);

@@ -146,7 +146,7 @@ export default function FavoritesPage() {
                   </div>
                   <span className="text-gray-600">
                     {destination.type
-                      ? `Loại hình: ${destination.type}`
+                      ? `${destination.type}`
                       : 'Đang cập nhật'}
                   </span>
                 </div>

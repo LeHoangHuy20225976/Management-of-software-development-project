@@ -149,8 +149,7 @@ export const tourismApi = {
     formData.append("thumbnail", file);
     return apiClient.post<any>(
       API_CONFIG.ENDPOINTS.DESTINATION_THUMBNAIL.replace(":id", id.toString()),
-      formData,
-      { 'Content-Type': 'multipart/form-data' }
+      formData
     );
   },
 
@@ -162,8 +161,7 @@ export const tourismApi = {
     formData.append("image", file);
     return apiClient.post<any>(
       API_CONFIG.ENDPOINTS.DESTINATION_IMAGES.replace(":id", id.toString()),
-      formData,
-      { 'Content-Type': 'multipart/form-data' }
+      formData
     );
   },
 
@@ -620,7 +618,19 @@ export const hotelManagerApi = {
     const { thumbnail, ...data } = hotelData;
     formData.append("hotelData", JSON.stringify(data));
 
-    return apiClient.post<Hotel>(API_CONFIG.ENDPOINTS.ADD_HOTEL, formData);
+    // FIX: Sử dụng đúng signature của apiClient.post (3 params max)
+    return apiClient.post<Hotel>(
+      API_CONFIG.ENDPOINTS.ADD_HOTEL,
+      formData
+    );
+
+    // CODE CŨ (không đúng signature):
+    // return apiClient.post<Hotel>(
+    //   API_CONFIG.ENDPOINTS.ADD_HOTEL,
+    //   formData,
+    //   undefined,
+    //   { "Content-Type": "multipart/form-data" }
+    // );
   },
 
   // Booking Management for Hotel Manager
@@ -1347,8 +1357,7 @@ export const destinationsApi = {
     formData.append("thumbnail", file);
 
     const response = await fetch(
-      `${
-        API_CONFIG.BASE_URL
+      `${API_CONFIG.BASE_URL
       }${API_CONFIG.ENDPOINTS.DESTINATION_THUMBNAIL.replace(
         ":id",
         id.toString()

@@ -12,17 +12,32 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       // define association here
       // 1 HOTEL belongs to 1 USER (hotel owner)
-      Hotel.belongsTo(models.User, { foreignKey: 'hotel_owner' });
+      Hotel.belongsTo(models.User, {
+        foreignKey: 'hotel_owner',
+        onDelete: 'CASCADE'
+      });
       // 1 HOTEL has many ROOM_TYPE
-      Hotel.hasMany(models.RoomType, { foreignKey: 'hotel_id' });
+      Hotel.hasMany(models.RoomType, {
+        foreignKey: 'hotel_id',
+        onDelete: 'CASCADE'
+      });
       // relationship many and many with  Hotel - Facility through FacilitiesPossessing
       Hotel.belongsToMany(models.HotelFacilities, { through: models.FacilitiesPossessing, foreignKey: 'hotel_id', otherKey: 'facility_id' });
       // 1 HOTEL has many IMAGES
-      Hotel.hasMany(models.Image, { foreignKey: 'hotel_id' });
+      Hotel.hasMany(models.Image, {
+        foreignKey: 'hotel_id',
+        onDelete: 'CASCADE'
+      });
       // 1 HOTEL has many REVIEWS
-      Hotel.hasMany(models.Review, { foreignKey: 'hotel_id' });
+      Hotel.hasMany(models.Review, {
+        foreignKey: 'hotel_id',
+        onDelete: 'CASCADE'
+      });
       // 1 HOTEL has many LOVING_LIST
-      Hotel.hasMany(models.LovingList, { foreignKey: 'hotel_id' });
+      Hotel.hasMany(models.LovingList, {
+        foreignKey: 'hotel_id',
+        onDelete: 'CASCADE'
+      });
     }
   }
   Hotel.init({

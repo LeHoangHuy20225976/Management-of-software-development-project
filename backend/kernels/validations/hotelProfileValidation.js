@@ -7,10 +7,25 @@ const hotelProfileValidation = {
     body('hotelData.contact_phone').notEmpty().withMessage('Contact phone is required'),
     body('hotelData.rating').optional().isFloat({ min: 0, max: 5 }).withMessage('Rating must be between 0 and 5'),
     body('hotelData.longitude').optional().isFloat().withMessage('Longitude must be a number'),
-    body('hotelData.latitute').optional().isFloat().withMessage('Latitute must be a number'),
+    // FIX: Sửa typo "latitute" thành "latitude"
+    body('hotelData.latitude').optional().isFloat().withMessage('Latitude must be a number'),
     body('hotelData.description').optional(),
     body('hotelData.thumbnail').optional(),
   ],
+
+  // CODE CŨ (có typo):
+  /*
+  addHotel: [
+    body('hotelData.hotelName').notEmpty().withMessage('Hotel name is required'),
+    body('hotelData.address').notEmpty().withMessage('Address is required'),
+    body('hotelData.contact_phone').notEmpty().withMessage('Contact phone is required'),
+    body('hotelData.rating').optional().isFloat({ min: 0, max: 5 }).withMessage('Rating must be between 0 and 5'),
+    body('hotelData.longitude').optional().isFloat().withMessage('Longitude must be a number'),
+    body('hotelData.latitute').optional().isFloat().withMessage('Latitute must be a number'), // TYPO HERE
+    body('hotelData.description').optional(),
+    body('hotelData.thumbnail').optional(),
+  ],
+  */
 
   addRoomType: [
     body('typeData.hotel_id').notEmpty().isInt({ min: 1 }).withMessage('hotel_id is required'),
