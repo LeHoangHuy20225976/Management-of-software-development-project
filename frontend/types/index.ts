@@ -396,7 +396,6 @@ export interface AdminActivity {
 }
 
 export interface AdminUser extends User {
-  // Additional admin-specific stats (optional, may not be in all responses)
   bookingCount?: number;
   totalSpent?: number;
   lastLogin?: string;

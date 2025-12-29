@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
-import { userProfileApi } from '@/lib/api/services';
-import type { User } from '@/types';
+import { adminApi, userProfileApi } from '@/lib/api/services';
+import type { AdminUser, User } from '@/types';
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
