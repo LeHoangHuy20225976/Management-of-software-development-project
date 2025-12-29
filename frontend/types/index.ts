@@ -326,7 +326,6 @@ export interface Coupon {
 
 // Admin Types
 export interface AdminDashboard {
-  // Frontend format (for backward compatibility)
   totalUsers: number;
   totalHotels: number;
   totalBookings: number;

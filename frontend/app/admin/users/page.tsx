@@ -20,6 +20,16 @@ export default function AdminUsersPage() {
   const [processing, setProcessing] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  
+  // Edit form state
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    phone_number: '',
+    gender: '',
+    date_of_birth: '',
+    role: 'customer' as AdminUser['role']
+  });
 
   useEffect(() => {
     loadUsers();
@@ -48,6 +58,26 @@ export default function AdminUsersPage() {
     } catch (error) {
       console.error('Error updating role:', error);
       setErrorMessage('Lỗi khi cập nhật vai trò');
+      setTimeout(() => setErrorMessage(''), 3000);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleUpdateUser = async () => {
+    if (!selectedUser) return;
+    setProcessing(true);
+    setErrorMessage('');
+    try {
+      const updatedUser = await adminApi.updateUser(String(selectedUser.user_id), editForm);
+      setUsers(users.map(u => u.user_id === selectedUser.user_id ? { ...u, ...editForm } : u));
+      setShowEditModal(false);
+      setSelectedUser(null);
+      setSuccessMessage('Đã cập nhật người dùng thành công!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Lỗi khi cập nhật người dùng');
       setTimeout(() => setErrorMessage(''), 3000);
     } finally {
       setProcessing(false);
@@ -270,6 +300,25 @@ export default function AdminUsersPage() {
                       >
                         👁️
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setEditForm({
+                            name: user.name || '',
+                            email: user.email || '',
+                            phone_number: user.phone_number || '',
+                            gender: user.gender || '',
+                            date_of_birth: user.date_of_birth ? new Date(user.date_of_birth).toISOString().split('T')[0] : '',
+                            role: user.role || 'customer'
+                          });
+                          setShowEditModal(true);
+                        }}
+                        title="Chỉnh sửa"
+                      >
+                        ✏️
+                      </Button>
                       <select
                         style={{ color: 'black' }}
                         className="text-xs border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -307,6 +356,130 @@ export default function AdminUsersPage() {
           </div>
         )}
       </Card>
+
+      {/* Edit Modal */}
+      {showEditModal && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">✏️ Chỉnh sửa người dùng</h2>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    Tên <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    placeholder="Nhập tên"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    Email <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    placeholder="Nhập email"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    Số điện thoại
+                  </label>
+                  <input
+                    type="tel"
+                    value={editForm.phone_number}
+                    onChange={(e) => setEditForm({ ...editForm, phone_number: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    placeholder="Nhập số điện thoại"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    Giới tính
+                  </label>
+                  <select
+                    value={editForm.gender}
+                    onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                  >
+                    <option value="">Chọn giới tính</option>
+                    <option value="Nam">👨 Nam</option>
+                    <option value="Nữ">👩 Nữ</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    Ngày sinh
+                  </label>
+                  <input
+                    type="date"
+                    value={editForm.date_of_birth}
+                    onChange={(e) => setEditForm({ ...editForm, date_of_birth: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    Vai trò <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={editForm.role || ''}
+                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value as AdminUser['role'] })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                  >
+                    <option value="customer">👤 Khách hàng</option>
+                    <option value="hotel_manager">🏨 Quản lý KS</option>
+                    <option value="admin">👑 Admin</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {errorMessage && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                ⚠️ {errorMessage}
+              </div>
+            )}
+
+            <div className="flex gap-3 justify-end mt-6">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowEditModal(false);
+                  setSelectedUser(null);
+                }}
+                disabled={processing}
+              >
+                Hủy
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleUpdateUser}
+                disabled={processing || !editForm.name || !editForm.email}
+              >
+                {processing ? 'Đang cập nhật...' : 'Cập nhật'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Modal */}
       {showDeleteModal && selectedUser && (

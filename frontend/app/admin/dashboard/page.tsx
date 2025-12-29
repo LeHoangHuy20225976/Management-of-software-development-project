@@ -135,17 +135,6 @@ export default function AdminDashboardPage() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Link href="/admin/hotels?status=pending">
-          <Card hover className="border-l-4 border-yellow-500">
-            <div className="flex items-center space-x-4">
-              <div className="text-4xl">⏳</div>
-              <div>
-                <p className="font-bold text-gray-900">Khách sạn chờ duyệt</p>
-                <p className="text-2xl font-bold text-yellow-600">{dashboard?.pendingHotels}</p>
-              </div>
-            </div>
-          </Card>
-        </Link>
 
         <Link href="/admin/users">
           <Card hover className="border-l-4 border-blue-500">

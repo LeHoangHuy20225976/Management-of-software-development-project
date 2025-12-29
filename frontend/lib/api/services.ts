@@ -1652,9 +1652,9 @@ export const adminApi = {
       pendingHotels: metrics.hotels?.pending || 0,
       activeHotels: metrics.hotels?.active || 0,
       activeBookings: metrics.rooms?.active || 0,
-      todayBookings: 0, // Backend doesn't provide this
-      todayRevenue: 0, // Backend doesn't provide this
-      recentActivity: [], // Backend doesn't provide this
+      todayBookings: 0, 
+      todayRevenue: 0, 
+      recentActivity: [], 
       bookingKPIs: {
         totalBookings: metrics.bookings?.total || 0,
         confirmedBookings: metrics.bookings?.byStatus?.confirmed || 0,
@@ -1688,6 +1688,13 @@ export const adminApi = {
     return apiClient.patch<any>(
       API_CONFIG.ENDPOINTS.ADMIN_UPDATE_USER_ROLE.replace(':id', userId),
       { role: newRole }
+    );
+  },
+
+  async updateUser(userId: string, userData: Partial<AdminUser>): Promise<AdminUser> {
+    return apiClient.put<AdminUser>(
+      `/api/v1/admin/users/${userId}`,
+      userData
     );
   },
 
@@ -1730,13 +1737,13 @@ export const adminApi = {
     
     return {
       totalRevenue: metrics.total?.revenue || 0,
-      thisMonthRevenue: 0, // Backend doesn't provide this
-      lastMonthRevenue: 0, // Backend doesn't provide this
-      growth: 0, // Backend doesn't provide this
-      dailyRevenue: [], // Backend doesn't provide this
+      thisMonthRevenue: 0, 
+      lastMonthRevenue: 0, 
+      growth: 0, 
+      dailyRevenue: [], 
       topHotels: (metrics.topHotels || []).map((hotel: any, index: number) => ({
-        hotel_id: index + 1, // Fake ID since backend doesn't provide
-        hotel_name: `Khách sạn #${index + 1}`, // Fake name since backend doesn't provide
+        hotel_id: index + 1,
+        hotel_name: `Khách sạn #${index + 1}`,
         revenue: hotel.revenue || 0,
         bookings: hotel.bookings || 0,
       })),

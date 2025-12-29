@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
-import { HotelChat } from '@/components/hotel/HotelChat';
 import { Button } from '@/components/common/Button';
 import { hotelsApi, reviewsApi, bookingsApi } from '@/lib/api/services';
 import { useAuth } from '@/lib/context/AuthContext';
@@ -916,7 +915,6 @@ export default function HotelDetailPage({
 
         </div>
       </div>
-      <HotelChat hotelId={hotel.hotel_id.toString()} hotelName={hotel.name} hotelImage={hotel.thumbnail} />
       <Footer />
     </>
   );
