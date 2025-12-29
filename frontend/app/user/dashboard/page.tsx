@@ -131,16 +131,16 @@ export default function UserDashboardPage() {
               <div className="font-semibold text-gray-900">Đơn của tôi</div>
             </div>
           </Link>
+          <Link href="/chatbot">
+            <div className="text-center p-4 border-2 border-gray-200 rounded-lg hover:border-[#0071c2] transition-colors cursor-pointer">
+              <div className="text-4xl mb-2">🤖</div>
+              <div className="font-semibold text-gray-900">AI Assistant</div>
+            </div>
+          </Link>
           <Link href={ROUTES.USER.REVIEWS}>
             <div className="text-center p-4 border-2 border-gray-200 rounded-lg hover:border-[#0071c2] transition-colors cursor-pointer">
               <div className="text-4xl mb-2">⭐</div>
               <div className="font-semibold text-gray-900">Viết đánh giá</div>
-            </div>
-          </Link>
-          <Link href={ROUTES.HELP}>
-            <div className="text-center p-4 border-2 border-gray-200 rounded-lg hover:border-[#0071c2] transition-colors cursor-pointer">
-              <div className="text-4xl mb-2">❓</div>
-              <div className="font-semibold text-gray-900">Trợ giúp</div>
             </div>
           </Link>
         </div>
