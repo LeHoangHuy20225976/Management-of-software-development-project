@@ -34,7 +34,7 @@ export default function AdminLoginPage() {
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       if (user?.role === 'admin') {
-        router.push('/admin/dashboard');
+        router.push('/admin/destinations');
       } else {
         // Not an admin, redirect to user dashboard
         router.push('/user/dashboard');

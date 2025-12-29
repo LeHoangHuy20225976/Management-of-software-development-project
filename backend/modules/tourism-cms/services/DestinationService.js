@@ -355,7 +355,8 @@ const DestinationService = {
             "rating",
             "location",
             "thumbnail",
-            "description"
+            "description",
+            "type"
           ],
         },
       ],
@@ -366,7 +367,7 @@ const DestinationService = {
     const destinations = lovingList
       .map((item) => item.Destination)
       .filter((destination) => destination !== null);
-      console.log(destinations);
+    console.log(destinations);
 
     return destinations;
   },

@@ -10,14 +10,26 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      Room.belongsTo(models.RoomType, { foreignKey: 'type_id' });
+      Room.belongsTo(models.RoomType, {
+        foreignKey: 'type_id',
+        onDelete: 'CASCADE'
+      });
       // One to many relationship between Room and Booking
-      Room.hasMany(models.Booking, { foreignKey: 'room_id' });
+      Room.hasMany(models.Booking, {
+        foreignKey: 'room_id',
+        onDelete: 'CASCADE'
+      });
       // One to many relationship between Room and Image
-      Room.hasMany(models.Image, { foreignKey: 'room_id' });
+      Room.hasMany(models.Image, {
+        foreignKey: 'room_id',
+        onDelete: 'CASCADE'
+      });
       // One to many relationship between Room and RoomLog
       Room.hasMany(models.RoomLog, { foreignKey: 'room_id' });
-      Room.hasMany(models.Review, { foreignKey: 'room_id' }); // reviews for this room
+      Room.hasMany(models.Review, {
+        foreignKey: 'room_id',
+        onDelete: 'CASCADE'
+      }); // reviews for this room
     }
   }
   Room.init({
