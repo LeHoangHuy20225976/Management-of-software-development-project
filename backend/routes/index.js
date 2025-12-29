@@ -11,6 +11,9 @@ const notificationRoutes = require("../modules/notification/routes/notificationR
 const pricingEngineRoutes = require("../modules/pricing-engine/routes/pricingEngineRoutes");
 const roomInventoryRoutes = require("../modules/room-inventory/routes/roomInventoryRoutes");
 const synchronizationRoutes = require("../modules/synchronization/routes/synchronizationRoutes");
+const aiRoutes = require("../modules/ai-integration/routes/aiRoutes");
+const hotelUploadRoutes = require("../modules/ai-integration/routes/hotelUploadRoutes");
+const attendanceRoutes = require("../modules/attendance/routes/attendanceRoutes");
 const adminRoutes = require("../modules/super-admin/routes/adminRoutes");
 
 // Health check endpoint
@@ -31,6 +34,9 @@ router.use("/api/v1/notifications", notificationRoutes);
 router.use("/api/v1/pricing", pricingEngineRoutes);
 router.use("/api/v1/rooms", roomInventoryRoutes);
 router.use("/api/v1/sync", synchronizationRoutes);
+router.use("/api/v1/ai", aiRoutes);
+router.use("/api/v1/hotel", hotelUploadRoutes);
+router.use("/api/v1/attendance", attendanceRoutes);
 router.use("/api/v1/admin", adminRoutes);
 
 module.exports = router;

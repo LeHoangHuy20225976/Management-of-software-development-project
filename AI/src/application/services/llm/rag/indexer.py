@@ -22,9 +22,9 @@ class RAGIndexer:
         self.table_name = table_name
         self.embed_dim = embed_dim
         
-        # Setup embedding model - Local HuggingFace (nhẹ, miễn phí)
+        # Setup embedding model - Multilingual model for Vietnamese support
         self.embed_model = HuggingFaceEmbedding(
-            model_name="sentence-transformers/all-MiniLM-L6-v2"  # Model nhẹ nhất (~90MB)
+            model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"  # Multilingual (~420MB), 384 dims
         )
         
         # Set global settings
