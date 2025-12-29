@@ -19,6 +19,15 @@ type PricingFormData = {
   end_date: string;
 };
 
+const EMPTY_PRICING_FORM: PricingFormData = {
+  basic_price: '',
+  special_price: '',
+  discount: '',
+  event: '',
+  start_date: '',
+  end_date: '',
+};
+
 const getBackendRoomPrice = (roomType: unknown): {
   basic_price?: number | string | null;
   special_price?: number | string | null;
@@ -170,16 +179,8 @@ export default function HotelPricingPage() {
     value: string
   ) => {
     setFormData((prev) => {
-      const next: PricingFormData = {
-        basic_price: '',
-        special_price: '',
-        discount: '',
-        event: '',
-        start_date: '',
-        end_date: '',
-        ...(prev[typeId] ?? {}),
-        [field]: value,
-      };
+      const previous = prev[typeId] ?? EMPTY_PRICING_FORM;
+      const next: PricingFormData = { ...previous, [field]: value };
 
       if (field === 'discount' || field === 'basic_price') {
         const computed = computeSpecialPriceFromDiscount(next.basic_price, next.discount);
