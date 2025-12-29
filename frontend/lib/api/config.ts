@@ -163,8 +163,8 @@ export const API_CONFIG = {
     // Admin
     ADMIN_DASHBOARD: '/api/v1/admin/dashboard',
     ADMIN_HOTEL_REJECT: '/api/v1/admin/hotels/:hotelId/reject',
-    ADMIN_REVENUE_METRICS: '/api/v1/admin/revenue',
-    ADMIN_BOOKING_KPIS: '/api/v1/admin/bookings/kpis',
+    ADMIN_REVENUE_METRICS: '/api/v1/admin/metrics/revenue',
+    ADMIN_BOOKING_KPIS: '/api/v1/admin/metrics/bookings',
     ADMIN_RECENT_ACTIVITY: '/api/v1/admin/activity',
     ADMIN_USERS: '/api/v1/admin/users',
     ADMIN_USER_BY_ID: '/api/v1/admin/users/:id',

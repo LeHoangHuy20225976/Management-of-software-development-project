@@ -415,6 +415,7 @@ export interface AdminHotel extends Hotel {
 }
 
 export interface RevenueMetrics {
+  // Frontend format
   totalRevenue: number;
   thisMonthRevenue: number;
   lastMonthRevenue: number;
@@ -424,9 +425,27 @@ export interface RevenueMetrics {
     revenue: number;
   }[];
   topHotels: {
-    hotel_id: number;
-    hotel_name: string;
+    hotel_id?: number;
+    hotel_name?: string;
     revenue: number;
     bookings: number;
   }[];
+}
+
+// Backend response structure
+export interface RevenueMetricsResponse {
+  metrics: {
+    period: {
+      startDate: string;
+      endDate: string;
+    };
+    total: {
+      revenue: number;
+      bookings: number;
+    };
+    topHotels: {
+      revenue: number;
+      bookings: number;
+    }[];
+  };
 }

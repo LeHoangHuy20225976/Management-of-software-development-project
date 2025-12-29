@@ -16,8 +16,14 @@ export default function AdminDashboardPage() {
 
   const loadDashboard = async () => {
     try {
-      const data = await adminApi.getDashboard();
-      setDashboard(data);
+      const [dashboardData, activityData] = await Promise.all([
+        adminApi.getDashboard(),
+        adminApi.getRecentActivity(),
+      ]);
+      setDashboard({
+        ...dashboardData,
+        recentActivity: activityData,
+      });
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {

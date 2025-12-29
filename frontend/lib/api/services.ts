@@ -1726,15 +1726,69 @@ export const adminApi = {
   },
 
   async getRevenueMetrics(): Promise<RevenueMetrics> {
-    return apiClient.get<RevenueMetrics>(API_CONFIG.ENDPOINTS.ADMIN_REVENUE_METRICS);
+    const response = await apiClient.get<any>(API_CONFIG.ENDPOINTS.ADMIN_REVENUE_METRICS);
+    
+    // Transform backend response to frontend format
+    const metrics = response.metrics || response;
+    
+    return {
+      totalRevenue: metrics.total?.revenue || 0,
+      thisMonthRevenue: 0, // Backend doesn't provide this
+      lastMonthRevenue: 0, // Backend doesn't provide this
+      growth: 0, // Backend doesn't provide this
+      dailyRevenue: [], // Backend doesn't provide this
+      topHotels: (metrics.topHotels || []).map((hotel: any, index: number) => ({
+        hotel_id: index + 1, // Fake ID since backend doesn't provide
+        hotel_name: `Khách sạn #${index + 1}`, // Fake name since backend doesn't provide
+        revenue: hotel.revenue || 0,
+        bookings: hotel.bookings || 0,
+      })),
+    };
   },
 
   async getBookingKPIs(): Promise<AdminDashboard['bookingKPIs']> {
-    return apiClient.get<AdminDashboard['bookingKPIs']>(API_CONFIG.ENDPOINTS.ADMIN_BOOKING_KPIS);
+    const response = await apiClient.get<any>(API_CONFIG.ENDPOINTS.ADMIN_BOOKING_KPIS);
+    
+    // Transform backend response to frontend format
+    const kpis = response.kpis || response;
+    
+    // Parse percentage strings to numbers (e.g., "15.49%" -> 15.49)
+    const conversionRate = parseFloat(kpis.rates?.conversion?.replace('%', '') || '0');
+    
+    return {
+      totalBookings: kpis.bookings?.total || 0,
+      confirmedBookings: kpis.bookings?.accepted || 0,
+      cancelledBookings: kpis.bookings?.cancelled || 0,
+      pendingBookings: kpis.bookings?.pending || 0,
+      completedBookings: kpis.bookings?.accepted || 0, // Use accepted as completed
+      conversionRate: conversionRate,
+      averageBookingValue: kpis.averages?.bookingValue || 0,
+    };
   },
 
   async getRecentActivity(): Promise<AdminActivity[]> {
-    return apiClient.get<AdminActivity[]>(API_CONFIG.ENDPOINTS.ADMIN_RECENT_ACTIVITY);
+    const response = await apiClient.get<any>(API_CONFIG.ENDPOINTS.ADMIN_RECENT_ACTIVITY);
+    const activities = response.activities || response.data?.activities || response || [];
+    
+    // Transform backend format to frontend AdminActivity format
+    return activities.map((activity: any) => ({
+      id: activity.id,
+      type: activity.type || 'booking',
+      description: activity.status === 'pending' 
+        ? `Đặt phòng mới #${activity.id} - ${activity.hotel}${activity.room ? ` - ${activity.room}` : ''}`
+        : activity.status === 'confirmed'
+        ? `Đặt phòng #${activity.id} đã được xác nhận - ${activity.hotel}`
+        : activity.status === 'cancelled'
+        ? `Đặt phòng #${activity.id} đã bị hủy - ${activity.hotel}`
+        : activity.status === 'completed'
+        ? `Đặt phòng #${activity.id} hoàn thành - ${activity.hotel}`
+        : activity.status === 'checked_in'
+        ? `Khách đã check-in #${activity.id} - ${activity.hotel}`
+        : `Đặt phòng #${activity.id} - ${activity.hotel}`,
+      timestamp: activity.timestamp,
+      userName: activity.user || undefined,
+      hotelName: activity.hotel || undefined,
+    }));
   },
 };
 
