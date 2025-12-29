@@ -44,6 +44,11 @@ class PaymentService {
       throw new Error(`Cannot create payment for booking with status: ${booking.status}`);
     }
 
+    // Validate booking has a valid price
+    if (!booking.total_price || booking.total_price <= 0) {
+      throw new Error('Cannot create payment for booking with invalid price. Please contact support.');
+    }
+
     // Check if there's already a pending/completed payment
     const existingPayment = await Payment.findOne({
       where: {
@@ -129,7 +134,7 @@ class PaymentService {
   async handleVnpayReturn(vnpParams) {
     // Verify signature
     const isValidSignature = vnpayUtils.verifyReturnUrl(vnpParams);
-    
+
     if (!isValidSignature) {
       throw new Error('Invalid signature');
     }
@@ -215,7 +220,7 @@ class PaymentService {
   async handleVnpayIPN(vnpParams) {
     // Verify signature
     const isValidSignature = vnpayUtils.verifyReturnUrl(vnpParams);
-    
+
     if (!isValidSignature) {
       return { RspCode: '97', Message: 'Checksum failed' };
     }
@@ -502,15 +507,15 @@ class PaymentService {
    * @returns {Promise<object>} Paginated payment list
    */
   async getPayments(filters = {}) {
-    const { 
-      booking_id, 
-      status, 
+    const {
+      booking_id,
+      status,
       payment_method,
       user_id,
       date_from,
       date_to,
-      limit = 50, 
-      offset = 0 
+      limit = 50,
+      offset = 0
     } = filters;
 
     const whereClause = {};
@@ -521,16 +526,16 @@ class PaymentService {
     if (payment_method) whereClause.payment_method = payment_method;
 
     if (date_from) {
-      whereClause.created_at = { 
-        ...whereClause.created_at, 
-        [Op.gte]: date_from 
+      whereClause.created_at = {
+        ...whereClause.created_at,
+        [Op.gte]: date_from
       };
     }
 
     if (date_to) {
-      whereClause.created_at = { 
-        ...whereClause.created_at, 
-        [Op.lte]: date_to 
+      whereClause.created_at = {
+        ...whereClause.created_at,
+        [Op.lte]: date_to
       };
     }
 
