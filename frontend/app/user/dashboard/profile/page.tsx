@@ -15,7 +15,10 @@ import { authApi } from '@/lib/api/auth';
 import { userApi, userProfileApi, bookingsApi, reviewsApi } from '@/lib/api/services';
 
 export default function UserProfilePage() {
-  const { user, logout } = useAuth();
+  // const { user, logout } = useAuth(); // Temporarily commented - using API instead
+  const { logout } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -37,43 +40,56 @@ export default function UserProfilePage() {
     reviews: 0,
   });
 
-  // Initialize form data from auth user
+  // Load user profile from API
   useEffect(() => {
-    if (user) {
-      const phoneFromContext =
-        (user as { phone_number?: string } | null)?.phone_number || '';
-      const dobFromContext =
-        (user as { date_of_birth?: string } | null)?.date_of_birth || '';
-      setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        phone_number: phoneFromContext,
-        date_of_birth: dobFromContext,
-        gender: user.gender || 'male',
-      });
-      setProfileImage(user.profile_image || null);
-    }
-
-    // Load stats from API
-    const loadStats = async () => {
+    const loadProfile = async () => {
       try {
-        const bookingsData = await bookingsApi.getAll();
-        const bookingsArray = Array.isArray(bookingsData?.bookings)
-          ? bookingsData.bookings
-          : Array.isArray(bookingsData)
-          ? bookingsData
-          : [];
+        setLoadingProfile(true);
+        const userProfile = await userApi.getProfile();
+        setProfile(userProfile);
 
-        setStats({
-          bookings: bookingsArray.length,
-          reviews: 0, // TODO: Need user reviews endpoint from backend
+        // Initialize form data from API profile
+        const phoneFromProfile = userProfile.phone_number || '';
+        const dobFromProfile = userProfile.date_of_birth || '';
+        setFormData({
+          name: userProfile.name || '',
+          email: userProfile.email || '',
+          phone_number: phoneFromProfile,
+          date_of_birth: dobFromProfile,
+          gender: userProfile.gender || 'male',
         });
+        setProfileImage(userProfile.profile_image || null);
       } catch (error) {
-        console.error('Error loading stats:', error);
+        console.error('Error loading profile:', error);
+        // Fallback to login page if not authenticated
+        router.push('/login');
+      } finally {
+        setLoadingProfile(false);
       }
     };
-    loadStats();
-  }, [user]);
+
+    loadProfile();
+
+    // Load stats from API
+    // const loadStats = async () => {
+    //   try {
+    //     const bookingsData = await bookingsApi.getAll();
+    //     const bookingsArray = Array.isArray(bookingsData?.bookings)
+    //       ? bookingsData.bookings
+    //       : Array.isArray(bookingsData)
+    //         ? bookingsData
+    //         : [];
+
+    //     setStats({
+    //       bookings: bookingsArray.length,
+    //       reviews: 0, // TODO: Need user reviews endpoint from backend
+    //     });
+    //   } catch (error) {
+    //     console.error('Error loading stats:', error);
+    //   }
+    // };
+    // loadStats();
+  }, [router]);
 
   // Handle profile image upload
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,7 +112,7 @@ export default function UserProfilePage() {
     try {
       const result = await userProfileApi.uploadProfileImage(file);
       setProfileImage(result.imageUrl);
-      alert('Cập nhật ảnh đại diện thành công!');
+      alert('Cập nhật ảnh đại diện thành công! Hãy reload lại trang để hiển thị cập nhật');
     } catch (error) {
       console.error('Upload error:', error);
       alert('Không thể tải ảnh lên, vui lòng thử lại.');
@@ -108,13 +124,13 @@ export default function UserProfilePage() {
   // Handle delete profile image
   const handleDeleteImage = async () => {
     if (!profileImage) return;
-    
+
     if (!confirm('Bạn có chắc muốn xóa ảnh đại diện?')) return;
 
     try {
       await userProfileApi.deleteProfileImage();
       setProfileImage(null);
-      alert('Đã xóa ảnh đại diện!');
+      alert('Đã xóa ảnh đại diện! Hãy reload lại trang để hiển thị cập nhật');
     } catch (error) {
       console.error('Delete image error:', error);
       alert('Không thể xóa ảnh, vui lòng thử lại.');
@@ -216,9 +232,23 @@ export default function UserProfilePage() {
     }
   };
 
-  const displayName = user?.name || formData.name || '';
-  const displayEmail = user?.email || formData.email || '';
+  const displayName = profile?.name || formData.name || '';
+  const displayEmail = profile?.email || formData.email || '';
   const avatarChar = displayName.charAt(0).toUpperCase() || '?';
+
+  if (loadingProfile) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold text-gray-900">Thông tin cá nhân</h1>
+        <Card>
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <span className="ml-3 text-gray-600">Đang tải thông tin...</span>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -228,9 +258,9 @@ export default function UserProfilePage() {
       <Card>
         <div className="flex items-center space-x-6">
           <div className="relative">
-            {profileImage || user?.profile_image ? (
+            {profileImage || profile?.profile_image ? (
               <img
-                src={profileImage || user?.profile_image || ''}
+                src={profileImage || profile?.profile_image || ''}
                 alt={displayName}
                 className="w-24 h-24 rounded-full object-cover"
               />
@@ -247,7 +277,7 @@ export default function UserProfilePage() {
               onChange={handleImageUpload}
               className="hidden"
             />
-            <button 
+            <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingImage}
               className="absolute bottom-0 right-0 bg-white border-2 border-gray-200 rounded-full p-2 hover:bg-gray-50 transition-colors disabled:opacity-50"
@@ -267,7 +297,7 @@ export default function UserProfilePage() {
               </span>
             </div>
             {/* Profile image actions */}
-            {(profileImage || user?.profile_image) && (
+            {(profileImage || profile?.profile_image) && (
               <div className="flex items-center space-x-2 mt-3">
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -532,7 +562,7 @@ export default function UserProfilePage() {
       </div>
 
       {/* Preferences */}
-      <Card>
+      {/* <Card>
         <h3 className="text-xl font-bold text-gray-900 mb-6">Tùy chọn</h3>
         <div className="space-y-4">
           <label className="flex items-center justify-between cursor-pointer p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
@@ -581,7 +611,7 @@ export default function UserProfilePage() {
             />
           </label>
         </div>
-      </Card>
+      </Card> */}
 
       {/* Danger Zone - Delete Account */}
       <Card className="border-red-200 bg-red-50">

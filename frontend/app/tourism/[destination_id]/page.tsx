@@ -21,7 +21,7 @@ export default function TourismDetailPage({
   const [relatedSpots, setRelatedSpots] = useState<TourismSpot[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Review form state
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
@@ -36,21 +36,25 @@ export default function TourismDetailPage({
           destinationsApi.getById(String(resolvedParams.destination_id)),
           destinationsApi.getAll(),
         ]);
+        console.log(spot)
         setDestination(spot);
         setRelatedSpots(
           allSpots
             .filter((s) => s.destination_id !== spot?.destination_id)
             .slice(0, 3)
         );
-        
+
         // Load reviews for this destination from API
-        // TODO: Backend needs to implement GET /destinations/:id/reviews endpoint
-        // For now, reviews start empty and are populated when users submit new reviews
         try {
-          // Temporarily disabled until backend implements destination reviews endpoint
-          // const destinationReviews = await destinationsApi.getReviews(resolvedParams.destination_id);
-          // setReviews(destinationReviews);
-          setReviews([]);
+          const destinationReviews = await destinationsApi.getReviews(resolvedParams.destination_id);
+          // Transform reviews to include userName and userAvatar from User object
+          const transformedReviews = destinationReviews.map(review => ({
+            ...review,
+            userName: (review as any).User?.name || 'Khách',
+            userAvatar: (review as any).User?.profile_image || undefined,
+          }));
+          console.log(transformedReviews)
+          setReviews(transformedReviews);
         } catch (reviewError) {
           console.error('Error loading reviews:', reviewError);
           setReviews([]);
@@ -64,6 +68,8 @@ export default function TourismDetailPage({
     loadData();
   }, [resolvedParams.destination_id]);
 
+  console.log(resolvedParams.destination_id)
+
   // Handle submit review
   const handleSubmitReview = async () => {
     if (!reviewComment.trim()) {
@@ -74,7 +80,7 @@ export default function TourismDetailPage({
     setSubmittingReview(true);
     try {
       const newReview = await destinationsApi.addReview(
-        String(resolvedParams.destination_id),
+        resolvedParams.destination_id,
         {
           user_id: user?.user_id || 0,
           rating: reviewRating,
@@ -84,7 +90,7 @@ export default function TourismDetailPage({
           userAvatar: user?.profile_image || undefined,
         }
       );
-      
+
       setReviews([newReview, ...reviews]);
       setShowReviewForm(false);
       setReviewRating(5);
@@ -140,27 +146,6 @@ export default function TourismDetailPage({
     );
   }
 
-  const highlights = [
-    { icon: '🎨', title: 'Văn hóa', description: 'Di sản văn hóa độc đáo' },
-    {
-      icon: '🏞️',
-      title: 'Thiên nhiên',
-      description: 'Cảnh đẹp thiên nhiên tuyệt vời',
-    },
-    { icon: '🍜', title: 'Ẩm thực', description: 'Đặc sản địa phương hấp dẫn' },
-    { icon: '📸', title: 'Check-in', description: 'Địa điểm chụp ảnh đẹp' },
-  ];
-
-  const activities = [
-    {
-      name: 'Tham quan di tích lịch sử',
-      duration: '2-3 giờ',
-      price: 'Miễn phí',
-    },
-    { name: 'Tour khám phá ẩm thực', duration: '3-4 giờ', price: '500.000đ' },
-    { name: 'Chèo kayak & Trekking', duration: '4-5 giờ', price: '800.000đ' },
-  ];
-
   return (
     <>
       <Header />
@@ -198,68 +183,15 @@ export default function TourismDetailPage({
                 <p className="text-gray-700 leading-relaxed mb-4">
                   {destination.description}
                 </p>
-                <p className="text-gray-700 leading-relaxed">
+                {/* <p className="text-gray-700 leading-relaxed">
                   {destination.name} là một trong những điểm đến du lịch hấp dẫn
                   nhất tại {destination.location}, thu hút hàng triệu du khách
                   mỗi năm với vẻ đẹp thiên nhiên tuyệt vời và nền văn hóa phong
                   phú.
-                </p>
+                </p> */}
               </Card>
 
-              <Card>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Điểm nổi bật
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {highlights.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex items-start gap-4 p-4 bg-gradient-to-br from-blue-50 to-white rounded-xl border border-gray-200 hover:shadow-md transition-all"
-                    >
-                      <div className="text-4xl">{item.icon}</div>
-                      <div>
-                        <h3 className="font-bold text-gray-900 mb-1">
-                          {item.title}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {item.description}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              <Card>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Hoạt động tham quan
-                </h2>
-                <div className="space-y-4">
-                  {activities.map((activity, index) => (
-                    <div
-                      key={index}
-                      className="p-5 border-2 border-gray-200 rounded-xl hover:border-[#0071c2] transition-all"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-bold text-gray-900 mb-2">
-                            {activity.name}
-                          </h3>
-                          <div className="flex gap-4 text-sm text-gray-600">
-                            <span>⏱️ {activity.duration}</span>
-                            <span>💰 {activity.price}</span>
-                          </div>
-                        </div>
-                        <Button size="sm" variant="outline">
-                          Đặt ngay
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              <Card>
+              {/* <Card>
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">
                   Lời khuyên du lịch
                 </h2>
@@ -298,7 +230,7 @@ export default function TourismDetailPage({
                     </div>
                   </div>
                 </div>
-              </Card>
+              </Card> */}
             </div>
 
             <div className="lg:col-span-1">
@@ -384,7 +316,7 @@ export default function TourismDetailPage({
             {showReviewForm && (
               <Card className="mb-6">
                 <h3 className="text-xl font-bold text-gray-900 mb-4">Viết đánh giá của bạn</h3>
-                
+
                 {/* Rating Stars */}
                 <div className="mb-4">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Đánh giá sao *</label>

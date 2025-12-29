@@ -16,11 +16,12 @@ import { cn } from '@/lib/utils/cn';
 import { useAuth } from '@/lib/context/AuthContext';
 
 const menuItems = [
-  { name: 'Tổng quan', href: ROUTES.USER.DASHBOARD, icon: '📊' },
+  // { name: 'Tổng quan', href: ROUTES.USER.DASHBOARD, icon: '📊' },
   { name: 'Đơn đặt phòng', href: ROUTES.USER.BOOKINGS, icon: '📋' },
-  { name: 'Thông báo', href: '/user/notifications', icon: '🔔' },
-  { name: 'Đánh giá của tôi', href: ROUTES.USER.REVIEWS, icon: '⭐' },
-  { name: 'Mã giảm giá của tôi', href: ROUTES.USER.MY_VOUCHERS, icon: '🎟️' },
+  { name: 'Yêu thích', href: ROUTES.USER.FAVORITES, icon: '❤️' },
+  // { name: 'Thông báo', href: '/user/notifications', icon: '🔔' },
+  // { name: 'Đánh giá của tôi', href: ROUTES.USER.REVIEWS, icon: '⭐' },
+  // { name: 'Mã giảm giá của tôi', href: ROUTES.USER.MY_VOUCHERS, icon: '🎟️' },
   { name: 'Thông tin cá nhân', href: ROUTES.USER.PROFILE, icon: '👤' },
 ];
 

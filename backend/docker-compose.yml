@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: hotel_dev_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 03082004
+      POSTGRES_PASSWORD: "03082004"
     ports:
       - "55432:5432"
     volumes:
@@ -66,7 +66,7 @@ services:
       DATABASE_ENV: development
       DATABASE_NAME: hotel_dev_db
       DATABASE_USERNAME: postgres
-      DATABASE_PASSWORD: 03082004
+      DATABASE_PASSWORD: "03082004"
       DATABASE_HOST: postgres
       DATABASE_PORT: 5432
       JWT_SECRET: lehoanghuynoob
@@ -102,6 +102,7 @@ services:
       - /app/node_modules
     networks:
       - hotel_network
+    entrypoint: ["/app/docker-entrypoint.sh"]
     command: ["npm", "run", "dev"]
 
 volumes:

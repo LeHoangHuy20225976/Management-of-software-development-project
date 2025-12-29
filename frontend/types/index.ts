@@ -180,9 +180,9 @@ export interface User {
   name: string | null;
   email: string | null;
   phone_number: string | null;
-  gender: string | null;
+  gender: string | null; // 'male' | 'female' | 'Nam' | 'Nữ' or null
   date_of_birth: string | null;
-  role: string | null;
+  role: 'customer' | 'hotel_manager' | 'admin' | null;
   password: string;
   profile_image: string | null;
   // Sequelize timestamps
@@ -326,6 +326,7 @@ export interface Coupon {
 
 // Admin Types
 export interface AdminDashboard {
+  // Frontend format (for backward compatibility)
   totalUsers: number;
   totalHotels: number;
   totalBookings: number;
@@ -351,6 +352,38 @@ export interface AdminDashboard {
   };
 }
 
+// Backend response structure
+export interface AdminDashboardResponse {
+  metrics: {
+    users: {
+      total: number;
+      byRole: {
+        hotel_manager: number;
+        admin: number;
+        customer: number;
+      };
+    };
+    hotels: {
+      total: number;
+      active: number;
+      pending: number;
+      byStatus: Record<string, number>;
+    };
+    bookings: {
+      total: number;
+      byStatus: Record<string, number>;
+    };
+    rooms: {
+      total: number;
+      active: number;
+    };
+    revenue: {
+      total: number;
+      formatted: string;
+    };
+  };
+}
+
 export interface AdminActivity {
   id: number;
   type: 'booking' | 'hotel' | 'user' | 'payment' | 'review';
@@ -366,6 +399,10 @@ export interface AdminUser extends User {
   bookingCount?: number;
   totalSpent?: number;
   lastLogin?: string;
+  status?: 'active' | 'inactive' | 'blocked';
+  lastActivity?: string;
+  totalOrders?: number;
+  averageOrderValue?: number;
 }
 
 export interface AdminHotel extends Hotel {
@@ -378,6 +415,7 @@ export interface AdminHotel extends Hotel {
 }
 
 export interface RevenueMetrics {
+  // Frontend format
   totalRevenue: number;
   thisMonthRevenue: number;
   lastMonthRevenue: number;
@@ -387,9 +425,27 @@ export interface RevenueMetrics {
     revenue: number;
   }[];
   topHotels: {
-    hotel_id: number;
-    hotel_name: string;
+    hotel_id?: number;
+    hotel_name?: string;
     revenue: number;
     bookings: number;
   }[];
+}
+
+// Backend response structure
+export interface RevenueMetricsResponse {
+  metrics: {
+    period: {
+      startDate: string;
+      endDate: string;
+    };
+    total: {
+      revenue: number;
+      bookings: number;
+    };
+    topHotels: {
+      revenue: number;
+      bookings: number;
+    }[];
+  };
 }

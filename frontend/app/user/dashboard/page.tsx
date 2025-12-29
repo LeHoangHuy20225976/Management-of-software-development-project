@@ -51,7 +51,7 @@ export default function UserDashboardPage() {
             <div className="text-sm font-medium text-gray-700">Tổng đơn đặt</div>
           </div>
         </Card>
-        <Card>
+        {/* <Card>
           <div className="text-center">
             <div className="text-4xl mb-2">⭐</div>
             <div className="text-3xl font-bold text-[#0071c2]">0</div>
@@ -64,7 +64,7 @@ export default function UserDashboardPage() {
             <div className="text-3xl font-bold text-[#0071c2]">Silver</div>
             <div className="text-sm font-medium text-gray-700">Hạng thành viên</div>
           </div>
-        </Card>
+        </Card> */}
       </div>
 
       {/* Upcoming Bookings */}
@@ -116,7 +116,7 @@ export default function UserDashboardPage() {
       </Card>
 
       {/* Quick Actions */}
-      <Card>
+      {/* <Card>
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Thao tác nhanh</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Link href={ROUTES.SEARCH}>
@@ -144,7 +144,7 @@ export default function UserDashboardPage() {
             </div>
           </Link>
         </div>
-      </Card>
+      </Card> */}
     </div>
   );
 }
