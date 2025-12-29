@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies (skip husky postinstall)
-RUN npm ci --omit=dev --ignore-scripts && \
+RUN npm install --omit=dev --ignore-scripts && \
     npm install -g nodemon
 
 # Stage 2: Production
@@ -23,6 +23,9 @@ COPY --from=builder /app/node_modules ./node_modules
 
 # Copy application code
 COPY . .
+
+# Make entrypoint script executable
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Expose port
 EXPOSE 4000

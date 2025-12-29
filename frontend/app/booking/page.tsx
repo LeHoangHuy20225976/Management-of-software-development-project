@@ -123,16 +123,19 @@ function BookingContent() {
 
   const calculateTotalPrice = () => {
     const nights = calculateNights();
-    let total = 0;
+    let subtotal = 0;
 
     selectedRoomTypes.forEach(({ roomType, quantity }) => {
       if (roomType.price) {
+        // Use special_price if available (already has discount applied), otherwise basic_price
         const pricePerNight = roomType.price.special_price || roomType.price.basic_price;
-        total += nights * pricePerNight * quantity;
+        subtotal += nights * pricePerNight * quantity;
       }
     });
 
-    return total;
+    // Add 10% tax to match backend calculation
+    const total = subtotal * 1.1;
+    return Math.round(total);
   };
 
   const getTotalRooms = () => {

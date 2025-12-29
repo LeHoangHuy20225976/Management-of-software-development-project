@@ -152,6 +152,25 @@ export const API_CONFIG = {
     BOOKING_CHECKIN: "/api/v1/bookings/:id/checkin",
     BOOKING_CHECKOUT: "/api/v1/bookings/:id/checkout",
 
+    // AI Integration
+    AI_CHAT: '/api/v1/ai/chat',
+    AI_SIMPLE_CHAT: '/api/v1/ai/simple-chat',
+
+    // Hotel Upload
+    HOTEL_UPLOAD_IMAGES: '/api/v1/hotel/:hotel_id/images/upload',
+    HOTEL_UPLOAD_DOCUMENT: '/api/v1/hotel/:hotel_id/documents/upload',
+    HOTEL_LIST_IMAGES: '/api/v1/hotel/:hotel_id/images',
+    HOTEL_LIST_DOCUMENTS: '/api/v1/hotel/:hotel_id/documents',
+    HOTEL_DELETE_IMAGE: '/api/v1/hotel/:hotel_id/images/:image_id',
+    HOTEL_DELETE_DOCUMENT: '/api/v1/hotel/:hotel_id/documents/:document_id',
+    HOTEL_UPLOAD_STATS: '/api/v1/hotel/:hotel_id/upload-stats',
+
+    // Attendance
+    ATTENDANCE_UPLOAD: '/api/v1/attendance/upload',
+    ATTENDANCE_LOGS: '/api/v1/attendance/logs',
+    ATTENDANCE_MY_LOGS: '/api/v1/attendance/my-logs',
+    ATTENDANCE_TODAY: '/api/v1/attendance/today',
+
     // Notifications
     NOTIFICATION_TEST: "/api/v1/notifications/test",
     NOTIFICATION_BOOKING_CONFIRM: "/api/v1/notifications/booking-confirmation",
@@ -161,33 +180,21 @@ export const API_CONFIG = {
     NOTIFICATION_PAYMENT_CONFIRM: "/api/v1/notifications/payment-confirmation",
 
     // Admin
-    ADMIN_DASHBOARD: "/api/v1/admin/dashboard",
-    ADMIN_USERS: "/api/v1/admin/users",
-    ADMIN_USER_UPDATE_ROLE: "/api/v1/admin/users/:userId/role",
-    ADMIN_USER_DELETE: "/api/v1/admin/users/:userId",
-    ADMIN_HOTELS_PENDING: "/api/v1/admin/hotels/pending",
-    ADMIN_HOTEL_APPROVE: "/api/v1/admin/hotels/:hotelId/approve",
-    ADMIN_HOTEL_REJECT: "/api/v1/admin/hotels/:hotelId/reject",
-    ADMIN_HOTEL_LOCK: "/api/v1/admin/hotels/:hotelId/lock",
-    ADMIN_REVENUE_METRICS: "/api/v1/admin/revenue",
-    ADMIN_BOOKING_KPIS: "/api/v1/admin/bookings/kpis",
-    ADMIN_RECENT_ACTIVITY: "/api/v1/admin/activity",
-
-    // // Admin (matches backend /admin/*)
-    // ADMIN_DASHBOARD: '/admin/dashboard',
-    // ADMIN_REVENUE_METRICS: '/admin/metrics/revenue',
-    // ADMIN_BOOKING_KPIS: '/admin/metrics/bookings',
-    // ADMIN_RECENT_ACTIVITY: '/admin/activity',
-    // ADMIN_USERS: '/admin/users',
-    // ADMIN_USER_BY_ID: '/admin/users/:id',
-    // ADMIN_UPDATE_USER_ROLE: '/admin/users/:id/role',
-    // ADMIN_UPDATE_USER: '/admin/users/:id',
-    // ADMIN_DELETE_USER: '/admin/users/:id',
-    // ADMIN_HOTEL_MANAGERS: '/admin/hotel-managers',
-    // ADMIN_PENDING_HOTELS: '/admin/hotels/pending',
-    // ADMIN_APPROVE_HOTEL: '/admin/hotels/:id/approve',
-    // ADMIN_LOCK_HOTEL: '/admin/hotels/:id/lock',
-    // ADMIN_UPDATE_HOTEL_STATUS: '/admin/hotels/:id/status',
+    ADMIN_DASHBOARD: '/api/v1/admin/dashboard',
+    ADMIN_HOTEL_REJECT: '/api/v1/admin/hotels/:hotelId/reject',
+    ADMIN_REVENUE_METRICS: '/api/v1/admin/metrics/revenue',
+    ADMIN_BOOKING_KPIS: '/api/v1/admin/metrics/bookings',
+    ADMIN_RECENT_ACTIVITY: '/api/v1/admin/activity',
+    ADMIN_USERS: '/api/v1/admin/users',
+    ADMIN_USER_BY_ID: '/api/v1/admin/users/:id',
+    ADMIN_UPDATE_USER_ROLE: '/api/v1/admin/users/:id/role',
+    ADMIN_UPDATE_USER: '/api/v1/admin/users/:id',
+    ADMIN_DELETE_USER: '/api/v1/admin/users/:id',
+    ADMIN_HOTEL_MANAGERS: '/api/v1/admin/hotel-managers',
+    ADMIN_PENDING_HOTELS: '/api/v1/admin/hotels/pending',
+    ADMIN_APPROVE_HOTEL: '/api/v1/admin/hotels/:id/approve',
+    ADMIN_LOCK_HOTEL: '/api/v1/admin/hotels/:id/lock',
+    ADMIN_UPDATE_HOTEL_STATUS: '/api/v1/admin/hotels/:id/status',
 
     // Image Uploads (Hotel Profile)
     UPLOAD_HOTEL_IMAGES:

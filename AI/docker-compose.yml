@@ -416,6 +416,8 @@ services:
 
       # Prefect
       PREFECT_API_URL: http://prefect-server:4200/api
+    volumes:
+      - ./src:/app/src:ro
     depends_on:
       postgres:
         condition: service_healthy

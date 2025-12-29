@@ -72,9 +72,12 @@ export default function BookingConfirmationPage() {
     );
   }
 
-  const totalPrice = bookingData.roomPrice * bookingData.nights;
-  const tax = totalPrice * 0.1;
-  const grandTotal = totalPrice + tax;
+  // Use pre-calculated totalAmount from backend if available (already includes 10% tax)
+  // Otherwise calculate from roomPrice (for backwards compatibility)
+  const grandTotal = (bookingData as any).totalAmount || Math.round((bookingData.roomPrice * bookingData.nights) * 1.1);
+  // Back-calculate for display: grandTotal = subtotal * 1.1, so subtotal = grandTotal / 1.1
+  const subtotalBeforeTax = Math.round(grandTotal / 1.1);
+  const tax = grandTotal - subtotalBeforeTax;
 
   return (
     <>
@@ -144,11 +147,10 @@ export default function BookingConfirmationPage() {
                     )}
                   </p>
                   <span
-                    className={`inline-block mt-2 px-3 py-1 rounded-full text-sm ${
-                      bookingData.paymentStatus === 'paid'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}
+                    className={`inline-block mt-2 px-3 py-1 rounded-full text-sm ${bookingData.paymentStatus === 'paid'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-yellow-100 text-yellow-800'
+                      }`}
                   >
                     {bookingData.paymentStatus === 'paid'
                       ? '✓ Đã thanh toán'
@@ -256,7 +258,7 @@ export default function BookingConfirmationPage() {
                         {bookingData.roomPrice.toLocaleString('vi-VN')} ₫
                       </td>
                       <td className="text-right font-semibold text-gray-900">
-                        {totalPrice.toLocaleString('vi-VN')} ₫
+                        {subtotalBeforeTax.toLocaleString('vi-VN')} ₫
                       </td>
                     </tr>
                     <tr className="border-b border-gray-200">

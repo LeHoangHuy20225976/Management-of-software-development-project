@@ -15,69 +15,48 @@ A comprehensive hotel booking and management platform with AI-powered features, 
 
 ## 📋 Table of Contents
 
-- [Team Members](#-team-members)
-- [Project Overview](#-project-overview)
+- [Project Objectives](#-project-objectives)
+- [Team Members & Assigned Roles](#-team-members--assigned-roles)
 - [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
 - [Features](#-features)
-- [Getting Started](#-getting-started)
+- [Installation & Usage Guide](#-installation--usage-guide)
 - [API Documentation](#-api-documentation)
-- [Screenshots](#-screenshots)
 - [License](#-license)
 
 ---
 
-## 👥 Team Members
+## 🎯 Project Objectives
 
-| # | Name | Student ID | Email |
-|---|------|------------|-------|
-| 1 | Trần Gia Khánh | 20226048 | khanh.tg226048@sis.hust.edu.vn |
-| 2 | Phan Gia Đô | 20226026 | do.pg226026@sis.hust.edu.vn |
-| 3 | Nguyễn Công Đạt | 20226022 | dat.nc226022@sis.hust.edu.vn |
-| 4 | Lê Hoàng Huy | 20225976 | huy.lh225976@sis.hust.edu.vn |
-| 5 | Lê Văn Hậu | 20226038 | hau.lv226038@sis.hust.edu.vn |
-| 6 | Nguyễn Trung Hiếu | 20225971 | hieu.nt225971@sis.hust.edu.vn |
-| 7 | Nguyễn Công Minh | 20226056 | minh.nc226056@sis.hust.edu.vn |
-| 8 | Bùi Nguyễn Minh | 20226055 | minh.bn226055@sis.hust.edu.vn |
-| 9 | Phùng Đức Đạt | 20226025 | dat.pd226025@sis.hust.edu.vn |
-| 10 | Hà Minh Đức | 20226027 | duc.hm226027@sis.hust.edu.vn |
-| 11 | Nguyễn Trung Kiên | 20226052 | kien.nt226052@sis.hust.edu.vn |
-| 12 | Vũ Hải Đăng | 20226021 | dang.vh226021@sis.hust.edu.vn |
-| 13 | Phạm Duy Hoàng | 20226042 | hoang.pd226042@sis.hust.edu.vn |
-
-**Group 10**
+| # | Objective | Description |
+|---|-----------|-------------|
+| 1 | **Unified Platform** | Build a comprehensive hotel booking & management system that serves all stakeholders |
+| 2 | **User Experience** | Provide seamless search, booking, and payment flow for customers |
+| 3 | **Hotel Management** | Enable efficient room inventory, dynamic pricing, and booking management for hotel managers |
+| 4 | **AI Integration** | Implement intelligent features including ML-based recommendations and LLM-powered chatbot |
 
 ---
 
-## 🎯 Project Overview
+## 👥 Team Members & Contribution
 
-This project is a **Hotel Booking Management System** that provides:
+**Group 10**
 
-- **For Customers**: Search hotels, book rooms, make payments, write reviews
-- **For Hotel Managers**: Manage rooms, pricing, bookings, facilities, images
-- **For Administrators**: System management, user management, revenue analytics
-- **AI Features**: CV processing, ML recommendations, LLM-powered chatbot, RAG integration
+| # | Name | Student ID | GitHub |
+|---|------|------------|--------|
+| 1 | Trần Gia Khánh | 20226048 | [khanhtran0611](https://github.com/khanhtran0611) |
+| 2 | Phan Gia Đô | 20226026 | [PhanGiaDo20226026](https://github.com/PhanGiaDo20226026) |
+| 3 | Nguyễn Công Đạt | 20226022 | [NgCongDat276](https://github.com/NgCongDat276) |
+| 4 | Lê Hoàng Huy | 20225976 | [LeHoangHuy20225976](https://github.com/LeHoangHuy20225976) |
+| 5 | Lê Văn Hậu | 20226038 | [LeVanHau20226038](https://github.com/LeVanHau20226038) |
+| 6 | Nguyễn Trung Hiếu | 20225971 | [hieuhb123](https://github.com/hieuhb123) |
+| 7 | Nguyễn Công Minh | 20226056 | [MinhNC20226056](https://github.com/MinhNC20226056) |
+| 8 | Bùi Nguyễn Minh | 20226055 | [MinhBuiIcy](https://github.com/MinhBuiIcy) |
+| 9 | Phùng Đức Đạt | 20226025 | [ducdat18](https://github.com/ducdat18) |
+| 10 | Hà Minh Đức | 20226027 | [HaMinhDuc20226027](https://github.com/HaMinhDuc20226027) |
+| 11 | Nguyễn Trung Kiên | 20226052 | [NguyenTrungKien20226052](https://github.com/NguyenTrungKien20226052) |
+| 12 | Vũ Hải Đăng | 20226021 | [VuHaiDang-20226021](https://github.com/VuHaiDang-20226021) |
+| 13 | Phạm Duy Hoàng | 20226042 | [20226042-PhamDuyHoang](https://github.com/20226042-PhamDuyHoang) |
 
-### System Architecture
-
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│    Frontend     │────▶│     Backend     │────▶│    Database     │
-│   (Next.js)     │     │   (Express.js)  │     │  (PostgreSQL)   │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-                               │
-                               ▼
-                        ┌─────────────────┐
-                        │   AI Services   │
-                        │   (FastAPI)     │
-                        └─────────────────┘
-                               │
-              ┌────────────────┼────────────────┐
-              ▼                ▼                ▼
-        ┌──────────┐    ┌──────────┐    ┌──────────┐
-        │ CV Svc   │    │ ML Svc   │    │ LLM Svc  │
-        └──────────┘    └──────────┘    └──────────┘
-```
+![Team Contribution](./team_contribution.png)
 
 ---
 
@@ -121,55 +100,6 @@ This project is a **Hotel Booking Management System** that provides:
 
 ---
 
-## 📁 Project Structure
-
-```
-Management-of-software-development-project/
-├── frontend/                 # Next.js Frontend Application
-│   ├── app/                  # App Router pages
-│   │   ├── admin/            # Admin panel pages
-│   │   ├── hotel-manager/    # Hotel manager pages
-│   │   ├── user/             # User dashboard pages
-│   │   ├── booking/          # Booking flow
-│   │   ├── payment/          # Payment pages
-│   │   ├── tourism/          # Tourism destinations
-│   │   └── ...
-│   ├── components/           # Reusable components
-│   ├── lib/                  # Utilities & API services
-│   └── types/                # TypeScript types
-│
-├── backend/                  # Express.js Backend API
-│   ├── modules/              # Feature modules
-│   │   ├── auth/             # Authentication
-│   │   ├── booking-engine/   # Booking management
-│   │   ├── hotel-profile/    # Hotel management
-│   │   ├── payment-gateway/  # Payment processing
-│   │   ├── pricing-engine/   # Dynamic pricing
-│   │   ├── room-inventory/   # Room management
-│   │   ├── super-admin/      # Admin functions
-│   │   ├── tourism-cms/      # Destinations CMS
-│   │   ├── user-profile/     # User management
-│   │   └── notification/     # Email notifications
-│   ├── models/               # Sequelize models
-│   ├── migrations/           # Database migrations
-│   └── configs/              # Configuration files
-│
-├── AI/                       # AI Microservices
-│   ├── src/
-│   │   ├── application/      # Service layer
-│   │   │   ├── cv-service/   # CV processing
-│   │   │   ├── ml-service/   # ML recommendations
-│   │   │   └── llm-service/  # LLM chatbot
-│   │   ├── infrastructure/   # Infrastructure layer
-│   │   └── flow/             # Prefect workflows
-│   ├── deployments/          # Docker configurations
-│   └── docs/                 # AI documentation
-│
-└── README.md                 # This file
-```
-
----
-
 ## ✨ Features
 
 ### 🏠 Customer Features
@@ -209,75 +139,24 @@ Management-of-software-development-project/
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Installation & Usage Guide
 
 ### Prerequisites
 
-- Node.js 18.x or higher
-- Python 3.11 or higher
-- PostgreSQL 15.x
-- Docker & Docker Compose (optional)
-- MinIO (for file storage)
+| Requirement | Version |
+|-------------|--------|
+| Node.js | 18.x or higher |
+| Python | 3.11 or higher |
+| PostgreSQL | 15.x |
+| Docker & Docker Compose | Latest |
 
-### Frontend Setup
-
-```bash
-# Navigate to frontend directory
-cd frontend
-
-# Install dependencies
-npm install
-
-# Create environment file
-cp .env.example .env.local
-
-# Start development server
-npm run dev
-```
-
-The frontend will be available at `http://localhost:3000`
-
-### Backend Setup
+### Quick Start (Docker - Recommended)
 
 ```bash
-# Navigate to backend directory
-cd backend
+# Clone the repository
+git clone https://github.com/khanhtran0611/Management-of-software-development-project.git
+cd Management-of-software-development-project
 
-# Install dependencies
-npm install
-
-# Create environment file
-cp .env.example .env
-
-# Run database migrations
-npx sequelize-cli db:migrate
-
-# Start development server
-npm run dev
-```
-
-The backend API will be available at `http://localhost:4000`
-
-### AI Services Setup
-
-```bash
-# Navigate to AI directory
-cd AI
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Start services with Docker Compose
-docker-compose up -d
-```
-
-### Using Docker Compose (Full Stack)
-
-```bash
 # Build and start all services
 docker-compose up -d --build
 
@@ -287,6 +166,47 @@ docker-compose logs -f
 # Stop all services
 docker-compose down
 ```
+
+### Manual Setup
+
+#### 1. Frontend
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local
+npm run dev
+```
+→ Available at `http://localhost:3000`
+
+#### 2. Backend
+
+```bash
+cd backend
+npm install
+cp .env.example .env
+npx sequelize-cli db:migrate
+npm run dev
+```
+→ Available at `http://localhost:4000`
+
+#### 3. AI Services
+
+```bash
+cd AI
+python -m venv venv
+venv\Scripts\activate  # On Linux/Mac: source venv/bin/activate
+pip install -r requirements.txt
+docker-compose up -d
+```
+
+### Access URLs
+
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:4000 |
+| AI Services | http://localhost:8001-8003 |
 
 ---
 
@@ -333,36 +253,9 @@ For complete API documentation, see [Backend README](./backend/README.md).
 
 ---
 
-## 📸 Screenshots
-
-### Homepage
-The main landing page with hotel search functionality.
-
-### Hotel Search
-Filter hotels by location, price range, star rating, and amenities.
-
-### Booking Flow
-Step-by-step booking process with room selection and payment.
-
-### Hotel Manager Dashboard
-Comprehensive dashboard for hotel managers to manage their properties.
-
-### Admin Panel
-System administration with user management and analytics.
-
----
-
-## 📄 License
+## � License
 
 This project is developed for educational purposes as part of the **Management of Software Development** course at **Hanoi University of Science and Technology (HUST)**.
-
----
-
-## 🙏 Acknowledgments
-
-- **Course Instructor**: For guidance throughout the project
-- **Hanoi University of Science and Technology**: For providing the learning environment
-- **Open Source Community**: For the amazing tools and libraries used in this project
 
 ---
 

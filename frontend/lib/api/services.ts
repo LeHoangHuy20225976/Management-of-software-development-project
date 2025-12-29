@@ -938,13 +938,10 @@ export const paymentApi = {
   },
 
   async createPayment(data: {
-    bookingId: number;
-    amount: number;
-    paymentMethod: "vnpay" | "momo" | "cash" | "bank_transfer";
-    bankCode?: string;
-    orderInfo?: string;
-    returnUrl?: string;
-  }): Promise<{ payment_id: number; payment_url?: string; status: string }> {
+    booking_id: number;
+    bank_code?: string;
+    locale?: string;
+  }): Promise<{ payment_id: number; payment_url?: string; status: string; txn_ref?: string }> {
     return apiClient.post<any>(API_CONFIG.ENDPOINTS.PAYMENT_CREATE, data);
   },
 
@@ -980,6 +977,10 @@ export const paymentApi = {
       id: paymentId,
       amount,
     });
+  },
+
+  async cancelPayment(paymentId: string): Promise<void> {
+    return apiClient.post(API_CONFIG.ENDPOINTS.PAYMENT_CANCEL, {}, { id: paymentId });
   },
 
   // Mark payment as completed (for mock/testing)
@@ -1515,6 +1516,14 @@ export const userProfileApi = {
     return apiClient.get<User[]>(API_CONFIG.ENDPOINTS.GET_ALL_USERS);
   },
 
+  async getUserBookings(): Promise<Booking[]> {
+    return apiClient.get<Booking[]>(API_CONFIG.ENDPOINTS.USER_BOOKINGS);
+  },
+
+  async createUser(userData: Partial<User>): Promise<User> {
+    return apiClient.post<User>(API_CONFIG.ENDPOINTS.CREATE_USER, userData);
+  },
+
   // User coupons/vouchers - KEEP MOCK (backend doesn't have this)
   async getCoupons(): Promise<any[]> {
     if (API_CONFIG.USE_MOCK_DATA) {
@@ -1651,308 +1660,447 @@ export const notificationApi = {
 // ============= ADMIN API =============
 export const adminApi = {
   async getDashboard(): Promise<AdminDashboard> {
-    // if (API_CONFIG.USE_MOCK_DATA) {
-    //   await mockDelay();
-    //   return {
-    //     totalUsers: 1250,
-    //     totalHotels: 84,
-    //     totalBookings: 3456,
-    //     totalRevenue: 4567890000,
-    //     pendingHotels: 12,
-    //     activeHotels: 72,
-    //     activeBookings: 156,
-    //     todayBookings: 45,
-    //     todayRevenue: 125000000,
-    //     recentActivity: [
-    //       {
-    //         id: 1,
-    //         type: "booking",
-    //         description: "Booking mới #3456 - Khách sạn ABC",
-    //         timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    //         userName: "Nguyễn Văn A",
-    //         hotelName: "Khách sạn ABC",
-    //       },
-    //       {
-    //         id: 2,
-    //         type: "hotel",
-    //         description: "Khách sạn XYZ đã được duyệt",
-    //         timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    //         hotelName: "Khách sạn XYZ",
-    //       },
-    //       {
-    //         id: 3,
-    //         type: "user",
-    //         description: "User mới đăng ký: Trần Thị B",
-    //         timestamp: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-    //         userName: "Trần Thị B",
-    //       },
-    //     ],
-    //     revenueChart: {
-    //       labels: ["T1", "T2", "T3", "T4", "T5", "T6", "T7"],
-    //       data: [
-    //         300000000, 450000000, 520000000, 480000000, 630000000, 700000000,
-    //         550000000,
-    //       ],
-    //     },
-    //     bookingKPIs: {
-    //       totalBookings: 3456,
-    //       confirmedBookings: 2890,
-    //       cancelledBookings: 234,
-    //       pendingBookings: 156,
-    //       completedBookings: 2654,
-    //       conversionRate: 83.6,
-    //       averageBookingValue: 1320000,
-    //     },
-    //   };
-    // }
-    console.log(100);
-    return apiClient.get<AdminDashboard>(API_CONFIG.ENDPOINTS.ADMIN_DASHBOARD);
+    const response = await apiClient.get<any>(API_CONFIG.ENDPOINTS.ADMIN_DASHBOARD);
+    
+    // Transform backend response to frontend format
+    const metrics = response.metrics || response;
+    
+    return {
+      totalUsers: metrics.users?.total || 0,
+      totalHotels: metrics.hotels?.total || 0,
+      totalBookings: metrics.bookings?.total || 0,
+      totalRevenue: metrics.revenue?.total || 0,
+      pendingHotels: metrics.hotels?.pending || 0,
+      activeHotels: metrics.hotels?.active || 0,
+      activeBookings: metrics.rooms?.active || 0,
+      todayBookings: 0, // Backend doesn't provide this
+      todayRevenue: 0, // Backend doesn't provide this
+      recentActivity: [], // Backend doesn't provide this
+      bookingKPIs: {
+        totalBookings: metrics.bookings?.total || 0,
+        confirmedBookings: metrics.bookings?.byStatus?.confirmed || 0,
+        cancelledBookings: metrics.bookings?.byStatus?.cancelled || 0,
+        pendingBookings: metrics.bookings?.byStatus?.pending || 0,
+        completedBookings: metrics.bookings?.byStatus?.completed || 0,
+        conversionRate: 0,
+        averageBookingValue: metrics.revenue?.total && metrics.bookings?.total 
+          ? Math.round(metrics.revenue.total / metrics.bookings.total)
+          : 0,
+      },
+    };
   },
 
   async getAllUsers(): Promise<AdminUser[]> {
-    if (API_CONFIG.USE_MOCK_DATA) {
-      await mockDelay();
-      const mockUsers: AdminUser[] = [
-        {
-          user_id: 1,
-          name: "Administrator",
-          email: "admin@hotel.com",
-          role: "admin",
-          phone_number: "0123456789",
-          password: "",
-          gender: null,
-          date_of_birth: null,
-          profile_image: null,
-          createdAt: "2024-01-01",
-          updatedAt: "2024-01-01",
-          bookingCount: 0,
-          totalSpent: 0,
-          lastLogin: new Date().toISOString(),
-        },
-        {
-          user_id: 2,
-          name: "Nguyễn Văn A",
-          email: "customer1@email.com",
-          role: "customer",
-          phone_number: "0987654321",
-          password: "",
-          gender: "male",
-          date_of_birth: "1990-01-01",
-          profile_image: null,
-          createdAt: "2024-02-15",
-          updatedAt: "2024-02-15",
-          bookingCount: 12,
-          totalSpent: 15000000,
-          lastLogin: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-        },
-        {
-          user_id: 3,
-          name: "Trần Thị B",
-          email: "manager1@hotel.com",
-          role: "hotel_manager",
-          phone_number: "0912345678",
-          password: "",
-          gender: "female",
-          date_of_birth: "1985-05-15",
-          profile_image: null,
-          createdAt: "2024-03-01",
-          updatedAt: "2024-03-01",
-          bookingCount: 0,
-          totalSpent: 0,
-          lastLogin: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-        },
-      ];
-      return mockUsers;
-    }
-    return apiClient.get<AdminUser[]>(API_CONFIG.ENDPOINTS.ADMIN_USERS);
+    const response = await apiClient.get<{ users: AdminUser[]; total: number; limit: number; offset: number }>(
+      API_CONFIG.ENDPOINTS.ADMIN_USERS
+    );
+    // Backend returns { data: { users: [...], total, limit, offset } }
+    // apiClient already unwraps to response.data, so we get { users, total, limit, offset }
+    return (response as any).users || response;
   },
 
-  async updateUserRole(
-    userId: number,
-    newRole: "customer" | "hotel_manager" | "admin"
-  ): Promise<{ success: boolean }> {
-    if (API_CONFIG.USE_MOCK_DATA) {
-      await mockDelay();
-      return { success: true };
-    }
-    return apiClient.put<any>(
-      API_CONFIG.ENDPOINTS.ADMIN_USER_UPDATE_ROLE.replace(
-        ":userId",
-        userId.toString()
-      ),
+  async getUserById(userId: string): Promise<AdminUser | null> {
+    return apiClient.get<AdminUser>(
+      API_CONFIG.ENDPOINTS.ADMIN_USER_BY_ID.replace(':id', userId)
+    );
+  },
+
+  async updateUserRole(userId: string, newRole: 'customer' | 'hotel_manager' | 'admin'): Promise<{ success: boolean }> {
+    return apiClient.patch<any>(
+      API_CONFIG.ENDPOINTS.ADMIN_UPDATE_USER_ROLE.replace(':id', userId),
       { role: newRole }
     );
   },
 
-  async deleteUser(userId: number): Promise<{ success: boolean }> {
-    if (API_CONFIG.USE_MOCK_DATA) {
-      await mockDelay();
-      return { success: true };
-    }
+  async deleteUser(userId: string): Promise<{ success: boolean }> {
     return apiClient.delete<any>(
-      API_CONFIG.ENDPOINTS.ADMIN_USER_DELETE.replace(
-        ":userId",
-        userId.toString()
-      )
+      API_CONFIG.ENDPOINTS.ADMIN_DELETE_USER.replace(':id', userId)
     );
   },
 
   async getPendingHotels(): Promise<AdminHotel[]> {
-    if (API_CONFIG.USE_MOCK_DATA) {
-      await mockDelay();
-      const mockHotels: AdminHotel[] = [
-        {
-          hotel_id: 101,
-          hotel_owner: 3,
-          name: "Khách sạn Pending ABC",
-          address: "123 Đường ABC, TP.HCM",
-          status: 0,
-          rating: 0,
-          longitude: 106.6296638,
-          latitude: 10.8230989,
-          description: "Khách sạn 4 sao",
-          contact_phone: "0281234567",
-          thumbnail: "",
-          createdAt: "2024-06-01",
-          updatedAt: "2024-06-01",
-          ownerEmail: "manager@abc.com",
-          ownerPhone: "0912345678",
-        },
-      ];
-      return mockHotels;
-    }
-    return apiClient.get<AdminHotel[]>(
-      API_CONFIG.ENDPOINTS.ADMIN_HOTELS_PENDING
-    );
+    return apiClient.get<AdminHotel[]>(API_CONFIG.ENDPOINTS.ADMIN_PENDING_HOTELS);
   },
 
-  async approveHotel(hotelId: number): Promise<{ success: boolean }> {
-    if (API_CONFIG.USE_MOCK_DATA) {
-      await mockDelay();
-      return { success: true };
-    }
+  async approveHotel(hotelId: string): Promise<{ success: boolean }> {
     return apiClient.post<any>(
-      API_CONFIG.ENDPOINTS.ADMIN_HOTEL_APPROVE.replace(
-        ":hotelId",
-        hotelId.toString()
-      ),
+      API_CONFIG.ENDPOINTS.ADMIN_APPROVE_HOTEL.replace(':id', hotelId),
       {}
     );
   },
 
-  async rejectHotel(
-    hotelId: number,
-    reason: string
-  ): Promise<{ success: boolean }> {
-    if (API_CONFIG.USE_MOCK_DATA) {
-      await mockDelay();
-      return { success: true };
-    }
+  async rejectHotel(hotelId: string, reason: string): Promise<{ success: boolean }> {
     return apiClient.post<any>(
-      API_CONFIG.ENDPOINTS.ADMIN_HOTEL_REJECT.replace(
-        ":hotelId",
-        hotelId.toString()
-      ),
+      `/api/v1/admin/hotels/${hotelId}/reject`,
       { reason }
     );
   },
 
-  async lockHotel(hotelId: number): Promise<{ success: boolean }> {
-    if (API_CONFIG.USE_MOCK_DATA) {
-      await mockDelay();
-      return { success: true };
-    }
+  async lockHotel(hotelId: string): Promise<{ success: boolean }> {
     return apiClient.post<any>(
-      API_CONFIG.ENDPOINTS.ADMIN_HOTEL_LOCK.replace(
-        ":hotelId",
-        hotelId.toString()
-      ),
+      API_CONFIG.ENDPOINTS.ADMIN_LOCK_HOTEL.replace(':id', hotelId),
       {}
     );
   },
 
   async getRevenueMetrics(): Promise<RevenueMetrics> {
-    if (API_CONFIG.USE_MOCK_DATA) {
-      await mockDelay();
-      return {
-        totalRevenue: 4567890000,
-        thisMonthRevenue: 650000000,
-        lastMonthRevenue: 580000000,
-        growth: 12.1,
-        dailyRevenue: Array.from({ length: 30 }, (_, i) => ({
-          date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split("T")[0],
-          revenue: Math.floor(Math.random() * 30000000) + 15000000,
-        })),
-        topHotels: [
-          {
-            hotel_id: 1,
-            hotel_name: "Khách sạn A",
-            revenue: 150000000,
-            bookings: 45,
-          },
-          {
-            hotel_id: 2,
-            hotel_name: "Khách sạn B",
-            revenue: 120000000,
-            bookings: 38,
-          },
-          {
-            hotel_id: 3,
-            hotel_name: "Khách sạn C",
-            revenue: 95000000,
-            bookings: 32,
-          },
-        ],
-      };
-    }
-    return apiClient.get<RevenueMetrics>(
-      API_CONFIG.ENDPOINTS.ADMIN_REVENUE_METRICS
-    );
+    const response = await apiClient.get<any>(API_CONFIG.ENDPOINTS.ADMIN_REVENUE_METRICS);
+    
+    // Transform backend response to frontend format
+    const metrics = response.metrics || response;
+    
+    return {
+      totalRevenue: metrics.total?.revenue || 0,
+      thisMonthRevenue: 0, // Backend doesn't provide this
+      lastMonthRevenue: 0, // Backend doesn't provide this
+      growth: 0, // Backend doesn't provide this
+      dailyRevenue: [], // Backend doesn't provide this
+      topHotels: (metrics.topHotels || []).map((hotel: any, index: number) => ({
+        hotel_id: index + 1, // Fake ID since backend doesn't provide
+        hotel_name: `Khách sạn #${index + 1}`, // Fake name since backend doesn't provide
+        revenue: hotel.revenue || 0,
+        bookings: hotel.bookings || 0,
+      })),
+    };
   },
 
-  async getBookingKPIs(): Promise<AdminDashboard["bookingKPIs"]> {
-    if (API_CONFIG.USE_MOCK_DATA) {
-      await mockDelay();
-      return {
-        totalBookings: 3456,
-        confirmedBookings: 2890,
-        cancelledBookings: 234,
-        pendingBookings: 156,
-        completedBookings: 2654,
-        conversionRate: 83.6,
-        averageBookingValue: 1320000,
-      };
-    }
-    return apiClient.get<AdminDashboard["bookingKPIs"]>(
-      API_CONFIG.ENDPOINTS.ADMIN_BOOKING_KPIS
-    );
+  async getBookingKPIs(): Promise<AdminDashboard['bookingKPIs']> {
+    const response = await apiClient.get<any>(API_CONFIG.ENDPOINTS.ADMIN_BOOKING_KPIS);
+    
+    // Transform backend response to frontend format
+    const kpis = response.kpis || response;
+    
+    // Parse percentage strings to numbers (e.g., "15.49%" -> 15.49)
+    const conversionRate = parseFloat(kpis.rates?.conversion?.replace('%', '') || '0');
+    
+    return {
+      totalBookings: kpis.bookings?.total || 0,
+      confirmedBookings: kpis.bookings?.accepted || 0,
+      cancelledBookings: kpis.bookings?.cancelled || 0,
+      pendingBookings: kpis.bookings?.pending || 0,
+      completedBookings: kpis.bookings?.accepted || 0, // Use accepted as completed
+      conversionRate: conversionRate,
+      averageBookingValue: kpis.averages?.bookingValue || 0,
+    };
   },
 
   async getRecentActivity(): Promise<AdminActivity[]> {
-    if (API_CONFIG.USE_MOCK_DATA) {
-      await mockDelay();
-      return [
-        {
-          id: 1,
-          type: "booking",
-          description: "Booking mới #3456 - Khách sạn ABC",
-          timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          userName: "Nguyễn Văn A",
-          hotelName: "Khách sạn ABC",
-        },
-        {
-          id: 2,
-          type: "hotel",
-          description: "Khách sạn XYZ đã được duyệt",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-          hotelName: "Khách sạn XYZ",
-        },
-      ];
-    }
-    return apiClient.get<AdminActivity[]>(
-      API_CONFIG.ENDPOINTS.ADMIN_RECENT_ACTIVITY
+    const response = await apiClient.get<any>(API_CONFIG.ENDPOINTS.ADMIN_RECENT_ACTIVITY);
+    const activities = response.activities || response.data?.activities || response || [];
+    
+    // Transform backend format to frontend AdminActivity format
+    return activities.map((activity: any) => ({
+      id: activity.id,
+      type: activity.type || 'booking',
+      description: activity.status === 'pending' 
+        ? `Đặt phòng mới #${activity.id} - ${activity.hotel}${activity.room ? ` - ${activity.room}` : ''}`
+        : activity.status === 'confirmed'
+        ? `Đặt phòng #${activity.id} đã được xác nhận - ${activity.hotel}`
+        : activity.status === 'cancelled'
+        ? `Đặt phòng #${activity.id} đã bị hủy - ${activity.hotel}`
+        : activity.status === 'completed'
+        ? `Đặt phòng #${activity.id} hoàn thành - ${activity.hotel}`
+        : activity.status === 'checked_in'
+        ? `Khách đã check-in #${activity.id} - ${activity.hotel}`
+        : `Đặt phòng #${activity.id} - ${activity.hotel}`,
+      timestamp: activity.timestamp,
+      userName: activity.user || undefined,
+      hotelName: activity.hotel || undefined,
+    }));
+  },
+};
+
+// ============= ATTENDANCE API =============
+export const attendanceApi = {
+  /**
+   * Upload attendance with image
+   * POST /api/v1/attendance/upload
+   */
+  async uploadAttendance(formData: FormData): Promise<any> {
+    const response = await apiClient.post(API_CONFIG.ENDPOINTS.ATTENDANCE_UPLOAD, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response;
+  },
+
+  /**
+   * Get attendance logs
+   * GET /api/v1/attendance/logs
+   */
+  async getAttendanceLogs(params?: {
+    user_id?: number;
+    event_type?: string;
+    start_date?: string;
+    end_date?: string;
+    limit?: number;
+  }): Promise<any> {
+    return apiClient.get(API_CONFIG.ENDPOINTS.ATTENDANCE_LOGS, params);
+  },
+
+  /**
+   * Get my attendance logs
+   * GET /api/v1/attendance/my-logs
+   */
+  async getMyAttendance(params?: {
+    start_date?: string;
+    end_date?: string;
+    limit?: number;
+  }): Promise<any> {
+    return apiClient.get(API_CONFIG.ENDPOINTS.ATTENDANCE_MY_LOGS, params);
+  },
+
+  /**
+   * Get today's attendance
+   * GET /api/v1/attendance/today
+   */
+  async getTodayAttendance(user_id?: number): Promise<any> {
+    return apiClient.get(API_CONFIG.ENDPOINTS.ATTENDANCE_TODAY, { user_id });
+  },
+};
+
+// ============= AI INTEGRATION API =============
+export const aiApi = {
+  /**
+   * Chat with AI and get related images
+   * POST /api/v1/ai/chat
+   */
+  async chatWithImages(params: {
+    message: string;
+    user_id?: number | null;
+    hotel_id?: number | null;
+    conversation_id?: string | null;
+    include_images?: boolean;
+    max_images?: number;
+    image_similarity_threshold?: number;
+  }): Promise<{
+    response: string;
+    conversation_id: string;
+    images: Array<{
+      image_id: number;
+      image_url: string;
+      similarity_score: number;
+      entity_type?: string;
+      entity_id?: number;
+      entity_name?: string;
+      image_description?: string;
+      image_tags?: string[];
+    }>;
+    sources: string[];
+    total_images_found: number;
+  }> {
+    const response = await apiClient.post(API_CONFIG.ENDPOINTS.AI_CHAT, params);
+    return response.data;
+  },
+
+  /**
+   * Simple chat without images
+   * POST /api/v1/ai/simple-chat
+   */
+  async simpleChat(params: {
+    message: string;
+    conversation_id?: string | null;
+  }): Promise<{
+    response: string;
+    conversation_id: string;
+  }> {
+    const response = await apiClient.post(API_CONFIG.ENDPOINTS.AI_SIMPLE_CHAT, params);
+    return response.data;
+  },
+
+  /**
+   * Upload hotel images
+   * POST /api/v1/hotel/:hotel_id/images/upload
+   */
+  async uploadHotelImages(hotel_id: number, formData: FormData): Promise<{
+    success: boolean;
+    total_uploaded: number;
+    total_failed: number;
+    images: Array<{
+      success: boolean;
+      image_id: number;
+      image_url: string;
+      image_type: string;
+      hotel_id: number;
+      message: string;
+    }>;
+    errors: string[];
+    message: string;
+  }> {
+    const response = await apiClient.postFormData<{
+      success: boolean;
+      total_uploaded: number;
+      total_failed: number;
+      images: Array<{
+        success: boolean;
+        image_id: number;
+        image_url: string;
+        image_type: string;
+        hotel_id: number;
+        message: string;
+      }>;
+      errors: string[];
+      message: string;
+    }>(
+      API_CONFIG.ENDPOINTS.HOTEL_UPLOAD_IMAGES,
+      { hotel_id: hotel_id.toString() },
+      formData
+    );
+    return response;
+  },
+
+  /**
+   * Upload hotel document
+   * POST /api/v1/hotel/:hotel_id/documents/upload
+   */
+  async uploadHotelDocument(hotel_id: number, formData: FormData): Promise<{
+    success: boolean;
+    document_id: number;
+    file_url: string;
+    document_type: string;
+    hotel_id: number;
+    rag_status: string;
+    message: string;
+  }> {
+    const response = await apiClient.postFormData<{
+      success: boolean;
+      document_id: number;
+      file_url: string;
+      document_type: string;
+      hotel_id: number;
+      rag_status: string;
+      message: string;
+    }>(
+      API_CONFIG.ENDPOINTS.HOTEL_UPLOAD_DOCUMENT,
+      { hotel_id: hotel_id.toString() },
+      formData
+    );
+    return response;
+  },
+
+  /**
+   * List hotel images
+   * GET /api/v1/hotel/:hotel_id/images
+   */
+  async listHotelImages(hotel_id: number): Promise<{
+    success: boolean;
+    total: number;
+    images: Array<{
+      image_id: number;
+      image_url: string;
+      image_type: string;
+      image_description?: string;
+      image_tags?: string[];
+      is_primary?: boolean;
+      display_order?: number;
+      image_width?: number;
+      image_height?: number;
+      created_at?: string;
+    }>;
+    hotel_id: number;
+  }> {
+    return apiClient.get<{
+      success: boolean;
+      total: number;
+      images: Array<any>;
+      hotel_id: number;
+    }>(
+      API_CONFIG.ENDPOINTS.HOTEL_LIST_IMAGES,
+      { hotel_id: hotel_id.toString() }
+    );
+  },
+
+  /**
+   * List hotel documents
+   * GET /api/v1/hotel/:hotel_id/documents
+   */
+  async listHotelDocuments(hotel_id: number): Promise<{
+    success: boolean;
+    total: number;
+    documents: Array<{
+      document_id: number;
+      document_type: string;
+      file_name: string;
+      file_url: string;
+      file_size?: number;
+      mime_type?: string;
+      rag_status?: string;
+      total_chunks?: number;
+      created_at?: string;
+      rag_indexed_at?: string;
+    }>;
+    hotel_id: number;
+  }> {
+    return apiClient.get<{
+      success: boolean;
+      total: number;
+      documents: Array<any>;
+      hotel_id: number;
+    }>(
+      API_CONFIG.ENDPOINTS.HOTEL_LIST_DOCUMENTS,
+      { hotel_id: hotel_id.toString() }
+    );
+  },
+
+  /**
+   * Delete hotel image
+   * DELETE /api/v1/hotel/:hotel_id/images/:image_id
+   */
+  async deleteHotelImage(hotel_id: number, image_id: number): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    return apiClient.delete<{
+      success: boolean;
+      message: string;
+    }>(
+      API_CONFIG.ENDPOINTS.HOTEL_DELETE_IMAGE,
+      { hotel_id: hotel_id.toString(), image_id: image_id.toString() }
+    );
+  },
+
+  /**
+   * Delete hotel document
+   * DELETE /api/v1/hotel/:hotel_id/documents/:document_id
+   */
+  async deleteHotelDocument(hotel_id: number, document_id: number): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    return apiClient.delete<{
+      success: boolean;
+      message: string;
+    }>(
+      API_CONFIG.ENDPOINTS.HOTEL_DELETE_DOCUMENT,
+      { hotel_id: hotel_id.toString(), document_id: document_id.toString() }
+    );
+  },
+
+  /**
+   * Get hotel upload statistics
+   * GET /api/v1/hotel/:hotel_id/upload-stats
+   */
+  async getHotelUploadStats(hotel_id: number): Promise<{
+    hotel_id: number;
+    total_images: number;
+    total_documents: number;
+    images_by_type: Record<string, number>;
+    documents_by_type: Record<string, number>;
+    rag_indexed_docs: number;
+    last_upload: string | null;
+  }> {
+    return apiClient.get<{
+      hotel_id: number;
+      total_images: number;
+      total_documents: number;
+      images_by_type: Record<string, number>;
+      documents_by_type: Record<string, number>;
+      rag_indexed_docs: number;
+      last_upload: string | null;
+    }>(
+      API_CONFIG.ENDPOINTS.HOTEL_UPLOAD_STATS,
+      { hotel_id: hotel_id.toString() }
     );
   },
 };
