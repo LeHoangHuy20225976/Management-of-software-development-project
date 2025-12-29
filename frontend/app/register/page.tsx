@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
 import { useAuth } from '@/lib/context/AuthContext';
+import { notificationApi } from '@/lib/api/services';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -74,11 +75,18 @@ export default function RegisterPage() {
         role: 'customer',
       });
 
+      // Send welcome email (don't block if fails)
+      try {
+        await notificationApi.sendWelcomeEmail(formData.email, formData.name);
+      } catch (emailError) {
+        console.warn('Failed to send welcome email:', emailError);
+        // Don't block registration flow for email failure
+      }
+
       // Show success message and redirect to login
       setSuccess(true);
-      setTimeout(() => {
-        router.push('/login');
-      }, 2000);
+
+      router.push('/login');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Có lỗi xảy ra. Vui lòng thử lại!';
       setError(errorMessage);
@@ -290,7 +298,7 @@ export default function RegisterPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <button 
+                <button
                   type="button"
                   className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                   disabled={isLoading || success}
@@ -298,7 +306,7 @@ export default function RegisterPage() {
                   <span className="text-xl">📘</span>
                   <span className="font-medium text-gray-700">Facebook</span>
                 </button>
-                <button 
+                <button
                   type="button"
                   className="flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                   disabled={isLoading || success}

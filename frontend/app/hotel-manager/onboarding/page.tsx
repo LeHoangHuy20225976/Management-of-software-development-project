@@ -97,7 +97,7 @@ export default function HotelOnboardingPage() {
         thumbnail: formData.thumbnail || undefined,
       });
 
-      alert('✅ Tạo khách sạn thành công! Vui lòng đợi admin phê duyệt.');
+      alert('✅ Tạo khách sạn thành công! ');
       router.push('/hotel-manager');
     } catch (error) {
       console.error('Error creating hotel:', error);

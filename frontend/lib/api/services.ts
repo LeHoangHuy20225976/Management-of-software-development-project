@@ -149,9 +149,7 @@ export const tourismApi = {
     formData.append("thumbnail", file);
     return apiClient.post<any>(
       API_CONFIG.ENDPOINTS.DESTINATION_THUMBNAIL.replace(":id", id.toString()),
-      formData,
-      undefined,
-      { "Content-Type": "multipart/form-data" }
+      formData
     );
   },
 
@@ -163,9 +161,7 @@ export const tourismApi = {
     formData.append("image", file);
     return apiClient.post<any>(
       API_CONFIG.ENDPOINTS.DESTINATION_IMAGES.replace(":id", id.toString()),
-      formData,
-      undefined,
-      { "Content-Type": "multipart/form-data" }
+      formData
     );
   },
 
@@ -497,6 +493,18 @@ export const hotelManagerApi = {
 
   // Rooms Management
 
+  async getRooms(hotelId: string): Promise<RoomType[]> {
+    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ALL_ROOMS, {
+      hotel_id: hotelId,
+    });
+  },
+
+  async getRoomTypes(hotelId: string): Promise<RoomType[]> {
+    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ROOM_TYPES, {
+      hotel_id: hotelId,
+    });
+  },
+
   async createRoom(
     hotelId: string,
     roomData: Partial<RoomType>
@@ -612,7 +620,19 @@ export const hotelManagerApi = {
     const { thumbnail, ...data } = hotelData;
     formData.append("hotelData", JSON.stringify(data));
 
-    return apiClient.post<Hotel>(API_CONFIG.ENDPOINTS.ADD_HOTEL, formData);
+    // FIX: Sử dụng đúng signature của apiClient.post (3 params max)
+    return apiClient.post<Hotel>(
+      API_CONFIG.ENDPOINTS.ADD_HOTEL,
+      formData
+    );
+
+    // CODE CŨ (không đúng signature):
+    // return apiClient.post<Hotel>(
+    //   API_CONFIG.ENDPOINTS.ADD_HOTEL,
+    //   formData,
+    //   undefined,
+    //   { "Content-Type": "multipart/form-data" }
+    // );
   },
 
   // Booking Management for Hotel Manager
@@ -1338,8 +1358,7 @@ export const destinationsApi = {
     formData.append("thumbnail", file);
 
     const response = await fetch(
-      `${
-        API_CONFIG.BASE_URL
+      `${API_CONFIG.BASE_URL
       }${API_CONFIG.ENDPOINTS.DESTINATION_THUMBNAIL.replace(
         ":id",
         id.toString()
@@ -1632,60 +1651,61 @@ export const notificationApi = {
 // ============= ADMIN API =============
 export const adminApi = {
   async getDashboard(): Promise<AdminDashboard> {
-    if (API_CONFIG.USE_MOCK_DATA) {
-      await mockDelay();
-      return {
-        totalUsers: 1250,
-        totalHotels: 84,
-        totalBookings: 3456,
-        totalRevenue: 4567890000,
-        pendingHotels: 12,
-        activeHotels: 72,
-        activeBookings: 156,
-        todayBookings: 45,
-        todayRevenue: 125000000,
-        recentActivity: [
-          {
-            id: 1,
-            type: "booking",
-            description: "Booking mới #3456 - Khách sạn ABC",
-            timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-            userName: "Nguyễn Văn A",
-            hotelName: "Khách sạn ABC",
-          },
-          {
-            id: 2,
-            type: "hotel",
-            description: "Khách sạn XYZ đã được duyệt",
-            timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-            hotelName: "Khách sạn XYZ",
-          },
-          {
-            id: 3,
-            type: "user",
-            description: "User mới đăng ký: Trần Thị B",
-            timestamp: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-            userName: "Trần Thị B",
-          },
-        ],
-        revenueChart: {
-          labels: ["T1", "T2", "T3", "T4", "T5", "T6", "T7"],
-          data: [
-            300000000, 450000000, 520000000, 480000000, 630000000, 700000000,
-            550000000,
-          ],
-        },
-        bookingKPIs: {
-          totalBookings: 3456,
-          confirmedBookings: 2890,
-          cancelledBookings: 234,
-          pendingBookings: 156,
-          completedBookings: 2654,
-          conversionRate: 83.6,
-          averageBookingValue: 1320000,
-        },
-      };
-    }
+    // if (API_CONFIG.USE_MOCK_DATA) {
+    //   await mockDelay();
+    //   return {
+    //     totalUsers: 1250,
+    //     totalHotels: 84,
+    //     totalBookings: 3456,
+    //     totalRevenue: 4567890000,
+    //     pendingHotels: 12,
+    //     activeHotels: 72,
+    //     activeBookings: 156,
+    //     todayBookings: 45,
+    //     todayRevenue: 125000000,
+    //     recentActivity: [
+    //       {
+    //         id: 1,
+    //         type: "booking",
+    //         description: "Booking mới #3456 - Khách sạn ABC",
+    //         timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    //         userName: "Nguyễn Văn A",
+    //         hotelName: "Khách sạn ABC",
+    //       },
+    //       {
+    //         id: 2,
+    //         type: "hotel",
+    //         description: "Khách sạn XYZ đã được duyệt",
+    //         timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+    //         hotelName: "Khách sạn XYZ",
+    //       },
+    //       {
+    //         id: 3,
+    //         type: "user",
+    //         description: "User mới đăng ký: Trần Thị B",
+    //         timestamp: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+    //         userName: "Trần Thị B",
+    //       },
+    //     ],
+    //     revenueChart: {
+    //       labels: ["T1", "T2", "T3", "T4", "T5", "T6", "T7"],
+    //       data: [
+    //         300000000, 450000000, 520000000, 480000000, 630000000, 700000000,
+    //         550000000,
+    //       ],
+    //     },
+    //     bookingKPIs: {
+    //       totalBookings: 3456,
+    //       confirmedBookings: 2890,
+    //       cancelledBookings: 234,
+    //       pendingBookings: 156,
+    //       completedBookings: 2654,
+    //       conversionRate: 83.6,
+    //       averageBookingValue: 1320000,
+    //     },
+    //   };
+    // }
+    console.log(100);
     return apiClient.get<AdminDashboard>(API_CONFIG.ENDPOINTS.ADMIN_DASHBOARD);
   },
 

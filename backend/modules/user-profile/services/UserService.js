@@ -124,8 +124,9 @@ const UserService = {
       throw new Error("User not found");
     }
 
+    // Với onDelete: 'CASCADE' trong models, Sequelize sẽ tự động xóa các bản ghi liên quan
     await user.destroy();
-    return { message: "User deleted successfully" };
+    return { message: "User and all related data deleted successfully" };
   },
 
   /**

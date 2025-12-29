@@ -278,8 +278,8 @@ function BookingContent() {
 
       // Get booking ID (fallback to generated ID if backend doesn't return one)
       const firstBookingId = createdBookings[0]?.booking_id ||
-                           createdBookings[0]?.id ||
-                           Date.now();
+        createdBookings[0]?.id ||
+        Date.now();
 
       console.log('First booking ID:', firstBookingId);
 
@@ -351,6 +351,30 @@ function BookingContent() {
       // Store booking info for confirmation page
       sessionStorage.setItem('bookingConfirmation', JSON.stringify(bookingConfirmationData));
 
+      // Send booking confirmation email
+      try {
+        const notificationData = {
+          userEmail: formData.email,
+          userName: formData.fullName,
+          bookingId: createdBookings[0].booking_id || 'BK' + Date.now(),
+          hotelName: hotel?.name || 'Unknown Hotel',
+          roomType: selectedRoomTypes.map(({ roomType, quantity }) =>
+            `${roomType.type} x${quantity}`
+          ).join(', '),
+          roomName: createdBookings.map(b => b.roomName || `Room ${b.room_id}`).join(', '),
+          guests: formData.people,
+          check_in_date: formData.check_in_date,
+          check_out_date: formData.check_out_date,
+          totalPrice: totalAmount,
+        };
+
+        await notificationApi.sendBookingConfirmation(notificationData);
+        console.log('✅ Booking confirmation email sent successfully');
+      } catch (emailError) {
+        console.warn('⚠️ Failed to send booking confirmation email:', emailError);
+        // Don't block booking flow for email failure
+      }
+
       // Redirect based on payment method
       if (paymentUrl) {
         // VNPay/Momo - show info before redirecting to payment gateway
@@ -370,6 +394,10 @@ function BookingContent() {
           `Bấm OK để chuyển sang trang thanh toán VNPay\n` +
           `(Check console logs để xem chi tiết)`
         );
+
+
+
+
 
         if (proceed) {
           console.log('🔗 Redirecting to VNPay...');

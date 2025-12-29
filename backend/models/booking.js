@@ -10,11 +10,17 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       // define association here
       // 1 BOOKING belongs to 1 USER
-      Booking.belongsTo(models.User, { foreignKey: "user_id" });
+      Booking.belongsTo(models.User, {
+        foreignKey: "user_id",
+        onDelete: 'CASCADE'
+      });
       // 1 BOOKING belongs to 1 ROOM
       Booking.belongsTo(models.Room, { foreignKey: 'room_id' });
       // 1 BOOKING has many PAYMENTS
-      Booking.hasMany(models.Payment, { foreignKey: 'booking_id' });
+      Booking.hasMany(models.Payment, {
+        foreignKey: 'booking_id',
+        onDelete: 'CASCADE'
+      });
     }
   }
   Booking.init(

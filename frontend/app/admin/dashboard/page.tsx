@@ -74,7 +74,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-100 text-sm">Tổng người dùng</p>
-              <p className="text-3xl font-bold mt-1">{dashboard?.totalUsers.toLocaleString()}</p>
+              <p className="text-3xl font-bold mt-1">{dashboard?.totalUsers}</p>
             </div>
             <div className="text-5xl opacity-50">👥</div>
           </div>
@@ -102,7 +102,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-purple-100 text-sm">Tổng đặt phòng</p>
-              <p className="text-3xl font-bold mt-1">{dashboard?.totalBookings.toLocaleString()}</p>
+              <p className="text-3xl font-bold mt-1">{dashboard?.totalBookings}</p>
             </div>
             <div className="text-5xl opacity-50">📋</div>
           </div>
