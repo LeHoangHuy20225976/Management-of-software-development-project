@@ -916,13 +916,10 @@ export const paymentApi = {
   },
 
   async createPayment(data: {
-    bookingId: number;
-    amount: number;
-    paymentMethod: "vnpay" | "momo" | "cash" | "bank_transfer";
-    bankCode?: string;
-    orderInfo?: string;
-    returnUrl?: string;
-  }): Promise<{ payment_id: number; payment_url?: string; status: string }> {
+    booking_id: number;
+    bank_code?: string;
+    locale?: string;
+  }): Promise<{ payment_id: number; payment_url?: string; status: string; txn_ref?: string }> {
     return apiClient.post<any>(API_CONFIG.ENDPOINTS.PAYMENT_CREATE, data);
   },
 

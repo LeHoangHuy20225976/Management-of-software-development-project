@@ -55,34 +55,18 @@ const paymentController = {
       
       const result = await paymentService.handleVnpayReturn(vnpParams);
 
-      // In production, redirect to frontend with result
-      // For now, return JSON response
-      if (result.success) {
-        return responseUtils.ok(res, {
-          message: 'Payment successful',
-          response_code: result.responseCode,
-          payment: {
-            payment_id: result.payment.payment_id,
-            booking_id: result.payment.booking_id,
-            amount: result.payment.amount,
-            status: result.payment.status,
-            vnp_transaction_no: result.payment.vnp_transaction_no
-          }
-        });
-      } else {
-        return res.status(200).send({
-          success: false,
-          message: result.message,
-          response_code: result.responseCode,
-          payment_id: result.payment?.payment_id
-        });
-      }
+      // Redirect to frontend payment result page
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const status = result.success ? 'success' : 'failed';
+      const redirectUrl = `${frontendUrl}/payment/result?status=${status}&payment_id=${result.payment.payment_id}&booking_id=${result.payment.booking_id}`;
+      
+      return res.redirect(redirectUrl);
     } catch (error) {
       console.error('VNPay return error:', error);
-      return res.status(200).send({
-        success: false,
-        message: error.message
-      });
+      // Redirect to frontend with error
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const redirectUrl = `${frontendUrl}/payment/result?status=failed&error=${encodeURIComponent(error.message)}`;
+      return res.redirect(redirectUrl);
     }
   },
 

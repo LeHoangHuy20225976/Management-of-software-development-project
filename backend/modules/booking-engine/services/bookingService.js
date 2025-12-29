@@ -34,9 +34,9 @@ class BookingService {
 
     // Check if room will be available by the check-in date
     if (room.estimated_available_time && new Date(room.estimated_available_time) > new Date(checkInDate)) {
-      return { 
-        available: false, 
-        reason: `Room will not be available until ${room.estimated_available_time}` 
+      return {
+        available: false,
+        reason: `Room will not be available until ${room.estimated_available_time}`
       };
     }
 
@@ -109,7 +109,7 @@ class BookingService {
 
     // Calculate number of nights
     const nights = Math.ceil((new Date(checkOutDate) - new Date(checkInDate)) / (1000 * 60 * 60 * 24));
-    
+
     if (nights <= 0) {
       throw new Error('Check-out date must be after check-in date');
     }
@@ -119,6 +119,8 @@ class BookingService {
     let discountApplied = 0;
 
     // Check if there's a special event price applicable
+    // Note: special_price already has the discount pre-applied (special_price = basic_price * (1 - discount/100))
+    // So we use special_price directly without applying discount again
     if (roomPrice.start_date && roomPrice.end_date && roomPrice.special_price) {
       const startDate = new Date(roomPrice.start_date);
       const endDate = new Date(roomPrice.end_date);
@@ -129,26 +131,35 @@ class BookingService {
       if (checkIn <= endDate && checkOut >= startDate) {
         pricePerNight = roomPrice.special_price;
         eventApplied = roomPrice.event;
+        // Discount is for display only - it's already factored into special_price
+        discountApplied = roomPrice.discount || 0;
       }
     }
 
-    // Apply discount if available
-    if (roomPrice.discount && roomPrice.discount > 0) {
-      discountApplied = roomPrice.discount;
-    }
-
+    // Calculate subtotal (no separate discount calculation - it's already in special_price)
     const subtotal = pricePerNight * nights;
-    const discountAmount = subtotal * discountApplied;
-    const totalPrice = subtotal - discountAmount;
+
+    // Add tax (10% service tax)
+    const TAX_RATE = 0.1;
+    const taxAmount = subtotal * TAX_RATE;
+    const totalPrice = subtotal + taxAmount;
+
+    // Validation: prevent negative prices
+    if (totalPrice < 0) {
+      throw new Error('Invalid price calculation: total price cannot be negative');
+    }
 
     return {
       totalPrice: Math.round(totalPrice),
       breakdown: {
         nights,
         pricePerNight,
-        subtotal,
-        discount: discountApplied,
-        discountAmount: Math.round(discountAmount),
+        subtotal: Math.round(subtotal),
+        discount: discountApplied, // For display: shows discount % that was used to get special_price
+        discountAmount: 0, // No additional discount - already in special_price
+        priceAfterDiscount: Math.round(subtotal), // Same as subtotal since discount is pre-applied
+        taxRate: TAX_RATE,
+        taxAmount: Math.round(taxAmount),
         eventApplied,
         finalTotal: Math.round(totalPrice)
       }
@@ -384,20 +395,20 @@ class BookingService {
    */
   async updateBookingStatus(bookingId, newStatus, userId = null) {
     const validStatuses = ['accepted', 'pending', 'rejected', 'cancel requested', 'cancelled', 'maintained'];
-    
+
     if (!validStatuses.includes(newStatus)) {
       throw new Error(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
     }
 
     const booking = await this.getBookingById(bookingId);
-    
+
     if (!booking) {
       throw new Error('Booking not found');
     }
 
     // Validate status transitions
     const currentStatus = booking.status;
-    
+
     // Business rules for status transitions
     if (currentStatus === 'cancelled' || currentStatus === 'rejected') {
       throw new Error('Cannot modify a cancelled or rejected booking');
@@ -446,7 +457,7 @@ class BookingService {
    */
   async cancelBooking(bookingId, userId, role) {
     const booking = await this.getBookingById(bookingId);
-    
+
     if (!booking) {
       throw new Error('Booking not found');
     }
@@ -477,7 +488,7 @@ class BookingService {
     const { check_in_date, check_out_date, people } = updateData;
 
     const booking = await this.getBookingById(bookingId);
-    
+
     if (!booking) {
       throw new Error('Booking not found');
     }
@@ -490,7 +501,7 @@ class BookingService {
     // Check if trying to update past bookings
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const newCheckIn = check_in_date ? new Date(check_in_date) : new Date(booking.check_in_date);
     const newCheckOut = check_out_date ? new Date(check_out_date) : new Date(booking.check_out_date);
 
@@ -511,8 +522,8 @@ class BookingService {
     // Check availability for new dates
     if (check_in_date || check_out_date) {
       const availability = await this.checkRoomAvailability(
-        booking.room_id, 
-        newCheckIn, 
+        booking.room_id,
+        newCheckIn,
         newCheckOut,
         bookingId
       );
@@ -526,8 +537,8 @@ class BookingService {
     let newPrice = booking.total_price;
     if (check_in_date || check_out_date) {
       const pricing = await this.calculateBookingPrice(
-        booking.Room.type_id, 
-        newCheckIn, 
+        booking.Room.type_id,
+        newCheckIn,
         newCheckOut
       );
       newPrice = pricing.totalPrice;
@@ -568,7 +579,7 @@ class BookingService {
    */
   async checkInBooking(bookingId) {
     const booking = await this.getBookingById(bookingId);
-    
+
     if (!booking) {
       throw new Error('Booking not found');
     }
@@ -603,7 +614,7 @@ class BookingService {
    */
   async checkOutBooking(bookingId) {
     const booking = await this.getBookingById(bookingId);
-    
+
     if (!booking) {
       throw new Error('Booking not found');
     }
@@ -638,7 +649,7 @@ class BookingService {
   async getAvailableRooms(hotelId, checkInDate, checkOutDate, guests = 1) {
     // Get all room types for this hotel
     const roomTypes = await RoomType.findAll({
-      where: { 
+      where: {
         hotel_id: hotelId,
         availability: true,
         max_guests: { [Op.gte]: guests }
@@ -654,7 +665,7 @@ class BookingService {
     for (const roomType of roomTypes) {
       // Get all rooms of this type
       const rooms = await Room.findAll({
-        where: { 
+        where: {
           type_id: roomType.type_id,
           status: 1
         }

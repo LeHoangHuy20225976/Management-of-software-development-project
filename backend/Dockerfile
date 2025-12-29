@@ -24,6 +24,9 @@ COPY --from=builder /app/node_modules ./node_modules
 # Copy application code
 COPY . .
 
+# Make entrypoint script executable
+RUN chmod +x /app/docker-entrypoint.sh
+
 # Expose port
 EXPOSE 4000
 
