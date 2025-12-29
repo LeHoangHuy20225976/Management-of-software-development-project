@@ -24,6 +24,9 @@ COPY --from=builder /app/node_modules ./node_modules
 # Copy application code
 COPY . .
 
+# Ensure entrypoint is executable (and avoid CRLF issues from Windows hosts)
+RUN chmod +x /app/docker-entrypoint.sh
+
 # Expose port
 EXPOSE 4000
 
@@ -32,4 +35,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD node -e "require('http').get('http://localhost:4000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Start application
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["npm", "run", "dev"]

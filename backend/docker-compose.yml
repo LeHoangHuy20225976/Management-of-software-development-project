@@ -85,7 +85,7 @@ services:
       APP_PASS: ${APP_PASS}
       GMAIL_USER: ${GMAIL_USER}
       RESET_PASSWORD_URL: http://localhost:3000/reset-password?token=
-      SEED_HOTEL_FACILITIES: "true"
+      SEED_ADDITIONAL_DATA: "true"
     ports:
       - "4000:4000"
     depends_on:

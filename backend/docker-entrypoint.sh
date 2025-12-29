@@ -4,11 +4,12 @@ set -e
 echo "[entrypoint] Running migrations..."
 npx sequelize-cli db:migrate
 
-if [ "${SEED_HOTEL_FACILITIES:-true}" = "true" ]; then
-  echo "[entrypoint] Seeding HotelFacilities if empty..."
-  node scripts/seed-hotel-facilities.js
+SEED_ADDITIONAL_DATA_FLAG="${SEED_ADDITIONAL_DATA:-${SEED_HOTEL_FACILITIES:-true}}"
+if [ "${SEED_ADDITIONAL_DATA_FLAG}" = "true" ]; then
+  echo "[entrypoint] Seeding additional data if empty..."
+  node scripts/seed-additional-data.js
 else
-  echo "[entrypoint] Skipping HotelFacilities seed (SEED_HOTEL_FACILITIES=${SEED_HOTEL_FACILITIES})"
+  echo "[entrypoint] Skipping additional seed (SEED_ADDITIONAL_DATA=${SEED_ADDITIONAL_DATA_FLAG})"
 fi
 
 echo "[entrypoint] Starting app: $*"
