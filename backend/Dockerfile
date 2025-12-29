@@ -24,7 +24,7 @@ COPY --from=builder /app/node_modules ./node_modules
 # Copy application code
 COPY . .
 
-# Ensure entrypoint is executable (and avoid CRLF issues from Windows hosts)
+# Make entrypoint script executable
 RUN chmod +x /app/docker-entrypoint.sh
 
 # Expose port

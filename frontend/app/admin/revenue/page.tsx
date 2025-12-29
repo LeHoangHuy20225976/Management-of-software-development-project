@@ -5,6 +5,7 @@ import { Card } from '@/components/common/Card';
 import { Button } from '@/components/common/Button';
 import { adminApi } from '@/lib/api/services';
 import { formatCurrency } from '@/lib/utils/format';
+import type { RevenueMetrics } from '@/types';
 
 interface RevenueData {
   date: string;
@@ -21,7 +22,7 @@ interface BookingKPIs {
 }
 
 export default function AdminRevenuePage() {
-  const [revenueData, setRevenueData] = useState<{ daily: RevenueData[], monthly: { month: number, revenue: number }[] } | null>(null);
+  const [revenueData, setRevenueData] = useState<RevenueMetrics | null>(null);
   const [bookingKPIs, setBookingKPIs] = useState<BookingKPIs | null>(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'daily' | 'monthly'>('daily');
@@ -45,9 +46,9 @@ export default function AdminRevenuePage() {
     }
   };
 
-  const totalRevenue = revenueData?.daily.reduce((sum, d) => sum + d.revenue, 0) || 0;
-  const avgDailyRevenue = revenueData?.daily.length ? totalRevenue / revenueData.daily.length : 0;
-  const maxRevenue = revenueData?.daily.reduce((max, d) => Math.max(max, d.revenue), 0) || 0;
+  const totalRevenue = revenueData?.dailyRevenue?.reduce((sum, d) => sum + d.revenue, 0) || revenueData?.totalRevenue || 0;
+  const avgDailyRevenue = revenueData?.dailyRevenue?.length ? totalRevenue / revenueData.dailyRevenue.length : 0;
+  const maxRevenue = revenueData?.dailyRevenue?.reduce((max, d) => Math.max(max, d.revenue), 0) || 0;
 
   if (loading) {
     return (
@@ -119,19 +120,19 @@ export default function AdminRevenuePage() {
         <h2 className="text-xl font-bold text-gray-900 mb-4">📊 Thống kê đặt phòng</h2>
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
           <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className="text-3xl font-bold text-gray-900">{bookingKPIs?.totalBookings.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-gray-900">{(bookingKPIs?.totalBookings || 0).toLocaleString()}</div>
             <div className="text-sm text-gray-600">Tổng đơn</div>
           </div>
           <div className="text-center p-4 bg-green-50 rounded-lg">
-            <div className="text-3xl font-bold text-green-600">{bookingKPIs?.completedBookings.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-green-600">{(bookingKPIs?.completedBookings || 0).toLocaleString()}</div>
             <div className="text-sm text-gray-600">Hoàn thành</div>
           </div>
           <div className="text-center p-4 bg-yellow-50 rounded-lg">
-            <div className="text-3xl font-bold text-yellow-600">{bookingKPIs?.pendingBookings.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-yellow-600">{(bookingKPIs?.pendingBookings || 0).toLocaleString()}</div>
             <div className="text-sm text-gray-600">Đang xử lý</div>
           </div>
           <div className="text-center p-4 bg-red-50 rounded-lg">
-            <div className="text-3xl font-bold text-red-600">{bookingKPIs?.cancelledBookings.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-red-600">{(bookingKPIs?.cancelledBookings || 0).toLocaleString()}</div>
             <div className="text-sm text-gray-600">Đã hủy</div>
           </div>
           <div className="text-center p-4 bg-blue-50 rounded-lg">
@@ -155,7 +156,7 @@ export default function AdminRevenuePage() {
         
         {viewMode === 'daily' ? (
           <div className="space-y-2">
-            {revenueData?.daily.slice(-15).map((day) => {
+            {(revenueData?.dailyRevenue || []).slice(-15).map((day) => {
               const percentage = maxRevenue > 0 ? (day.revenue / maxRevenue) * 100 : 0;
               return (
                 <div key={day.date} className="flex items-center gap-4">
@@ -177,27 +178,7 @@ export default function AdminRevenuePage() {
           </div>
         ) : (
           <div className="space-y-2">
-            {revenueData?.monthly.map((month) => {
-              const maxMonthly = revenueData.monthly.reduce((max, m) => Math.max(max, m.revenue), 0);
-              const percentage = maxMonthly > 0 ? (month.revenue / maxMonthly) * 100 : 0;
-              const monthNames = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
-              return (
-                <div key={month.month} className="flex items-center gap-4">
-                  <div className="w-20 text-sm text-gray-600 font-medium">
-                    {monthNames[month.month - 1]}
-                  </div>
-                  <div className="flex-1 bg-gray-100 rounded-full h-8 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full transition-all duration-500"
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                  <div className="w-36 text-right text-sm font-medium text-gray-900">
-                    {formatCurrency(month.revenue).replace('₫', '')}
-                  </div>
-                </div>
-              );
-            })}
+            <p className="text-gray-500 text-center py-8">Dữ liệu theo tháng chưa khả dụng</p>
           </div>
         )}
       </Card>
@@ -243,13 +224,13 @@ export default function AdminRevenuePage() {
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <span className="text-gray-600">Doanh thu hôm nay</span>
               <span className="font-bold text-green-600">
-                {formatCurrency(revenueData?.daily[revenueData.daily.length - 1]?.revenue || 0)}
+                {formatCurrency(revenueData?.dailyRevenue?.[revenueData.dailyRevenue.length - 1]?.revenue || 0)}
               </span>
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <span className="text-gray-600">Doanh thu hôm qua</span>
               <span className="font-bold text-gray-900">
-                {formatCurrency(revenueData?.daily[revenueData.daily.length - 2]?.revenue || 0)}
+                {formatCurrency(revenueData?.dailyRevenue?.[revenueData.dailyRevenue.length - 2]?.revenue || 0)}
               </span>
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">

@@ -11,6 +11,7 @@ const notificationRoutes = require("../modules/notification/routes/notificationR
 const pricingEngineRoutes = require("../modules/pricing-engine/routes/pricingEngineRoutes");
 const roomInventoryRoutes = require("../modules/room-inventory/routes/roomInventoryRoutes");
 const synchronizationRoutes = require("../modules/synchronization/routes/synchronizationRoutes");
+const adminRoutes = require("../modules/super-admin/routes/adminRoutes");
 
 // Health check endpoint
 router.get("/health", (req, res) => {
@@ -30,5 +31,6 @@ router.use("/api/v1/notifications", notificationRoutes);
 router.use("/api/v1/pricing", pricingEngineRoutes);
 router.use("/api/v1/rooms", roomInventoryRoutes);
 router.use("/api/v1/sync", synchronizationRoutes);
+router.use("/api/v1/admin", adminRoutes);
 
 module.exports = router;

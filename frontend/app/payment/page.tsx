@@ -65,42 +65,26 @@ export default function PaymentPage() {
 
     setLoading(true);
     try {
-      // First create booking
+      // First create booking (backend will calculate price including tax)
       const booking = await bookingsApi.create({
         room_id: Number(bookingData.roomId),
         check_in_date: bookingData.checkIn,
         check_out_date: bookingData.checkOut,
         people: bookingData.guests,
-        total_price: bookingData.totalPrice,
-        status: 'pending',
-        hotelName: bookingData.hotelName,
-        hotelImage: bookingData.hotelImage,
-        roomType: bookingData.roomType,
-        nights: bookingData.nights,
-        paymentMethod: paymentMethod,
+        // Don't send total_price - backend calculates it with tax
       });
 
-      // Then create payment
+      // Then create payment (use booking's calculated total_price from backend)
       const payment = await paymentApi.createPayment({
-        bookingId: booking.booking_id,
-        amount: bookingData.totalPrice,
-        paymentMethod: paymentMethod,
-        bankCode: paymentMethod === 'vnpay' ? bankCode : undefined,
-        orderInfo: `Thanh toán đặt phòng ${bookingData.hotelName}`,
-        returnUrl: `${window.location.origin}/payment/result`,
+        booking_id: booking.booking_id,
+        bank_code: paymentMethod === 'vnpay' ? bankCode : undefined,
+        locale: 'vn',
       });
 
       if (payment.payment_url && paymentMethod === 'vnpay') {
-        // Redirect to VNPay
-        // For mock, we'll simulate by going to result page
-        sessionStorage.setItem('paymentResult', JSON.stringify({
-          success: true,
-          bookingId: booking.booking_id,
-          paymentId: payment.payment_id,
-          amount: bookingData.totalPrice,
-          method: paymentMethod,
-        }));
-        router.push('/payment/result?status=success');
+        // Redirect to VNPay payment gateway
+        window.location.href = payment.payment_url;
+        return; // Don't continue execution after redirect
       } else {
         // For cash/bank_transfer, go directly to success
         sessionStorage.setItem('paymentResult', JSON.stringify({
