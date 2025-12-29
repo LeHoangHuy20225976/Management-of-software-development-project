@@ -493,16 +493,14 @@ export const hotelManagerApi = {
 
   // Rooms Management
 
+  // NOTE: For fetching rooms/room types by hotel, reuse public hotelsApi helpers.
+  // Some pages call these via hotelManagerApi for convenience.
   async getRooms(hotelId: string): Promise<RoomType[]> {
-    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ALL_ROOMS, {
-      hotel_id: hotelId,
-    });
+    return hotelsApi.getRooms(hotelId);
   },
 
   async getRoomTypes(hotelId: string): Promise<RoomType[]> {
-    return apiClient.get<RoomType[]>(API_CONFIG.ENDPOINTS.VIEW_ROOM_TYPES, {
-      hotel_id: hotelId,
-    });
+    return hotelsApi.getRoomTypes(hotelId);
   },
 
   async createRoom(

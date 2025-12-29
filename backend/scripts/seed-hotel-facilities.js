@@ -2,6 +2,7 @@
 'use strict';
 
 const db = require('../models');
+const bcrypt = require('bcryptjs');
 
 const FACILITIES = [
   { facility_id: 1, name: 'WiFi miễn phí' },
@@ -37,6 +38,7 @@ const FACILITIES = [
 ];
 
 async function main() {
+  console.log('Deprecated: use scripts/seed-additional-data.js instead.');
   console.log('Seeding HotelFacilities...');
 
   try {

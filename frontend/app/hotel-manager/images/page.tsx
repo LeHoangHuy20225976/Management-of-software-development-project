@@ -1,10 +1,11 @@
 'use client';
 
 import { hotelManagerApi } from '@/lib/api/services';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 interface HotelImage {
   id: number;
+  backendImageId?: number;
   url: string;
   type: 'hotel' | 'room' | 'facility' | 'exterior' | 'restaurant' | 'lobby';
   caption: string;
@@ -96,56 +97,95 @@ const today = () => new Date().toISOString().split('T')[0];
 
 const buildImagesFromAllImagesResponse = (payload: any): HotelImage[] => {
   const images: HotelImage[] = [];
+  const seenImageIds = new Set<number>();
   const seenUrls = new Set<string>();
+  let nextSyntheticId = -1;
 
-  const thumbnailUrl = typeof payload?.thumbnail === 'string' ? payload.thumbnail : null;
+  const thumbnailUrl =
+    typeof payload?.thumbnail === 'string' && payload.thumbnail
+      ? payload.thumbnail
+      : null;
+
   if (thumbnailUrl) {
     seenUrls.add(thumbnailUrl);
     images.push({
-      id: 1,
+      id: nextSyntheticId--,
       url: thumbnailUrl,
       type: 'hotel',
-      caption: 'Ảnh đại diện',
+      caption: 'Thumbnail',
       isThumbnail: true,
       uploadedAt: today(),
     });
   }
 
-  const hotelImages: Array<{ url: string }> = Array.isArray(payload?.hotelImages)
+  const hotelImages: Array<{ image_id?: number; id?: number; url?: string }> =
+    Array.isArray(payload?.hotelImages)
     ? payload.hotelImages
     : [];
-  const hotelUrls = hotelImages.map((i) => i?.url).filter(Boolean);
-  const uniqueHotelUrls = [...new Set(hotelUrls)].filter((u) => !!u && !seenUrls.has(u));
 
-  uniqueHotelUrls.forEach((url, index) => {
+  for (let index = 0; index < hotelImages.length; index++) {
+    const url = hotelImages[index]?.url;
+    if (typeof url !== 'string' || !url) continue;
+    if (seenUrls.has(url)) continue;
     seenUrls.add(url);
+
+    const backendImageId =
+      typeof hotelImages[index]?.image_id === 'number'
+        ? hotelImages[index].image_id
+        : typeof hotelImages[index]?.id === 'number'
+          ? hotelImages[index].id
+          : undefined;
+
+    if (typeof backendImageId === 'number') {
+      if (seenImageIds.has(backendImageId)) continue;
+      seenImageIds.add(backendImageId);
+    }
+
     images.push({
-      id: 2 + index,
+      id: typeof backendImageId === 'number' ? backendImageId : nextSyntheticId--,
+      backendImageId,
       url,
       type: 'hotel',
-      caption: `Ảnh ${index + 1}`,
-      isThumbnail: false,
+      caption: `Image ${index + 1}`,
+      isThumbnail: thumbnailUrl ? url === thumbnailUrl : false,
       uploadedAt: today(),
     });
-  });
+  }
 
   const rooms: any[] = Array.isArray(payload?.rooms) ? payload.rooms : [];
-  let nextId = 2 + uniqueHotelUrls.length;
   for (const room of rooms) {
     const roomId = typeof room?.room_id === 'number' ? room.room_id : undefined;
-    const roomName = room?.room_name ?? 'Phòng';
-    const roomImages: any[] = Array.isArray(room?.images) ? room.images : [];
+    const roomName = room?.room_name ?? 'Room';
+    const roomImages: Array<{ image_id?: number; id?: number; url?: string }> =
+      Array.isArray(room?.images)
+      ? room.images
+      : [];
 
     for (let i = 0; i < roomImages.length; i++) {
       const url = roomImages[i]?.url;
-      if (typeof url !== 'string' || !url || seenUrls.has(url)) continue;
+      if (typeof url !== 'string' || !url) continue;
+      if (seenUrls.has(url)) continue;
       seenUrls.add(url);
+
+      const backendImageId =
+        typeof roomImages[i]?.image_id === 'number'
+          ? roomImages[i].image_id
+          : typeof roomImages[i]?.id === 'number'
+            ? roomImages[i].id
+            : undefined;
+
+      if (typeof backendImageId === 'number') {
+        if (seenImageIds.has(backendImageId)) continue;
+        seenImageIds.add(backendImageId);
+      }
+
       images.push({
-        id: nextId++,
+        id: typeof backendImageId === 'number' ? backendImageId : nextSyntheticId--,
+        backendImageId,
         url,
         type: 'room',
-        caption: `${roomName} - Ảnh ${i + 1}`,
-        isThumbnail: false,
+        caption: `${roomName} - Image ${i + 1}`,
+        isThumbnail: thumbnailUrl ? url === thumbnailUrl : false,
         roomId,
         uploadedAt: today(),
       });
@@ -156,134 +196,128 @@ const buildImagesFromAllImagesResponse = (payload: any): HotelImage[] => {
 };
 
 export default function HotelManagerImagesPage() {
+  const [myHotels, setMyHotels] = useState<any[]>([]);
   const [images, setImages] = useState<HotelImage[]>([]);
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedImage, setSelectedImage] = useState<HotelImage | null>(null);
-  const [showUploadModal, setShowUploadModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loadingHotels, setLoadingHotels] = useState(true);
+  const [loadingImages, setLoadingImages] = useState(false);
+  const [hotelsError, setHotelsError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [hotelId, setHotelId] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [uploadForm, setUploadForm] = useState({
-    type: 'hotel' as HotelImage['type'],
-    caption: '',
-    files: [] as File[],
-  });
+  const getHotelId = (hotel: any) =>
+    hotel?.hotel_id ?? hotel?.id ?? hotel?.hotelId ?? hotel?.hotelID;
+  const getHotelName = (hotel: any) =>
+    hotel?.hotel_name ?? hotel?.name ?? hotel?.hotelName ?? hotel?.hotel_title ?? null;
 
   useEffect(() => {
-    const loadHotelAndImages = async () => {
+    const loadHotels = async () => {
       try {
-        setLoadError(null);
-        // Get hotel ID first
-        const myHotels = await hotelManagerApi.getMyHotels();
-        if (myHotels && myHotels.length > 0) {
-          const currentHotelId = String((myHotels[0] as any).hotel_id || (myHotels[0] as any).id);
-          setHotelId(currentHotelId);
+        setHotelsError(null);
+        const hotels = await hotelManagerApi.getMyHotels();
+        setMyHotels(Array.isArray(hotels) ? hotels : []);
 
-          const allImagesPayload = await hotelManagerApi.getAllImages(currentHotelId);
-          setImages(buildImagesFromAllImagesResponse(allImagesPayload));
+        if (Array.isArray(hotels) && hotels.length === 1) {
+          const onlyHotelId = String((hotels[0] as any).hotel_id || (hotels[0] as any).id);
+          setHotelId(onlyHotelId);
         } else {
-          console.warn('No hotels found');
-          setImages([]);
-          setLoadError('Không tìm thấy khách sạn của bạn (getMyHotels trả về rỗng).');
+          setHotelId(null);
         }
       } catch (error) {
-        console.error('Error loading hotel:', error);
-        setImages([]);
-        setLoadError(error instanceof Error ? error.message : 'Không load được ảnh/khách sạn.');
+        console.error('Error loading hotels:', error);
+        setMyHotels([]);
+        setHotelId(null);
+        setHotelsError(
+          error instanceof Error
+            ? error.message
+            : 'Không thể tải danh sách khách sạn.'
+        );
       } finally {
-        setLoading(false);
+        setLoadingHotels(false);
       }
     };
-    loadHotelAndImages();
+
+    loadHotels();
   }, []);
 
-  const saveImages = async (newImages: HotelImage[]) => {
-    setImages(newImages);
-    // Images will be saved via API calls when adding/deleting
-  };
+  useEffect(() => {
+    const loadImages = async () => {
+      if (!hotelId) {
+        setImages([]);
+        setLoadError(null);
+        setSelectedImage(null);
+        return;
+      }
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  };
+      try {
+        setLoadError(null);
+        setLoadingImages(true);
+        setSelectedImage(null);
+        console.log('[HotelManagerImages] loading images for hotelId:', hotelId);
+        const allImagesPayload = await hotelManagerApi.getAllImages(hotelId);
+        console.log('[HotelManagerImages] getAllImages response:', allImagesPayload);
+        setImages(buildImagesFromAllImagesResponse(allImagesPayload));
+      } catch (error) {
+        console.error('Error loading images:', error);
+        setImages([]);
+        setLoadError(error instanceof Error ? error.message : 'Không thể tải hình ảnh.');
+      } finally {
+        setLoadingImages(false);
+      }
+    };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
+    loadImages();
+  }, [hotelId]);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFiles(Array.from(e.dataTransfer.files));
-    }
-  };
 
-  const handleFiles = (files: File[]) => {
-    const imageFiles = files.filter((f) => f.type.startsWith('image/'));
-    setUploadForm((prev) => ({
-      ...prev,
-      files: [...prev.files, ...imageFiles],
-    }));
-  };
-
-  const handleUpload = async () => {
-    if (uploadForm.files.length === 0) return;
-
-    setUploading(true);
-
-    // Simulate upload delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    const newImages: HotelImage[] = uploadForm.files.map((file, index) => ({
-      id: Date.now() + index,
-      url: URL.createObjectURL(file),
-      type: uploadForm.type,
-      caption: uploadForm.caption || file.name.replace(/\.[^/.]+$/, ''),
-      isThumbnail: false,
-      uploadedAt: new Date().toISOString().split('T')[0],
-    }));
-
-    saveImages([...images, ...newImages]);
-    setUploadForm({ type: 'hotel', caption: '', files: [] });
-    setShowUploadModal(false);
-    setUploading(false);
-  };
-
-  const handleSetThumbnail = async (id: number) => {
+  const handleSetThumbnail = async (image: HotelImage) => {
     if (!hotelId) {
       console.warn('Missing hotelId, cannot set thumbnail');
       return;
     }
+
+    const imageId = image.backendImageId ?? image.id;
+    if (typeof imageId !== 'number' || !Number.isFinite(imageId) || imageId < 0) {
+      console.warn('Missing backend image id, cannot set thumbnail', image);
+      alert('Không thể đặt ảnh đại diện: ảnh này không có image_id.');
+      return;
+    }
     try {
-      await hotelManagerApi.setThumbnail(hotelId, id);
+      await hotelManagerApi.setThumbnail(hotelId, imageId);
       const updated = images.map((img) => ({
         ...img,
-        isThumbnail: img.id === id,
+        isThumbnail: (img.backendImageId ?? img.id) === imageId,
       }));
       setImages(updated);
+      setSelectedImage((prev) =>
+        prev
+          ? { ...prev, isThumbnail: (prev.backendImageId ?? prev.id) === imageId }
+          : prev
+      );
     } catch (error) {
       console.error('Error setting thumbnail:', error);
     }
   };
 
-  const handleDeleteImage = async (id: number) => {
+  const handleDeleteImage = async (image: HotelImage) => {
     if (!hotelId) {
       console.warn('Missing hotelId, cannot delete image');
       return;
     }
+
+    const imageId = image.backendImageId ?? image.id;
+    if (typeof imageId !== 'number' || !Number.isFinite(imageId) || imageId < 0) {
+      console.warn('Missing backend image id, cannot delete image', image);
+      alert("Không thể xóa ảnh: ảnh này không có image_id.");
+      return;
+    }
+
     if (confirm('Bạn có chắc muốn xóa ảnh này?')) {
       try {
-        await hotelManagerApi.deleteImage(hotelId, id);
-        setImages(images.filter((img) => img.id !== id));
+        await hotelManagerApi.deleteImage(hotelId, imageId);
+        setImages(images.filter((img) => (img.backendImageId ?? img.id) !== imageId));
         setSelectedImage(null);
       } catch (error) {
         console.error('Error deleting image:', error);
@@ -312,15 +346,13 @@ export default function HotelManagerImagesPage() {
     return imageTypes.find((t) => t.id === type)?.name || type;
   };
 
-  const removeUploadFile = (index: number) => {
-    setUploadForm((prev) => ({
-      ...prev,
-      files: prev.files.filter((_, i) => i !== index),
-    }));
-  };
-
   return (
     <div className="space-y-6">
+      {hotelsError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {hotelsError}
+        </div>
+      )}
       {loadError && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {loadError}
@@ -334,26 +366,39 @@ export default function HotelManagerImagesPage() {
             Tải lên và quản lý hình ảnh khách sạn của bạn
           </p>
         </div>
-        <button
-          onClick={() => setShowUploadModal(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <label className="text-sm font-medium text-gray-700">Chon khach san</label>
+          <select
+            value={hotelId ?? ''}
+            onChange={(e) => {
+              const nextHotelId = e.target.value || null;
+              setSelectedType('all');
+              setHotelId(nextHotelId);
+            }}
+            disabled={loadingHotels || myHotels.length === 0}
+            className="min-w-[240px] px-3 py-2 border rounded-lg bg-white disabled:bg-gray-100"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
-          Tải ảnh lên
-        </button>
+            <option value="">
+              {loadingHotels ? 'Dang tai...' : '-- Chon --'}
+            </option>
+            {myHotels.map((h) => {
+              const rawId = getHotelId(h);
+              if (!rawId) return null;
+              const id = String(rawId);
+              const name = getHotelName(h) || `Hotel ${id}`;
+              return (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              );
+            })}
+          </select>
+        </div>
       </div>
+
+      {loadingImages && hotelId && (
+        <div className="text-sm text-gray-600">Dang tai anh...</div>
+      )}
 
       {/* Thumbnail Preview */}
       {thumbnailImage && (
@@ -443,15 +488,7 @@ export default function HotelManagerImagesPage() {
               <h3 className="text-lg font-medium text-gray-900">
                 Chưa có hình ảnh nào
               </h3>
-              <p className="text-gray-500 mt-1">
-                Tải lên hình ảnh để hiển thị tại đây
-              </p>
-              <button
-                onClick={() => setShowUploadModal(true)}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Tải ảnh lên
-              </button>
+              \1{hotelId ? 'Khong co anh nao cho khach san nay.' : 'Hay chon khach san de xem anh.'}\2
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -494,7 +531,7 @@ export default function HotelManagerImagesPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleSetThumbnail(image.id);
+                          handleSetThumbnail(image);
                         }}
                         className="p-1.5 bg-white rounded-full shadow hover:bg-gray-100"
                         title="Đặt làm ảnh đại diện"
@@ -505,7 +542,7 @@ export default function HotelManagerImagesPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteImage(image.id);
+                        handleDeleteImage(image);
                       }}
                       className="p-1.5 bg-white rounded-full shadow hover:bg-red-100 text-red-600"
                       title="Xóa ảnh"
@@ -518,219 +555,7 @@ export default function HotelManagerImagesPage() {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Upload Modal */}
-      {showUploadModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b sticky top-0 bg-white">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">
-                  Tải hình ảnh lên
-                </h2>
-                <button
-                  onClick={() => {
-                    setShowUploadModal(false);
-                    setUploadForm({ type: 'hotel', caption: '', files: [] });
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-6">
-              {/* Drop Zone */}
-              <div
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-                  dragActive
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
-                }`}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(e) =>
-                    e.target.files && handleFiles(Array.from(e.target.files))
-                  }
-                  className="hidden"
-                />
-                <div className="text-5xl mb-4">📁</div>
-                <p className="text-lg font-medium text-gray-700">
-                  Kéo thả ảnh vào đây hoặc click để chọn
-                </p>
-                <p className="text-sm text-gray-500 mt-2">
-                  Hỗ trợ: JPG, PNG, GIF (tối đa 10MB mỗi ảnh)
-                </p>
-              </div>
-
-              {/* Preview Selected Files */}
-              {uploadForm.files.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-3">
-                    Đã chọn {uploadForm.files.length} ảnh
-                  </h4>
-                  <div className="grid grid-cols-4 gap-3">
-                    {uploadForm.files.map((file, index) => (
-                      <div
-                        key={index}
-                        className="relative aspect-square rounded-lg overflow-hidden"
-                      >
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={file.name}
-                          className="w-full h-full object-cover"
-                        />
-                        <button
-                          onClick={() => removeUploadFile(index)}
-                          className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Upload Options */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Loại ảnh
-                  </label>
-                  <select
-                    value={uploadForm.type}
-                    onChange={(e) =>
-                      setUploadForm({
-                        ...uploadForm,
-                        type: e.target.value as HotelImage['type'],
-                      })
-                    }
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                  >
-                    {imageTypes.map((type) => (
-                      <option key={type.id} value={type.id}>
-                        {type.icon} {type.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Mô tả (tùy chọn)
-                  </label>
-                  <input
-                    type="text"
-                    value={uploadForm.caption}
-                    onChange={(e) =>
-                      setUploadForm({ ...uploadForm, caption: e.target.value })
-                    }
-                    placeholder="Ví dụ: Phòng Deluxe view biển"
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowUploadModal(false);
-                  setUploadForm({ type: 'hotel', caption: '', files: [] });
-                }}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-100"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleUpload}
-                disabled={uploadForm.files.length === 0 || uploading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
-              >
-                {uploading ? (
-                  <>
-                    <svg
-                      className="animate-spin w-5 h-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Đang tải lên...
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                      />
-                    </svg>
-                    Tải lên {uploadForm.files.length} ảnh
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Image Detail Modal */}
+      </div>      {/* Image Detail Modal */}
       {selectedImage && (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
           <div className="relative max-w-5xl w-full">
@@ -791,14 +616,14 @@ export default function HotelManagerImagesPage() {
                     </button>
                     {!selectedImage.isThumbnail && (
                       <button
-                        onClick={() => handleSetThumbnail(selectedImage.id)}
+                        onClick={() => handleSetThumbnail(selectedImage)}
                         className="px-3 py-2 border border-green-500 text-green-600 rounded-lg hover:bg-green-50 flex items-center gap-2"
                       >
                         ⭐ Đặt làm ảnh đại diện
                       </button>
                     )}
                     <button
-                      onClick={() => handleDeleteImage(selectedImage.id)}
+                      onClick={() => handleDeleteImage(selectedImage)}
                       className="px-3 py-2 border border-red-500 text-red-600 rounded-lg hover:bg-red-50 flex items-center gap-2"
                     >
                       🗑️ Xóa

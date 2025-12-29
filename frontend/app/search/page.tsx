@@ -346,7 +346,8 @@ export default function SearchPage() {
                               {(() => {
                                 // Calculate lowest price from basePrice or contact
                                 const price = hotel.basePrice;
-                                const discount = hotel.discount || 0;
+                                const discountRateRaw = hotel.discount ?? 0;
+                                const discountRate = Math.max(0, Math.min(1, discountRateRaw));
 
                                 if (price) {
                                   return (
@@ -354,23 +355,23 @@ export default function SearchPage() {
                                       <div className="text-sm text-gray-600 mb-1">
                                         Giá chỉ từ
                                       </div>
-                                      {discount > 0 && (
+                                      {discountRate > 0 && (
                                         <div className="text-sm text-gray-400 line-through">
                                           {price.toLocaleString('vi-VN')}₫
                                         </div>
                                       )}
                                       <div className="flex items-baseline justify-end gap-2">
                                         <span className="text-2xl font-bold text-[#0071c2]">
-                                          {discount > 0
-                                            ? Math.round(price * (100 - discount) / 100).toLocaleString('vi-VN')
+                                          {discountRate > 0
+                                            ? Math.round(price * (1 - discountRate)).toLocaleString('vi-VN')
                                             : price.toLocaleString('vi-VN')
                                           }₫
                                         </span>
                                         <span className="text-xs text-gray-600">/ đêm</span>
                                       </div>
-                                      {discount > 0 && (
+                                      {discountRate > 0 && (
                                         <div className="inline-block bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded mt-1">
-                                          -{discount}% OFF
+                                          -{Math.round(discountRate * 100)}% OFF
                                         </div>
                                       )}
                                     </>
