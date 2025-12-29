@@ -641,7 +641,7 @@ export default function HotelDetailPage({
                             {/* Discount Badge */}
                             {roomType.price.discount > 0 && (
                               <div className="inline-block bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full mt-2">
-                                -{roomType.price.discount}% OFF
+                                -{Math.round(Math.min(1, Math.max(0, roomType.price.discount)) * 100)}% OFF
                               </div>
                             )}
 

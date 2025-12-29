@@ -19,6 +19,15 @@ type PricingFormData = {
   end_date: string;
 };
 
+const EMPTY_PRICING_FORM: PricingFormData = {
+  basic_price: '',
+  special_price: '',
+  discount: '',
+  event: '',
+  start_date: '',
+  end_date: '',
+};
+
 const getBackendRoomPrice = (roomType: unknown): {
   basic_price?: number | string | null;
   special_price?: number | string | null;
@@ -54,6 +63,20 @@ const toNumberOrNull = (value: unknown): number | null => {
   return null;
 };
 
+const roundPrice = (value: number): number => Math.round(value);
+
+const computeSpecialPriceFromDiscount = (
+  basicPrice: string | undefined,
+  discount: string | undefined
+): string | null => {
+  const basic = toNumberOrNull(basicPrice);
+  const rate = toNumberOrNull(discount);
+  if (basic === null || rate === null) return null;
+  const computed = basic * (1 - rate);
+  if (!Number.isFinite(computed)) return null;
+  return String(roundPrice(computed));
+};
+
 const getDisplayPrice = (roomType: unknown): number => {
   const price = getBackendRoomPrice(roomType);
   const special = toNumberOrNull(price.special_price);
@@ -76,9 +99,6 @@ export default function HotelPricingPage() {
 
   const [editingTypeId, setEditingTypeId] = useState<number | null>(null);
   const [savingTypeId, setSavingTypeId] = useState<number | null>(null);
-  const [previewTypeId, setPreviewTypeId] = useState<number | null>(null);
-  const [previewData, setPreviewData] = useState<any>(null);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [formData, setFormData] = useState<Record<number, PricingFormData>>({});
 
   const selectedHotelName = useMemo(() => {
@@ -158,13 +178,17 @@ export default function HotelPricingPage() {
     field: keyof PricingFormData,
     value: string
   ) => {
-    setFormData((prev) => ({
-      ...prev,
-      [typeId]: {
-        ...prev[typeId],
-        [field]: value,
-      },
-    }));
+    setFormData((prev) => {
+      const previous = prev[typeId] ?? EMPTY_PRICING_FORM;
+      const next: PricingFormData = { ...previous, [field]: value };
+
+      if (field === 'discount' || field === 'basic_price') {
+        const computed = computeSpecialPriceFromDiscount(next.basic_price, next.discount);
+        if (computed !== null) next.special_price = computed;
+      }
+
+      return { ...prev, [typeId]: next };
+    });
   };
 
   const handleSave = async (typeId: number) => {
@@ -177,7 +201,9 @@ export default function HotelPricingPage() {
         return;
       }
 
-      const specialPrice = data.special_price.trim() === '' ? null : Number(data.special_price);
+      const basicPriceNumber = Number(data.basic_price);
+
+      let specialPrice = data.special_price.trim() === '' ? null : Number(data.special_price);
       if (specialPrice !== null && Number.isNaN(specialPrice)) {
         alert('Giá đặc biệt không hợp lệ');
         setSavingTypeId(null);
@@ -191,14 +217,27 @@ export default function HotelPricingPage() {
         return;
       }
 
+      if (discount !== null) {
+        const computedSpecial = roundPrice(basicPriceNumber * (1 - discount));
+        if (Number.isFinite(computedSpecial)) {
+          specialPrice = computedSpecial;
+          setFormData((prev) => ({
+            ...prev,
+            [typeId]: {
+              ...prev[typeId],
+              special_price: String(computedSpecial),
+            },
+          }));
+        }
+      }
+
       const priceData: Record<string, unknown> = {
-        type_id: typeId,
-        basic_price: Number(data.basic_price),
-        special_price: specialPrice,
-        discount: discount,
-        event: data.event.trim() === '' ? null : data.event.trim(),
-        start_date: data.start_date || null,
-        end_date: data.end_date || null,
+        basic_price: basicPriceNumber,
+        ...(specialPrice === null ? {} : { special_price: specialPrice }),
+        ...(discount === null ? {} : { discount }),
+        ...(data.event.trim() === '' ? {} : { event: data.event.trim() }),
+        ...(data.start_date ? { start_date: data.start_date } : {}),
+        ...(data.end_date ? { end_date: data.end_date } : {}),
       };
 
       await pricingEngineApi.updatePricing(typeId, priceData);
@@ -221,7 +260,6 @@ export default function HotelPricingPage() {
   };
 
   const handlePreviewPrice = async (typeId: number) => {
-    setPreviewTypeId(typeId);
     try {
       const checkInDate = new Date().toISOString().split('T')[0];
       const checkOutDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 3 days later
@@ -233,13 +271,10 @@ export default function HotelPricingPage() {
         guests: 2
       });
 
-      setPreviewData(result);
-      setShowPreviewModal(true);
     } catch (error) {
       console.error('Error previewing price:', error);
       alert('Lỗi khi tính giá: ' + (error as Error).message);
     } finally {
-      setPreviewTypeId(null);
     }
   };
 
@@ -327,6 +362,7 @@ export default function HotelPricingPage() {
                   </p>
                 </div>
                 <div className="flex space-x-2">
+                  {/*
                   <Button
                     variant="outline"
                     size="sm"
@@ -335,6 +371,7 @@ export default function HotelPricingPage() {
                   >
                     🧮 Preview
                   </Button>
+                  */}
                   {!isEditing ? (
                     <Button
                       onClick={() => setEditingTypeId(roomType.type_id)}
@@ -453,6 +490,7 @@ export default function HotelPricingPage() {
       </div>
 
       {/* Price Preview Modal */}
+      {/*
       {showPreviewModal && previewData && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
@@ -522,6 +560,7 @@ export default function HotelPricingPage() {
           </div>
         </div>
       )}
+      */}
     </div>
   );
 }

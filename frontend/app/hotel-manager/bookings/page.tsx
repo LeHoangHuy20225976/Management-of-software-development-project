@@ -27,6 +27,7 @@ export default function HotelBookingsPage() {
   const loadBookings = async () => {
     try {
       const data = await bookingsApi.getAll();
+      console.log('data', data);
       // Backend returns { bookings: [...], total, limit, offset }
       const bookingsArray = data?.bookings || data || [];
       setBookings(Array.isArray(bookingsArray) ? bookingsArray : []);

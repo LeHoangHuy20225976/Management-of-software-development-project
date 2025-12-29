@@ -80,11 +80,12 @@ router.put(
   validate([hotelProfileValidation.updateHotel]),
   hotelProfileController.updateHotelProfile
 );
+// DELETE /delete-hotel/:hotel_id - Hard delete hotel (xóa hẳn)
 router.delete(
   "/delete-hotel/:hotel_id",
   middlewares([authMiddleware, rbacMiddleware(["hotel:update"])]),
   validate([hotelProfileValidation.deleteHotel]),
-  hotelProfileController.disableHotel
+  hotelProfileController.disableHotel // Note: Function name kept for compatibility
 );
 router.post(
   "/add-facility/:hotel_id",

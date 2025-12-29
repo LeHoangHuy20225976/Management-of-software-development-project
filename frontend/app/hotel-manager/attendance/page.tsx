@@ -1,215 +1,268 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
+import { useState, useRef } from 'react';
+import { attendanceApi } from '@/lib/api/services';
+import { Camera, Upload, CheckCircle, XCircle } from 'lucide-react';
 import { Card } from '@/components/common/Card';
-import { HotelLogo } from '@/components/hotel/HotelLogo';
+import { Button } from '@/components/common/Button';
 
 export default function AttendancePage() {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [error, setError] = useState<string>('');
-  const [successMessage, setSuccessMessage] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [userInfo, setUserInfo] = useState<{ userId: number; confidence: number; name?: string } | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [eventType, setEventType] = useState<'CHECK_IN' | 'CHECK_OUT'>('CHECK_IN');
+  const [location, setLocation] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [statusMessage, setStatusMessage] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Start camera on mount
-  useEffect(() => {
-    let mediaStream: MediaStream | null = null;
-
-    const startCamera = async () => {
-      try {
-        setError('');
-        mediaStream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } 
-        });
-        setStream(mediaStream);
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-        }
-      } catch (err) {
-        console.error("Error accessing camera:", err);
-        setError('Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập.');
-      }
-    };
-
-    startCamera();
-
-    return () => {
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, []);
-
-  const captureImage = (): string | null => {
-    if (!videoRef.current || !canvasRef.current) return null;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-
-    if (!context) return null;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    return canvas.toDataURL('image/jpeg', 0.9);
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setUploadStatus('idle');
+    }
   };
 
-  const handleAttendance = async (eventType: 'CHECK_IN' | 'CHECK_OUT') => {
-    const imageBase64 = captureImage();
-    if (!imageBase64) {
-      setError('Không thể chụp ảnh. Vui lòng thử lại.');
+  const handleUpload = async () => {
+    if (!selectedImage) {
+      setUploadStatus('error');
+      setStatusMessage('Please select an image first');
       return;
     }
 
-    setIsLoading(true);
-    setError('');
-    setSuccessMessage('');
-    setUserInfo(null);
+    setIsUploading(true);
+    setUploadStatus('idle');
 
     try {
-      const response = await fetch('http://localhost:8001/cv/face/recognize', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image_base64: imageBase64,
-          event_type: eventType,
-          device_id: 'web-app-attendance',
-          location: 'Front Desk' // You might want to make this dynamic or configurable
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || 'Nhận diện thất bại');
+      const formData = new FormData();
+      formData.append('image', selectedImage);
+      formData.append('event_type', eventType);
+      if (location) {
+        formData.append('location', location);
       }
 
-      if (data.success) {
-        setSuccessMessage(`Thành công! ${eventType === 'CHECK_IN' ? 'Check-in' : 'Check-out'} đã được ghi nhận.`);
-        setUserInfo({
-          userId: data.user_id,
-          confidence: data.confidence
-        });
-        
-        // Clear success message after 5 seconds
-        setTimeout(() => {
-          setSuccessMessage('');
-          setUserInfo(null);
-        }, 5000);
-      } else {
-        setError(data.message || 'Không tìm thấy khuôn mặt phù hợp.');
-      }
+      await attendanceApi.uploadAttendance(formData);
 
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Lỗi kết nối server.';
-      setError(msg);
+      setUploadStatus('success');
+      setStatusMessage(`${eventType === 'CHECK_IN' ? 'Check-in' : 'Check-out'} recorded successfully!`);
+
+      // Reset form
+      setSelectedImage(null);
+      setPreview(null);
+      setLocation('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error: any) {
+      setUploadStatus('error');
+      setStatusMessage(error.response?.data?.message || 'Failed to upload attendance');
     } finally {
-      setIsLoading(false);
+      setIsUploading(false);
     }
   };
 
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
-    <>
-      <Header />
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="container mx-auto px-4">
-          <div className="max-w-2xl mx-auto">
-            <div className="text-center mb-8">
-              <div className="flex justify-center mb-4">
-                <HotelLogo size="lg" />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Staff Attendance</h1>
+        <p className="text-gray-600 mt-2">Upload your photo for check-in or check-out</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Upload Form */}
+        <Card>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Upload Attendance Photo</h2>
+
+          {/* Event Type Selection */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Event Type
+            </label>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setEventType('CHECK_IN')}
+                className={`flex-1 py-3 px-4 rounded-lg border-2 font-medium transition ${
+                  eventType === 'CHECK_IN'
+                    ? 'border-green-500 bg-green-50 text-green-700'
+                    : 'border-gray-200 text-gray-700 hover:border-green-300'
+                }`}
+              >
+                Check In
+              </button>
+              <button
+                onClick={() => setEventType('CHECK_OUT')}
+                className={`flex-1 py-3 px-4 rounded-lg border-2 font-medium transition ${
+                  eventType === 'CHECK_OUT'
+                    ? 'border-red-500 bg-red-50 text-red-700'
+                    : 'border-gray-200 text-gray-700 hover:border-red-300'
+                }`}
+              >
+                Check Out
+              </button>
+            </div>
+          </div>
+
+          {/* Location Input */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Location (Optional)
+            </label>
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="e.g., Front Desk, Staff Room"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Image Upload */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Photo
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+
+            {!preview ? (
+              <button
+                onClick={triggerFileInput}
+                className="w-full h-64 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 transition flex flex-col items-center justify-center text-gray-500 hover:text-blue-500"
+              >
+                <Camera className="w-16 h-16 mb-2" />
+                <p className="font-medium">Click to upload photo</p>
+                <p className="text-sm">or drag and drop</p>
+              </button>
+            ) : (
+              <div className="relative">
+                <img
+                  src={preview}
+                  alt="Preview"
+                  className="w-full h-64 object-cover rounded-lg"
+                />
+                <button
+                  onClick={() => {
+                    setPreview(null);
+                    setSelectedImage(null);
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                  }}
+                  className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Check-in / Check-out Nhân viên
-              </h1>
-              <p className="text-gray-600">
-                Sử dụng nhận diện khuôn mặt để chấm công
-              </p>
+            )}
+          </div>
+
+          {/* Status Message */}
+          {uploadStatus !== 'idle' && (
+            <div
+              className={`mb-4 p-4 rounded-lg flex items-center gap-2 ${
+                uploadStatus === 'success'
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
+              }`}
+            >
+              {uploadStatus === 'success' ? (
+                <CheckCircle className="w-5 h-5" />
+              ) : (
+                <XCircle className="w-5 h-5" />
+              )}
+              <p>{statusMessage}</p>
+            </div>
+          )}
+
+          {/* Upload Button */}
+          <Button
+            onClick={handleUpload}
+            disabled={!selectedImage || isUploading}
+            className="w-full"
+          >
+            {isUploading ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Uploading...
+              </span>
+            ) : (
+              <span className="flex items-center justify-center gap-2">
+                <Upload className="w-5 h-5" />
+                Submit Attendance
+              </span>
+            )}
+          </Button>
+        </Card>
+
+        {/* Instructions */}
+        <Card>
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Instructions</h2>
+          <div className="space-y-4 text-gray-700">
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
+                1
+              </div>
+              <div>
+                <h3 className="font-semibold mb-1">Select Event Type</h3>
+                <p className="text-sm">Choose whether you are checking in or checking out</p>
+              </div>
             </div>
 
-            <Card className="p-6">
-              {/* Camera View */}
-              <div className="relative aspect-video bg-black rounded-lg overflow-hidden mb-6 shadow-inner">
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover transform scale-x-[-1]" // Mirror effect
-                />
-                {!stream && !error && (
-                  <div className="absolute inset-0 flex items-center justify-center text-white/70">
-                    <p>Đang khởi động camera...</p>
-                  </div>
-                )}
-                <canvas ref={canvasRef} className="hidden" />
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
+                2
               </div>
-
-              {/* Status Messages */}
-              {error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg animate-fade-in">
-                  <p className="text-red-600 text-center font-medium">{error}</p>
-                </div>
-              )}
-
-              {successMessage && (
-                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg animate-fade-in">
-                  <div className="text-center">
-                    <p className="text-green-700 font-bold text-lg mb-1">{successMessage}</p>
-                    {userInfo && (
-                      <p className="text-green-600 text-sm">
-                        User ID: {userInfo.userId} • Độ chính xác: {(userInfo.confidence * 100).toFixed(1)}%
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={() => handleAttendance('CHECK_IN')}
-                  disabled={isLoading || !stream}
-                  className="flex flex-col items-center justify-center p-6 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-1 active:translate-y-0"
-                >
-                  <span className="text-3xl mb-2">☀️</span>
-                  <span className="font-bold text-lg">Check In</span>
-                  <span className="text-xs opacity-90 mt-1">Bắt đầu ca làm việc</span>
-                </button>
-
-                <button
-                  onClick={() => handleAttendance('CHECK_OUT')}
-                  disabled={isLoading || !stream}
-                  className="flex flex-col items-center justify-center p-6 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-xl transition-all shadow-md hover:shadow-lg transform hover:-translate-y-1 active:translate-y-0"
-                >
-                  <span className="text-3xl mb-2">🌙</span>
-                  <span className="font-bold text-lg">Check Out</span>
-                  <span className="text-xs opacity-90 mt-1">Kết thúc ca làm việc</span>
-                </button>
+              <div>
+                <h3 className="font-semibold mb-1">Take a Clear Photo</h3>
+                <p className="text-sm">Make sure your face is clearly visible and well-lit</p>
               </div>
+            </div>
 
-              {/* Instructions */}
-              <div className="mt-8 text-center text-sm text-gray-500">
-                <p>Giữ khuôn mặt ở chính giữa khung hình và đảm bảo đủ ánh sáng.</p>
-                <div className="mt-4">
-                  <Link href="/hotel-manager/login" className="text-[#0071c2] hover:underline">
-                    &larr; Quay lại trang đăng nhập quản lý
-                  </Link>
-                </div>
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
+                3
               </div>
-            </Card>
+              <div>
+                <h3 className="font-semibold mb-1">Add Location (Optional)</h3>
+                <p className="text-sm">Specify where you are checking in/out from</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
+                4
+              </div>
+              <div>
+                <h3 className="font-semibold mb-1">Submit</h3>
+                <p className="text-sm">Click submit to record your attendance</p>
+              </div>
+            </div>
           </div>
-        </div>
+
+          <div className="mt-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+            <h4 className="font-semibold text-yellow-800 mb-2">Tips for best results:</h4>
+            <ul className="text-sm text-yellow-700 space-y-1">
+              <li>• Face the camera directly</li>
+              <li>• Ensure good lighting</li>
+              <li>• Remove sunglasses and face masks</li>
+              <li>• Keep a neutral expression</li>
+            </ul>
+          </div>
+        </Card>
       </div>
-      <Footer />
-    </>
+    </div>
   );
 }

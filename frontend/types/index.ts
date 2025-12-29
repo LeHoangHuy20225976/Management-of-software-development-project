@@ -28,6 +28,7 @@ export interface Hotel {
   district?: string;
   images?: string[];
   basePrice?: number;
+  discount?: number;
   amenities?: string[];
   facilities?: Array<{
     facility_id: number;

@@ -1,0 +1,524 @@
+{
+  "metadata": {
+    "project_name": "Hotel Management System - VietStay",
+    "analysis_date": "2025-12-29",
+    "total_tasks": 38,
+    "team_breakdown": {
+      "frontend_developers": 5,
+      "backend_developers": 4,
+      "ai_developers": 4
+    }
+  },
+  "summary": {
+    "incomplete_features": 24,
+    "api_endpoints_missing": 8,
+    "database_queries_needed": 5,
+    "security_concerns": 3,
+    "performance_improvements": 6
+  },
+  "frontend_tasks": [
+    {
+      "id": "FE-001",
+      "title": "Implement PDF Download Feature",
+      "priority": "HIGH",
+      "file_path": "/frontend/app/booking/confirmation/page.tsx",
+      "line_number": 59,
+      "description": "Add PDF invoice download functionality for booking confirmations",
+      "acceptance_criteria": [
+        "Generate PDF from booking confirmation data",
+        "Include invoice header, guest info, booking details, and pricing breakdown",
+        "Support both browser print and PDF download options",
+        "Test with multiple booking scenarios"
+      ],
+      "estimated_effort": "8 hours",
+      "dependencies": [],
+      "tags": ["PDF", "Documents", "Booking"]
+    },
+    {
+      "id": "FE-002",
+      "title": "Complete Room Edit API Integration",
+      "priority": "HIGH",
+      "file_path": "/frontend/app/hotel/rooms/[id]/edit/page.tsx",
+      "line_number": 83,
+      "description": "Implement API call to update room information (type, max guests, description, quantity, availability)",
+      "acceptance_criteria": [
+        "Call backend API to update room details",
+        "Validate form data before submission",
+        "Show success/error messages to user",
+        "Redirect to rooms list on success",
+        "Handle network errors gracefully"
+      ],
+      "estimated_effort": "4 hours",
+      "dependencies": ["Backend API for room updates"],
+      "tags": ["API Integration", "Hotel Manager", "Room Management"]
+    },
+    {
+      "id": "FE-003",
+      "title": "Implement Destination Reviews Endpoint",
+      "priority": "MEDIUM",
+      "file_path": "/frontend/app/tourism/[destination_id]/page.tsx",
+      "line_number": 47,
+      "description": "Backend needs to implement GET /destinations/:id/reviews endpoint for loading destination reviews",
+      "acceptance_criteria": [
+        "Fetch reviews from backend API",
+        "Display review list with ratings, comments, and user info",
+        "Allow users to submit new reviews for destinations",
+        "Show review count in destination header",
+        "Implement pagination for large review lists"
+      ],
+      "estimated_effort": "6 hours",
+      "dependencies": ["Backend API endpoint - GET /destinations/:id/reviews"],
+      "tags": ["Reviews", "Tourism", "API"]
+    },
+    {
+      "id": "FE-004",
+      "title": "Add User Reviews Endpoint Integration",
+      "priority": "MEDIUM",
+      "file_path": "/frontend/app/user/dashboard/profile/page.tsx",
+      "line_number": 69,
+      "description": "Need user reviews endpoint from backend to display review count in profile",
+      "acceptance_criteria": [
+        "Create backend endpoint GET /users/:id/reviews",
+        "Display user's review count in profile stats",
+        "Show list of user's reviews in profile section",
+        "Calculate review statistics (average rating, total reviews)"
+      ],
+      "estimated_effort": "5 hours",
+      "dependencies": ["Backend API endpoint - GET /users/:id/reviews"],
+      "tags": ["User Profile", "Reviews", "Statistics"]
+    },
+    {
+      "id": "FE-005",
+      "title": "Configure Google Maps API Key",
+      "priority": "MEDIUM",
+      "file_path": "/frontend/components/search/ResultsMap.tsx",
+      "line_number": 12,
+      "description": "User must provide their own Google Maps API key in .env.local file",
+      "acceptance_criteria": [
+        "Document API key setup process",
+        "Create .env.local.example file",
+        "Add validation for missing API key",
+        "Show helpful error message when API key is missing",
+        "Test map rendering with valid API key"
+      ],
+      "estimated_effort": "3 hours",
+      "dependencies": [],
+      "tags": ["Configuration", "Maps", "Environment"]
+    },
+    {
+      "id": "FE-006",
+      "title": "Remove Hardcoded Hotel IDs",
+      "priority": "HIGH",
+      "file_path": "/frontend/app/hotel/dashboard/profile/page.tsx",
+      "line_number": 31,
+      "description": "Replace hardcoded hotelId 'h1' with dynamic value from auth context or URL params",
+      "acceptance_criteria": [
+        "Remove all hardcoded hotel IDs from hotel dashboard",
+        "Get hotel ID from authentication context",
+        "Support multiple hotels per manager account if needed",
+        "Test with different hotel accounts",
+        "Apply same fix to /hotel-manager/dashboard/profile/page.tsx"
+      ],
+      "estimated_effort": "4 hours",
+      "dependencies": ["Auth context with hotel information"],
+      "tags": ["Auth", "Hotel Manager", "Hardcoding"]
+    },
+    {
+      "id": "FE-007",
+      "title": "Implement Promo Code Validation Frontend",
+      "priority": "MEDIUM",
+      "file_path": "/frontend/app/booking/page.tsx",
+      "line_number": null,
+      "description": "Add frontend validation and UI for promo code input during checkout",
+      "acceptance_criteria": [
+        "Add promo code input field in booking form",
+        "Validate promo code format before submission",
+        "Show discount applied to total price",
+        "Display error message for invalid promo codes",
+        "Integrate with backend promo code validation"
+      ],
+      "estimated_effort": "5 hours",
+      "dependencies": ["BE-004: Backend promo code implementation"],
+      "tags": ["Booking", "Discounts", "Checkout"]
+    },
+    {
+      "id": "FE-008",
+      "title": "Implement Admin Dashboard Features",
+      "priority": "MEDIUM",
+      "file_path": "/frontend/app/admin/dashboard/page.tsx",
+      "line_number": null,
+      "description": "Complete admin dashboard with statistics, user management, and hotel oversight",
+      "acceptance_criteria": [
+        "Display system-wide statistics (total bookings, revenue, users)",
+        "Implement user management table with pagination",
+        "Add hotel management interface",
+        "Create destination management page",
+        "Implement revenue analytics dashboard"
+      ],
+      "estimated_effort": "12 hours",
+      "dependencies": ["Backend admin APIs"],
+      "tags": ["Admin", "Dashboard", "Analytics"]
+    }
+  ],
+  "backend_tasks": [
+    {
+      "id": "BE-001",
+      "title": "Implement Promo Code Management",
+      "priority": "HIGH",
+      "file_path": "/backend/modules/pricing-engine/services/pricingEngineService.js",
+      "line_number": 187,
+      "description": "Create promo codes table in database and implement validation logic",
+      "acceptance_criteria": [
+        "Create 'promo_codes' table with fields: code, discount_type, discount_value, start_date, end_date, max_uses, active",
+        "Implement applyPromoCode method with database queries",
+        "Add endpoints: POST /promo-codes (admin), GET /promo-codes/:code (validate), POST /promo-codes/:code/apply",
+        "Validate promo code format and expiration",
+        "Track usage count and prevent exceeding max uses",
+        "Write unit and integration tests"
+      ],
+      "estimated_effort": "8 hours",
+      "dependencies": ["Database schema update"],
+      "tags": ["Pricing", "Discounts", "Database"]
+    },
+    {
+      "id": "BE-002",
+      "title": "Implement Email Rate Limiting and Unsubscribe",
+      "priority": "MEDIUM",
+      "file_path": "/backend/modules/notification/EMAIL_NOTIFICATION_GUIDE.md",
+      "line_number": 444,
+      "description": "Add rate limiting to prevent email spam and implement unsubscribe functionality",
+      "acceptance_criteria": [
+        "Implement rate limiting: max 5 emails per user per hour",
+        "Add unsubscribe token generation in email templates",
+        "Create unsubscribe endpoint: POST /notifications/unsubscribe/:token",
+        "Add email_preferences table to track user subscription status",
+        "Implement queue system for batch email sending (Bull/RabbitMQ)",
+        "Add metrics for email delivery success/failure rates"
+      ],
+      "estimated_effort": "10 hours",
+      "dependencies": ["Database schema update", "Message queue setup"],
+      "tags": ["Notifications", "Email", "Security"]
+    },
+    {
+      "id": "BE-003",
+      "title": "Implement Destination Reviews API",
+      "priority": "MEDIUM",
+      "file_path": "/backend/modules/tourism/routes/tourismRoutes.js",
+      "line_number": null,
+      "description": "Create endpoints for destination reviews: GET, POST, UPDATE, DELETE",
+      "acceptance_criteria": [
+        "Create 'destination_reviews' table with: review_id, destination_id, user_id, rating, comment, created_at",
+        "Implement GET /destinations/:id/reviews with pagination and sorting",
+        "Implement POST /destinations/:id/reviews to create new review",
+        "Implement PUT /destinations/:id/reviews/:review_id for user's own reviews",
+        "Implement DELETE /destinations/:id/reviews/:review_id",
+        "Add authentication checks to prevent unauthorized modifications",
+        "Add rating statistics calculation (average, count)"
+      ],
+      "estimated_effort": "8 hours",
+      "dependencies": ["Tourism module", "Review table creation"],
+      "tags": ["Reviews", "Tourism", "API"]
+    },
+    {
+      "id": "BE-004",
+      "title": "Implement User Reviews API",
+      "priority": "MEDIUM",
+      "file_path": "/backend/modules/user/routes/userRoutes.js",
+      "line_number": null,
+      "description": "Create user reviews endpoint to fetch user's review history and statistics",
+      "acceptance_criteria": [
+        "Implement GET /users/:id/reviews with pagination",
+        "Return review count and average rating",
+        "Include review details: destination, rating, comment, date",
+        "Add filtering options: by destination, by rating, by date range",
+        "Cache review statistics for performance",
+        "Add authentication to restrict access to user's own reviews"
+      ],
+      "estimated_effort": "6 hours",
+      "dependencies": ["Destination reviews implementation"],
+      "tags": ["User Profile", "Reviews", "API"]
+    },
+    {
+      "id": "BE-005",
+      "title": "Implement Admin Management APIs",
+      "priority": "HIGH",
+      "file_path": "/backend/modules/admin/routes/adminRoutes.js",
+      "line_number": null,
+      "description": "Create comprehensive admin endpoints for system management",
+      "acceptance_criteria": [
+        "Implement GET /admin/statistics (total bookings, revenue, users)",
+        "Implement GET /admin/users with pagination and filtering",
+        "Implement GET /admin/hotels with pagination",
+        "Implement GET /admin/destinations",
+        "Implement PUT /admin/users/:id (modify user status/role)",
+        "Implement PUT /admin/hotels/:id (modify hotel status)",
+        "Implement DELETE endpoints with soft delete",
+        "Add admin role verification middleware",
+        "Implement audit logging for admin actions"
+      ],
+      "estimated_effort": "12 hours",
+      "dependencies": ["Admin authentication", "Audit logging"],
+      "tags": ["Admin", "Management", "API"]
+    },
+    {
+      "id": "BE-006",
+      "title": "Implement Database Query for CLV Prediction",
+      "priority": "HIGH",
+      "file_path": "/backend/modules/analytics/services/customerService.js",
+      "line_number": null,
+      "description": "Create database queries to fetch guest booking history for CLV calculations",
+      "acceptance_criteria": [
+        "Query guest bookings with dates and amounts",
+        "Calculate recency, frequency, monetary metrics",
+        "Get cancellation history and patterns",
+        "Fetch service usage data",
+        "Implement caching for performance",
+        "Create stored procedures for complex queries"
+      ],
+      "estimated_effort": "6 hours",
+      "dependencies": ["Analytics database schema"],
+      "tags": ["Analytics", "Database", "Performance"]
+    },
+    {
+      "id": "BE-007",
+      "title": "Complete Admin CRUD Operations",
+      "priority": "MEDIUM",
+      "file_path": "/backend/modules/admin/services/adminService.js",
+      "line_number": null,
+      "description": "Implement complete CRUD operations for all admin management features",
+      "acceptance_criteria": [
+        "User management: Create, Read, Update, Delete, Status change",
+        "Hotel management: Create, Read, Update, Delete, Approval workflow",
+        "Destination management: CRUD operations",
+        "Booking management: View, Cancel, Modify status",
+        "Review moderation: View, Approve, Reject, Delete",
+        "Implement soft delete for data integrity",
+        "Add data validation for all operations"
+      ],
+      "estimated_effort": "10 hours",
+      "dependencies": ["Database schema finalization"],
+      "tags": ["Admin", "CRUD", "Database"]
+    }
+  ],
+  "ai_tasks": [
+    {
+      "id": "AI-001",
+      "title": "Implement Liveness Detection Model",
+      "priority": "HIGH",
+      "file_path": "/AI/src/application/services/cv/face_recognition.py",
+      "line_number": 59,
+      "description": "Initialize and implement actual liveness detection to prevent photo/video spoofing in face recognition",
+      "acceptance_criteria": [
+        "Download and integrate Silent-Face-Anti-Spoofing or similar model",
+        "Load model in __init__ method instead of placeholder",
+        "Implement detect() method with real liveness detection",
+        "Return confidence score between 0-1",
+        "Test with live face, printed photo, and video attacks",
+        "Handle detection errors gracefully",
+        "Document model performance and accuracy metrics"
+      ],
+      "estimated_effort": "8 hours",
+      "dependencies": ["Silent-Face-Anti-Spoofing library", "GPU resources"],
+      "tags": ["Face Recognition", "Liveness Detection", "Security"]
+    },
+    {
+      "id": "AI-002",
+      "title": "Implement Hybrid Image Search",
+      "priority": "MEDIUM",
+      "file_path": "/AI/src/application/services/cv/image_search.py",
+      "line_number": 664,
+      "description": "Complete hybrid search implementation combining text and image queries",
+      "acceptance_criteria": [
+        "Implement text-to-image search with CLIP embeddings",
+        "Implement image-to-image similarity search",
+        "Implement hybrid search combining both methods with weighted scoring",
+        "Return top N results with similarity scores",
+        "Optimize query performance using pgvector indices",
+        "Add result filtering by image type or hotel",
+        "Test with various search queries and images"
+      ],
+      "estimated_effort": "10 hours",
+      "dependencies": ["CLIP model", "pgvector database"],
+      "tags": ["Image Search", "CLIP", "Vector Search"]
+    },
+    {
+      "id": "AI-003",
+      "title": "Implement CLV Prediction with Real Database Queries",
+      "priority": "HIGH",
+      "file_path": "/AI/src/application/services/ml/clv_calculator.py",
+      "line_number": 267,
+      "description": "Replace mock data with actual database queries for guest booking history",
+      "acceptance_criteria": [
+        "Query database for guest booking history",
+        "Calculate actual recency, frequency, monetary metrics",
+        "Replace mock bookings with real data from PostgreSQL",
+        "Fetch guest service usage history",
+        "Calculate cancellation rates from actual data",
+        "Implement proper error handling for missing guest data",
+        "Add caching layer for performance"
+      ],
+      "estimated_effort": "8 hours",
+      "dependencies": ["Backend database access", "Guest service data"],
+      "tags": ["CLV", "Machine Learning", "Database"]
+    },
+    {
+      "id": "AI-004",
+      "title": "Calculate Revenue Growth Rate Time Series",
+      "priority": "MEDIUM",
+      "file_path": "/AI/src/application/services/ml/clv_feature_engineering.py",
+      "line_number": 379,
+      "description": "Implement time series analysis to calculate revenue growth rate for CLV model",
+      "acceptance_criteria": [
+        "Fetch booking revenue time series data",
+        "Calculate month-over-month growth rates",
+        "Implement trend analysis using regression",
+        "Handle missing data and edge cases",
+        "Normalize growth rates for model input",
+        "Add seasonality adjustment",
+        "Test with various time windows and aggregation levels"
+      ],
+      "estimated_effort": "6 hours",
+      "dependencies": ["Historical booking data", "Time series library"],
+      "tags": ["Feature Engineering", "Time Series", "Analytics"]
+    },
+    {
+      "id": "AI-005",
+      "title": "Add Configuration Management to CLV Service",
+      "priority": "MEDIUM",
+      "file_path": "/AI/src/application/services/ml/clv_calculator.py",
+      "line_number": 730,
+      "description": "Implement proper configuration handling instead of None config",
+      "acceptance_criteria": [
+        "Create CLVConfig class with model parameters",
+        "Load configuration from environment or config file",
+        "Add validation for configuration values",
+        "Support different prediction horizons (30, 60, 90 days)",
+        "Allow configurable thresholds for customer segmentation",
+        "Document configuration options",
+        "Add configuration validation on service initialization"
+      ],
+      "estimated_effort": "4 hours",
+      "dependencies": [],
+      "tags": ["Configuration", "MLOps"]
+    },
+    {
+      "id": "AI-006",
+      "title": "Configure CORS for Production in Storage Service",
+      "priority": "HIGH",
+      "file_path": "/AI/src/application/controllers/storage/main.py",
+      "line_number": 71,
+      "description": "Replace wildcard CORS with specific allowed origins for production security",
+      "acceptance_criteria": [
+        "Move CORS configuration to environment variables",
+        "Create separate configs for development and production",
+        "Add allowed_origins list instead of wildcard",
+        "Document CORS setup process",
+        "Test CORS with frontend domains",
+        "Add CORS error logging",
+        "Validate origins from environment"
+      ],
+      "estimated_effort": "3 hours",
+      "dependencies": [],
+      "tags": ["Security", "Configuration", "DevOps"]
+    },
+    {
+      "id": "AI-007",
+      "title": "Implement Background Task for RAG Indexing",
+      "priority": "MEDIUM",
+      "file_path": "/AI/src/application/controllers/hotel/upload_controller.py",
+      "line_number": 354,
+      "description": "Trigger RAG indexing in background after successful image upload",
+      "acceptance_criteria": [
+        "Use BackgroundTasks or Celery for async processing",
+        "Index uploaded images into RAG vector store",
+        "Add progress tracking for image indexing",
+        "Handle indexing failures without blocking upload",
+        "Log indexing results for debugging",
+        "Create API endpoint to check indexing status",
+        "Test with batch uploads"
+      ],
+      "estimated_effort": "8 hours",
+      "dependencies": ["Task queue setup", "RAG vector store"],
+      "tags": ["Async Tasks", "RAG", "Image Processing"]
+    },
+    {
+      "id": "AI-008",
+      "title": "Add JWT Authentication to CV API",
+      "priority": "HIGH",
+      "file_path": "/AI/docs/CV_API_ENDPOINTS.md",
+      "line_number": 31,
+      "description": "Implement JWT authentication for all CV API endpoints before production",
+      "acceptance_criteria": [
+        "Add JWT token validation middleware",
+        "Implement token generation and refresh logic",
+        "Add authentication to face enrollment endpoint",
+        "Add authentication to face recognition endpoint",
+        "Add authentication to image upload endpoints",
+        "Implement rate limiting per user",
+        "Add API key management for external services",
+        "Document authentication setup"
+      ],
+      "estimated_effort": "10 hours",
+      "dependencies": ["JWT library setup"],
+      "tags": ["Security", "Authentication", "API"]
+    }
+  ],
+  "task_priority_distribution": {
+    "HIGH": {
+      "frontend": 3,
+      "backend": 3,
+      "ai": 4
+    },
+    "MEDIUM": {
+      "frontend": 5,
+      "backend": 4,
+      "ai": 4
+    },
+    "LOW": {
+      "frontend": 0,
+      "backend": 0,
+      "ai": 0
+    }
+  },
+  "critical_path_items": [
+    {
+      "phase": "Phase 1: Foundation (Weeks 1-2)",
+      "tasks": ["BE-001", "AI-001", "FE-002", "BE-005"],
+      "description": "Implement core missing features and remove hardcoded values"
+    },
+    {
+      "phase": "Phase 2: Enhanced Features (Weeks 3-4)",
+      "tasks": ["BE-002", "BE-003", "AI-002", "AI-003", "FE-003", "FE-004"],
+      "description": "Add review systems, improve search, and implement analytics"
+    },
+    {
+      "phase": "Phase 3: Security & Optimization (Weeks 5-6)",
+      "tasks": ["AI-007", "AI-008", "BE-006", "AI-006", "FE-001"],
+      "description": "Security hardening, background tasks, and performance improvements"
+    }
+  ],
+  "deployment_notes": {
+    "before_production": [
+      "Implement JWT authentication for all APIs (AI-008)",
+      "Configure CORS properly for all services (AI-006)",
+      "Set up email rate limiting (BE-002)",
+      "Implement liveness detection for face recognition (AI-001)",
+      "Complete admin dashboard implementation (FE-008)"
+    ],
+    "testing_requirements": [
+      "Unit tests for all new database queries",
+      "Integration tests for API endpoints",
+      "E2E tests for booking and payment flows",
+      "ML model validation for CLV predictions",
+      "Security testing for authentication"
+    ],
+    "infrastructure_needs": [
+      "GPU resources for face recognition model",
+      "Redis cache for rate limiting and sessions",
+      "Message queue (RabbitMQ/Celery) for async tasks",
+      "PostgreSQL with pgvector extension",
+      "MinIO object storage setup",
+      "Email service provider (SendGrid/AWS SES)"
+    ]
+  }
+}

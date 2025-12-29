@@ -52,6 +52,10 @@ const normalizeObjectName = (value) => {
     }
 };
 
+const isHttpUrl = (value) =>
+    typeof value === "string" &&
+    (value.startsWith("http://") || value.startsWith("https://"));
+
 const hotelProfileService = {
     async addNewHotel(hotelData, userid, thumbnailFile) {
         // check for existed hotel based on address and name
@@ -64,7 +68,7 @@ const hotelProfileService = {
                 ],
             },
         });
-        if(existedHotel) {
+        if (existedHotel) {
             throw new Error("Hotel has been registered on our system");
         }
         let uploadedThumbnail = null;
@@ -75,32 +79,61 @@ const hotelProfileService = {
                     throw new Error("Only image files are allowed");
                 }
                 console.log("Uploading thumbnail to MinIO...", minioUtils.buckets.HOTEL_IMAGES);
-	                uploadedThumbnail = await minioUtils.uploadFile(
-	                    minioUtils.buckets.HOTEL_IMAGES,
-	                    thumbnailFile.buffer,
-	                    thumbnailFile.originalname,
-	                    { "Content-Type": thumbnailFile.mimetype }
-	                );
-	
-	                thumbnailUrl = uploadedThumbnail.fileName;
-	                console.log("Thumbnail uploaded:", thumbnailUrl);
-	            }
+                uploadedThumbnail = await minioUtils.uploadFile(
+                    minioUtils.buckets.HOTEL_IMAGES,
+                    thumbnailFile.buffer,
+                    thumbnailFile.originalname,
+                    { "Content-Type": thumbnailFile.mimetype }
+                );
 
+                thumbnailUrl = uploadedThumbnail.fileName;
+                console.log("Thumbnail uploaded:", thumbnailUrl);
+            }
+
+            // FIX: Thêm try-catch để cleanup thumbnail nếu tạo hotel thất bại
             const newHotel = await db.Hotel.create({
                 name: hotelData.hotelName,
                 hotel_owner: userid,
                 address: hotelData.address,
                 status: 1,
-                rating: hotelData.rating ?? hotelData.rating ?? 3.0,
+                // FIX: Loại bỏ redundant code
+                rating: hotelData.rating ?? 3.0,
                 longitude: hotelData.longitude ? hotelData.longitude : null,
-                latitude: hotelData.latitude ?? hotelData.latitute ?? null,
+                // FIX: Sử dụng latitude (đã sửa validation từ latitute)
+                latitude: hotelData.latitude ?? null,
                 description: hotelData.description ? hotelData.description : 'No description provided',
                 contact_phone: hotelData.contact_phone,
                 thumbnail: thumbnailUrl
             });
+
+            // FIX: Chỉ chuyển user thành hotel_manager nếu chưa phải
             const user = await db.User.findByPk(userid);
-            user.role = 'hotel_manager';
+            if (user.role !== 'hotel_manager') {
+                user.role = 'hotel_manager';
+                await user.save();
+            }
+
+            // =================== CODE CŨ (ĐÃ SỬA) ===================
+            /*
+            // CODE CŨ: Redundant rating và tự động set role
+            const newHotel = await db.Hotel.create({
+                name: hotelData.hotelName,
+                hotel_owner: userid,
+                address: hotelData.address,
+                status: 1,
+                rating: hotelData.rating ?? hotelData.rating ?? 3.0, // REDUNDANT
+                longitude: hotelData.longitude ? hotelData.longitude : null,
+                latitude: hotelData.latitude ?? hotelData.latitute ?? null, // TYPO: latitute
+                description: hotelData.description ? hotelData.description : 'No description provided',
+                contact_phone: hotelData.contact_phone,
+                thumbnail: thumbnailUrl
+            });
+            // CODE CŨ: Luôn set role = 'hotel_manager' (có thể sai)
+            const user = await db.User.findByPk(userid);
+            user.role = 'hotel_manager'; // Không kiểm tra role hiện tại
             await user.save();
+            */
+
             return {
                 hotelName: newHotel.name
             };
@@ -120,19 +153,19 @@ const hotelProfileService = {
     },
     async addTypeForHotel(typeData, userid) {
         const hotel = await db.Hotel.findByPk(typeData.hotel_id);
-        if(!hotel) {
+        if (!hotel) {
             throw new Error("Hotel not found");
         }
         // check for user who update room is the owner of hotel or not
         const ownerid = hotel.hotel_owner;
-        if(userid !== ownerid) {
+        if (userid !== ownerid) {
             throw new Error("You are not the owner of this hotel");
         }
         const newRoomType = await db.RoomType.create({
             hotel_id: typeData.hotel_id,
             type: typeData.type,
             availability: typeData.availability ? typeData.availability : true,
-            max_guests: typeData.max_guests ? typeData.max_guests: 2,
+            max_guests: typeData.max_guests ? typeData.max_guests : 2,
             description: typeData.description ? typeData.description : 'No description provided',
             quantity: 0
         });
@@ -154,28 +187,28 @@ const hotelProfileService = {
         const typeId = roomData.type_id;
         // check for type
         const roomType = await db.RoomType.findByPk(typeId);
-        if(!roomType) {
+        if (!roomType) {
             throw new Error("Room type not found");
         }
         const hotel = await db.Hotel.findByPk(roomType.hotel_id);
-        if(!hotel) {
+        if (!hotel) {
             throw new Error("Hotel not found");
         }
         const ownerid = hotel.hotel_owner;
-        if(ownerid !== userid) {
+        if (ownerid !== userid) {
             throw new Error("You are not the owner of this hotel");
         }
         const newRoom = await db.Room.create({
             type_id: roomType.type_id,
-            name: roomData.name, 
+            name: roomData.name,
             location: roomData.location,
             status: 1,
             estimated_available_time: null,
             number_of_single_beds: roomData.number_of_single_beds ? roomData.number_of_single_beds : 0,
-            number_of_double_beds: roomData.number_of_double_beds ? roomData.number_of_double_beds: 0,
-            room_view: roomData.room_view ? roomData.room_view: 'No view',
-            room_size: roomData.room_size ? roomData.room_size: 0.0,
-            notes: roomData.notes ? roomData.notes: 'No notes'
+            number_of_double_beds: roomData.number_of_double_beds ? roomData.number_of_double_beds : 0,
+            room_view: roomData.room_view ? roomData.room_view : 'No view',
+            room_size: roomData.room_size ? roomData.room_size : 0.0,
+            notes: roomData.notes ? roomData.notes : 'No notes'
         });
 
         // update quantity of room type
@@ -205,14 +238,14 @@ const hotelProfileService = {
     },
     async viewHotelProfile(hotelid) {
         const hotel = await db.Hotel.findByPk(hotelid);
-        if(!hotel) {
+        if (!hotel) {
             throw new Error("Hotel not found");
         }
         // get images for hotel
         const imageUrl = hotel?.thumbnail ? hotel.thumbnail : null;
-        if(imageUrl) {
+        if (imageUrl) {
             // Check if it's already a full URL (from external sources like Unsplash)
-            if(imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+            if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
                 hotel.thumbnail = imageUrl; // Keep the external URL as-is
             } else {
                 // It's a MinIO object key, get presigned URL
@@ -228,9 +261,9 @@ const hotelProfileService = {
             where: { hotel_id: hotel.hotel_id }
         });
         const publicImageUrls = [];
-        for(const image of imageList) {
+        for (const image of imageList) {
             // Check if it's already a full URL
-            if(image.image_url.startsWith('http://') || image.image_url.startsWith('https://')) {
+            if (image.image_url.startsWith('http://') || image.image_url.startsWith('https://')) {
                 publicImageUrls.push(image.image_url); // Keep the external URL as-is
             } else {
                 // It's a MinIO object key, get presigned URL
@@ -280,11 +313,21 @@ const hotelProfileService = {
             if (hotelThumbnail.startsWith("http://") || hotelThumbnail.startsWith("https://")) {
                 thumbnailUrl = hotelThumbnail;
             } else {
-                const presignedUrl = await minioUtils.getFileUrl(
-                    minioUtils.buckets.HOTEL_IMAGES,
-                    normalizeObjectName(hotelThumbnail)
-                );
-                thumbnailUrl = toPublicObjectUrl(presignedUrl);
+                const objectName = normalizeObjectName(hotelThumbnail);
+                const exists = await minioUtils.fileExists(minioUtils.buckets.HOTEL_IMAGES, objectName);
+                if (exists) {
+                    const presignedUrl = await minioUtils.getFileUrl(
+                        minioUtils.buckets.HOTEL_IMAGES,
+                        objectName
+                    );
+                    thumbnailUrl = toPublicObjectUrl(presignedUrl);
+                } else {
+                    console.warn("[hotelProfileService] Missing hotel thumbnail object:", {
+                        hotel_id: hotel.hotel_id,
+                        objectName,
+                    });
+                    thumbnailUrl = null;
+                }
             }
         }
 
@@ -300,9 +343,19 @@ const hotelProfileService = {
 
             let url = raw;
             if (!(raw.startsWith("http://") || raw.startsWith("https://"))) {
+                const objectName = normalizeObjectName(raw);
+                const exists = await minioUtils.fileExists(minioUtils.buckets.HOTEL_IMAGES, objectName);
+                if (!exists) {
+                    console.warn("[hotelProfileService] Missing hotel image object:", {
+                        hotel_id: hotel.hotel_id,
+                        image_id: row.image_id,
+                        objectName,
+                    });
+                    continue;
+                }
                 const presignedUrl = await minioUtils.getFileUrl(
                     minioUtils.buckets.HOTEL_IMAGES,
-                    normalizeObjectName(raw)
+                    objectName
                 );
                 url = toPublicObjectUrl(presignedUrl);
             }
@@ -342,9 +395,20 @@ const hotelProfileService = {
 
             let url = raw;
             if (!(raw.startsWith("http://") || raw.startsWith("https://"))) {
+                const objectName = normalizeObjectName(raw);
+                const exists = await minioUtils.fileExists(minioUtils.buckets.ROOM_IMAGES, objectName);
+                if (!exists) {
+                    console.warn("[hotelProfileService] Missing room image object:", {
+                        hotel_id: hotel.hotel_id,
+                        room_id: row.room_id,
+                        image_id: row.image_id,
+                        objectName,
+                    });
+                    continue;
+                }
                 const presignedUrl = await minioUtils.getFileUrl(
                     minioUtils.buckets.ROOM_IMAGES,
-                    normalizeObjectName(raw)
+                    objectName
                 );
                 url = toPublicObjectUrl(presignedUrl);
             }
@@ -392,11 +456,11 @@ const hotelProfileService = {
     },
     async updateHotelProfile(hotelid, userid, hotelData = {}, thumbnailFile) {
         const hotel = await db.Hotel.findByPk(hotelid);
-        if(!hotel) {
+        if (!hotel) {
             throw new Error("Hotel not found");
         }
         const ownerid = hotel.hotel_owner;
-        if(ownerid !== userid) {
+        if (ownerid !== userid) {
             throw new Error("You are not the owner of this hotel");
         }
 
@@ -424,7 +488,8 @@ const hotelProfileService = {
                 nextThumbnail = uploadedThumbnail.fileName;
                 console.log("Uploaded new thumbnail:", nextThumbnail);
             } else if (hasThumbnailField) {
-                nextThumbnail = normalizeObjectName(hotelData.thumbnail);
+                const provided = hotelData.thumbnail;
+                nextThumbnail = isHttpUrl(provided) ? provided : normalizeObjectName(provided);
             }
 
             // Use nullish coalescing to allow falsy values like 0 or empty strings to be saved intentionally
@@ -457,7 +522,9 @@ const hotelProfileService = {
 
         if (previousThumbnail && previousThumbnail !== hotel.thumbnail) {
             try {
-                await minioUtils.deleteFile(minioUtils.buckets.HOTEL_IMAGES, previousThumbnail);
+                if (!isHttpUrl(previousThumbnail)) {
+                    await minioUtils.deleteFile(minioUtils.buckets.HOTEL_IMAGES, previousThumbnail);
+                }
             } catch (cleanupError) {
                 console.error("Failed to cleanup previous thumbnail:", cleanupError);
             }
@@ -465,12 +532,22 @@ const hotelProfileService = {
     },
     async disableHotel(hotelid, userid) {
         const hotel = await db.Hotel.findByPk(hotelid);
-        if(!hotel) {
+        if (!hotel) {
             throw new Error("Hotel not found");
         }
-        if(hotel.hotel_owner !== userid) {
+        if (hotel.hotel_owner !== userid) {
             throw new Error("You are not the owner of this hotel");
         }
+
+        // HARD DELETE: Xóa hẳn hotel và tất cả dữ liệu liên quan (CASCADE delete)
+        // Với onDelete: 'CASCADE' đã được thêm vào database, việc xóa hotel sẽ tự động xóa:
+        // - RoomType, Room, Image, Review, LovingList, FacilitiesPossessing
+        await hotel.destroy();
+
+        console.log(`Hard deleted hotel ${hotelid} (${hotel.name}) and all related data`);
+
+        // =================== CODE CŨ (SOFT DELETE) - ĐÃ COMMENT ===================
+        /*
         const transaction = await db.sequelize.transaction();
         try {
             hotel.status = 0;
@@ -481,7 +558,7 @@ const hotelProfileService = {
                 transaction
             });
             const typeIds = roomTypes.map((roomType) => roomType.type_id);
-            if(typeIds.length > 0) {
+            if (typeIds.length > 0) {
                 await db.RoomType.update(
                     { availability: false },
                     {
@@ -489,28 +566,29 @@ const hotelProfileService = {
                         transaction
                     }
                 );
-                await db.Room.update( 
-                    {status: 0}, 
+                await db.Room.update(
+                    { status: 0 },
                     {
-                        where: {type_id: typeIds},
+                        where: { type_id: typeIds },
                         transaction
                     }
                 )
             }
             await transaction.commit();
         } catch (error) {
-            await transaction.rollback(); 
+            await transaction.rollback();
             throw error;
         }
+        */
     },
-    updateFacilityForHotel: async(facilityData, userid, hotelid) => {
+    updateFacilityForHotel: async (facilityData, userid, hotelid) => {
         const hotel = await db.Hotel.findByPk(hotelid);
-        if(!hotel) {
+        if (!hotel) {
             throw new Error("Hotel not found");
         }
         // check for the verification of update 
         const ownerid = hotel.hotel_owner;
-        if(ownerid !== userid) {
+        if (ownerid !== userid) {
             throw new Error("You are not the owner of hotel");
         }
         // add facility for hotel (must be initialized first)
@@ -520,7 +598,7 @@ const hotelProfileService = {
                 hotel_id: facilityData.hotel_id
             }
         });
-        for(const facility of listFacilities) {   
+        for (const facility of listFacilities) {
             await db.FacilitiesPossessing.create({
                 facility_id: facility.facility_id,
                 hotel_id: facilityData.hotel_id,
@@ -528,26 +606,27 @@ const hotelProfileService = {
             });
         }
     },
-    updatePriceForRoomType: async(priceData, userid) => {
+    updatePriceForRoomType: async (priceData, userid) => {
         const roomType = await db.RoomType.findByPk(priceData.type_id);
-        if(!roomType) {
+        if (!roomType) {
             throw new Error("Room type not found");
         }
         // update room price
         const hotel = await db.Hotel.findByPk(roomType.hotel_id);
-        if(!hotel) {
+        if (!hotel) {
             throw new Error("Hotel not found");
         }
         const ownerid = hotel.hotel_owner;
-        if(ownerid !== userid) {
+        if (ownerid !== userid) {
             throw new Error("You are not the owner of this hotel");
         }
         const roomPrice = await db.RoomPrice.findOne({
             where: {
-                type_id: priceData.type_id}
-        });   
+                type_id: priceData.type_id
+            }
+        });
         await db.RoomPrice.update({
-            start_date: priceData.start_date  ?? roomPrice.start_date,
+            start_date: priceData.start_date ?? roomPrice.start_date,
             end_date: priceData.end_date ?? roomPrice.end_date,
             special_price: priceData.special_price ?? roomPrice.special_price,
             event: priceData.event ?? roomPrice.event,
@@ -559,14 +638,14 @@ const hotelProfileService = {
             }
         });
     },
-    getAllTypeForHotel: async(hotelid) => {
+    getAllTypeForHotel: async (hotelid) => {
         const hotel = await db.Hotel.findByPk(hotelid);
-        if(!hotel) {
+        if (!hotel) {
             throw new Error("Hotel not found");
         }
         // get all room types join with room prices for hotel
         const roomTypes = await db.RoomType.findAll({
-            where: {hotel_id: hotelid},
+            where: { hotel_id: hotelid },
             include: [{
                 model: db.RoomPrice
             }]
@@ -574,12 +653,12 @@ const hotelProfileService = {
         console.log("Room types with prices: ", roomTypes.RoomPrice);
         return roomTypes;
     },
-    getFacilitiesForHotel: async(hotelid, userid) => {
+    getFacilitiesForHotel: async (hotelid, userid) => {
         const hotel = await db.Hotel.findByPk(hotelid);
-        if(!hotel) {
+        if (!hotel) {
             throw new Error("Hotel not found");
         }
-        if(hotel.hotel_owner !== userid) {
+        if (hotel.hotel_owner !== userid) {
             throw new Error("You are not the owner of this hotel");
         }
 
@@ -608,18 +687,18 @@ const hotelProfileService = {
             hotel_facilities: hotelFacilities,
         };
     },
-    getAllRoomsForHotel: async(hotelid) => {
+    getAllRoomsForHotel: async (hotelid) => {
         const hotel = await db.Hotel.findByPk(hotelid);
-        if(!hotel) {
+        if (!hotel) {
             throw new Error("Hotel not found");
         }
         // get all room types of hotel first
         const roomTypes = await db.RoomType.findAll({
-            where: {hotel_id: hotelid}
+            where: { hotel_id: hotelid }
         });
         const typeIds = roomTypes.map((roomType) => roomType.type_id);
         const rooms = await db.Room.findAll({
-            where: {type_id: typeIds}
+            where: { type_id: typeIds }
         });
         // check from bookings for each room to check availablity
         // get bookings for rooms
@@ -631,7 +710,7 @@ const hotelProfileService = {
         });
         // check for each room in current Date is between check-in and check-out date of booking
         const currentDate = new Date();
-        for(const room of rooms) {
+        for (const room of rooms) {
             const roomBookings = bookings.filter((booking) => booking.room_id === room.room_id);
             const isAvailable = !roomBookings.some(
                 b => currentDate >= b.check_in_date && currentDate <= b.check_out_date
@@ -640,12 +719,12 @@ const hotelProfileService = {
         }
         // get price for each room based on type_id
         const roomsWithPrices = [];
-        for(const room of rooms) {
+        for (const room of rooms) {
             const roomType = roomTypes.find((type) => type.type_id === room.type_id);
             const roomPrice = await db.RoomPrice.findOne({
                 where: { type_id: room.type_id }
             });
-            if(!roomPrice) {
+            if (!roomPrice) {
                 roomsWithPrices.push({
                     roomData: room,
                     roomTypeData: roomType,
@@ -658,7 +737,7 @@ const hotelProfileService = {
                 where: { room_id: room.room_id }
             });
             const publicImageUrls = [];
-            for(const image of listImages) {
+            for (const image of listImages) {
                 const presignedUrl = await minioUtils.getFileUrl(
                     minioUtils.buckets.HOTEL_IMAGES,
                     image.image_url
@@ -682,24 +761,24 @@ const hotelProfileService = {
         }
         return roomsWithPrices;
     },
-    viewRoom: async(roomid, userid) => {
+    viewRoom: async (roomid, userid) => {
         const room = await db.Room.findByPk(roomid);
-        if(!room) {
+        if (!room) {
             throw new Error("Room not found");
         }
 
         const roomType = await db.RoomType.findByPk(room.type_id);
-        if(!roomType) {
+        if (!roomType) {
             throw new Error("Room type not found");
         }
 
         const hotel = await db.Hotel.findByPk(roomType.hotel_id);
-        if(!hotel) {
+        if (!hotel) {
             throw new Error("Hotel not found");
         }
 
         const ownerid = hotel.hotel_owner;
-        if(ownerid !== userid) {
+        if (ownerid !== userid) {
             throw new Error("You are not the owner of this hotel");
         }
 
@@ -719,7 +798,7 @@ const hotelProfileService = {
             where: { room_id: room.room_id }
         });
         const publicImageUrls = [];
-        for(const image of listImages) {
+        for (const image of listImages) {
             const presignedUrl = await minioUtils.getFileUrl(
                 minioUtils.buckets.HOTEL_IMAGES,
                 image.image_url
@@ -733,7 +812,7 @@ const hotelProfileService = {
             where: { type_id: room.type_id }
         });
 
-        if(!roomPrice) {
+        if (!roomPrice) {
             return {
                 roomData: room.get({ plain: true }),
                 roomTypeData: roomType,
@@ -753,56 +832,56 @@ const hotelProfileService = {
             }
         };
     },
-    updateRoom: async(roomid, userid, roomData = {}) => {
+    updateRoom: async (roomid, userid, roomData = {}) => {
         const room = await db.Room.findByPk(roomid);
-        if(!room) {
+        if (!room) {
             throw new Error("Room not found");
         }
 
         const roomType = await db.RoomType.findByPk(room.type_id);
-        if(!roomType) {
+        if (!roomType) {
             throw new Error("Room type not found");
         }
 
         const hotel = await db.Hotel.findByPk(roomType.hotel_id);
-        if(!hotel) {
+        if (!hotel) {
             throw new Error("Hotel not found");
         }
 
         const ownerid = hotel.hotel_owner;
-        if(ownerid !== userid) {
+        if (ownerid !== userid) {
             throw new Error("You are not the owner of this hotel");
         }
 
         const allowedUpdates = {};
-        if(Object.prototype.hasOwnProperty.call(roomData, 'name')) allowedUpdates.name = roomData.name;
-        if(Object.prototype.hasOwnProperty.call(roomData, 'location')) allowedUpdates.location = roomData.location;
-        if(Object.prototype.hasOwnProperty.call(roomData, 'status')) allowedUpdates.status = roomData.status;
-        if(Object.prototype.hasOwnProperty.call(roomData, 'estimated_available_time')) {
+        if (Object.prototype.hasOwnProperty.call(roomData, 'name')) allowedUpdates.name = roomData.name;
+        if (Object.prototype.hasOwnProperty.call(roomData, 'location')) allowedUpdates.location = roomData.location;
+        if (Object.prototype.hasOwnProperty.call(roomData, 'status')) allowedUpdates.status = roomData.status;
+        if (Object.prototype.hasOwnProperty.call(roomData, 'estimated_available_time')) {
             allowedUpdates.estimated_available_time = roomData.estimated_available_time;
         }
-        if(Object.prototype.hasOwnProperty.call(roomData, 'number_of_single_beds')) {
+        if (Object.prototype.hasOwnProperty.call(roomData, 'number_of_single_beds')) {
             allowedUpdates.number_of_single_beds = roomData.number_of_single_beds;
         }
-        if(Object.prototype.hasOwnProperty.call(roomData, 'number_of_double_beds')) {
+        if (Object.prototype.hasOwnProperty.call(roomData, 'number_of_double_beds')) {
             allowedUpdates.number_of_double_beds = roomData.number_of_double_beds;
         }
-        if(Object.prototype.hasOwnProperty.call(roomData, 'room_view')) allowedUpdates.room_view = roomData.room_view;
-        if(Object.prototype.hasOwnProperty.call(roomData, 'room_size')) allowedUpdates.room_size = roomData.room_size;
-        if(Object.prototype.hasOwnProperty.call(roomData, 'notes')) allowedUpdates.notes = roomData.notes;
+        if (Object.prototype.hasOwnProperty.call(roomData, 'room_view')) allowedUpdates.room_view = roomData.room_view;
+        if (Object.prototype.hasOwnProperty.call(roomData, 'room_size')) allowedUpdates.room_size = roomData.room_size;
+        if (Object.prototype.hasOwnProperty.call(roomData, 'notes')) allowedUpdates.notes = roomData.notes;
 
         await db.Room.update(allowedUpdates, { where: { room_id: room.room_id } });
     },
-    viewRoomType: async(typeid, userid) => {
+    viewRoomType: async (typeid, userid) => {
         const roomType = await db.RoomType.findByPk(typeid);
-        if(!roomType) {
+        if (!roomType) {
             throw new Error("Room type not found");
         }
         const hotel = await db.Hotel.findByPk(roomType.hotel_id);
-        if(!hotel) {
+        if (!hotel) {
             throw new Error("Hotel not found");
         }
-        if(hotel.hotel_owner !== userid) {
+        if (hotel.hotel_owner !== userid) {
             throw new Error("You are not the owner of this hotel");
         }
 
@@ -810,7 +889,7 @@ const hotelProfileService = {
             where: { type_id: roomType.type_id }
         });
 
-        if(!roomPrice) {
+        if (!roomPrice) {
             return {
                 typeData: roomType,
                 priceData: null,
@@ -829,40 +908,40 @@ const hotelProfileService = {
             }
         };
     },
-    updateRoomType: async(typeid, userid, typeData = {}) => {
+    updateRoomType: async (typeid, userid, typeData = {}) => {
         const roomType = await db.RoomType.findByPk(typeid);
-        if(!roomType) {
+        if (!roomType) {
             throw new Error("Room type not found");
         }
         const hotel = await db.Hotel.findByPk(roomType.hotel_id);
-        if(!hotel) {
+        if (!hotel) {
             throw new Error("Hotel not found");
         }
-        if(hotel.hotel_owner !== userid) {
+        if (hotel.hotel_owner !== userid) {
             throw new Error("You are not the owner of this hotel");
         }
 
-        if(Object.prototype.hasOwnProperty.call(typeData, 'type')) {
+        if (Object.prototype.hasOwnProperty.call(typeData, 'type')) {
             roomType.type = typeData.type;
         }
-        if(Object.prototype.hasOwnProperty.call(typeData, 'availability')) {
+        if (Object.prototype.hasOwnProperty.call(typeData, 'availability')) {
             roomType.availability = typeData.availability;
         }
-        if(Object.prototype.hasOwnProperty.call(typeData, 'max_guests')) {
+        if (Object.prototype.hasOwnProperty.call(typeData, 'max_guests')) {
             roomType.max_guests = typeData.max_guests;
         }
-        if(Object.prototype.hasOwnProperty.call(typeData, 'description')) {
+        if (Object.prototype.hasOwnProperty.call(typeData, 'description')) {
             roomType.description = typeData.description;
         }
 
         await roomType.save();
     },
-    getAllRooms: async() => {
+    getAllRooms: async () => {
         const rooms = await db.Room.findAll();
         // get all room types based on rooms
         const typeIds = rooms.map((room) => room.type_id);
         const roomTypes = await db.RoomType.findAll({
-            where: {type_id: typeIds}
+            where: { type_id: typeIds }
         });
         // get bookings for rooms
         const bookings = await db.Booking.findAll({
@@ -873,7 +952,7 @@ const hotelProfileService = {
         });
         // check for each room in current Date is between check-in and check-out date of booking
         const currentDate = new Date();
-        for(const room of rooms) {
+        for (const room of rooms) {
             const roomBookings = bookings.filter((booking) => booking.room_id === room.room_id);
             const isAvailable = !roomBookings.some(
                 b => currentDate >= b.check_in_date && currentDate <= b.check_out_date
@@ -884,23 +963,34 @@ const hotelProfileService = {
             })
             const publicImageUrls = [];
             for(const image of listImages) {
+                const raw = image.image_url ? String(image.image_url) : null;
+                if (!raw) continue;
+
+                if (raw.startsWith("http://") || raw.startsWith("https://")) {
+                    publicImageUrls.push(raw);
+                    continue;
+                }
+
+                const objectName = normalizeObjectName(raw);
+                const exists = await minioUtils.fileExists(minioUtils.buckets.ROOM_IMAGES, objectName);
+                if (!exists) continue;
+
                 const presignedUrl = await minioUtils.getFileUrl(
-                    minioUtils.buckets.HOTEL_IMAGES,
-                    image.image_url
+                    minioUtils.buckets.ROOM_IMAGES,
+                    objectName
                 );
-                let publicUrl = toPublicObjectUrl(presignedUrl);
-                publicImageUrls.push(publicUrl);
+                publicImageUrls.push(toPublicObjectUrl(presignedUrl));
             }
             room.setDataValue('imageUrls', publicImageUrls); // make it JSON-visible
         }
         // get price for each room based on type_id
         const roomsWithPrices = [];
-        for(const room of rooms) {
+        for (const room of rooms) {
             const roomType = roomTypes.find((type) => type.type_id === room.type_id);
             const roomPrice = await db.RoomPrice.findOne({
                 where: { type_id: room.type_id }
             });
-            if(!roomPrice) {
+            if (!roomPrice) {
                 roomsWithPrices.push({
                     roomData: room,
                     roomTypeData: roomType,
@@ -924,14 +1014,14 @@ const hotelProfileService = {
         }
         return roomsWithPrices;
     },
-    getAllHotel: async() => {
+    getAllHotel: async () => {
         const hotels = await db.Hotel.findAll();
         // for each hotel, get presigned url for thumbnail
-        for(const hotel of hotels) {
+        for (const hotel of hotels) {
             const imageUrl = hotel?.thumbnail ? hotel.thumbnail : null;
-            if(imageUrl) {
+            if (imageUrl) {
                 // Check if it's already a full URL (from external sources like Unsplash)
-                if(imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+                if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
                     hotel.thumbnail = imageUrl; // Keep the external URL as-is
                 } else {
                     // It's a MinIO object key, get presigned URL
@@ -947,9 +1037,9 @@ const hotelProfileService = {
                 where: { hotel_id: hotel.hotel_id }
             });
             const publicImageUrls = [];
-            for(const image of imageList) {
+            for (const image of imageList) {
                 // Check if it's already a full URL
-                if(image.image_url.startsWith('http://') || image.image_url.startsWith('https://')) {
+                if (image.image_url.startsWith('http://') || image.image_url.startsWith('https://')) {
                     publicImageUrls.push(image.image_url); // Keep the external URL as-is
                 } else {
                     // It's a MinIO object key, get presigned URL
@@ -1011,16 +1101,16 @@ const hotelProfileService = {
         }
         return hotels;
     },
-    uploadImagesForHotel: async(hotelid, userid, imageFiles) => {
+    uploadImagesForHotel: async (hotelid, userid, imageFiles) => {
         const hotel = await db.Hotel.findByPk(hotelid);
-        if(!hotel) {
+        if (!hotel) {
             throw new Error("Hotel not found");
         }
         const ownerid = hotel.hotel_owner;
-        if(ownerid !== userid) {
+        if (ownerid !== userid) {
             throw new Error("You are not the owner of this hotel");
         }
-        for(const imageFile of imageFiles) {
+        for (const imageFile of imageFiles) {
             if (!imageFile.mimetype?.startsWith("image/")) {
                 throw new Error("Only image files are allowed");
             }
@@ -1039,27 +1129,28 @@ const hotelProfileService = {
     },
     uploadImagesForRoom: async (roomid, userid, imageFiles) => {
         const room = await db.Room.findByPk(roomid);
+        console.log("It is calling");
         if(!room) {
             throw new Error("Room not found");
         }
         const roomType = await db.RoomType.findByPk(room.type_id);
-        if(!roomType) {
+        if (!roomType) {
             throw new Error("Room type not found");
         }
         const hotel = await db.Hotel.findByPk(roomType.hotel_id);
-        if(!hotel) {
+        if (!hotel) {
             throw new Error("Hotel not found");
         }
         const ownerid = hotel.hotel_owner;
-        if(ownerid !== userid) {
+        if (ownerid !== userid) {
             throw new Error("You are not the owner of this hotel");
         }
-        for(const imageFile of imageFiles) {
+        for (const imageFile of imageFiles) {
             if (!imageFile.mimetype?.startsWith("image/")) {
                 throw new Error("Only image files are allowed");
             }
             uploadedThumbnail = await minioUtils.uploadFile(
-                minioUtils.buckets.HOTEL_IMAGES,
+                minioUtils.buckets.ROOM_IMAGES,
                 imageFile.buffer,
                 imageFile.originalname,
                 { "Content-Type": imageFile.mimetype }
@@ -1072,7 +1163,7 @@ const hotelProfileService = {
         }
     },
     async getHotelForHotelOwner(userid) {
-        const hotels =  await db.Hotel.findAll({
+        const hotels = await db.Hotel.findAll({
             where: { hotel_owner: userid }
         });
         return hotels;

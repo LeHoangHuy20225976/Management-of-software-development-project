@@ -11,9 +11,18 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
-      RoomType.belongsTo(models.Hotel, { foreignKey: 'hotel_id' });
-      RoomType.hasMany(models.Room, { foreignKey: 'type_id' });
-      RoomType.hasOne(models.RoomPrice, { foreignKey: 'type_id' });
+      RoomType.belongsTo(models.Hotel, {
+        foreignKey: 'hotel_id',
+        onDelete: 'CASCADE'
+      });
+      RoomType.hasMany(models.Room, {
+        foreignKey: 'type_id',
+        onDelete: 'CASCADE'
+      });
+      RoomType.hasOne(models.RoomPrice, {
+        foreignKey: 'type_id',
+        onDelete: 'CASCADE'
+      });
       // many to many relationship between RoomType and RoomService through ServicePossessing
       RoomType.belongsToMany(models.RoomService, {
         through: models.ServicePossessing,

@@ -21,6 +21,7 @@ from .router import router as llm_router
 from .email_router import router as email_router
 from .rag_router_v2 import router as rag_router
 from .tools_router import router as tools_router
+from src.application.controllers.hotel.upload_controller import router as hotel_upload_router
 
 settings = get_settings()
 
@@ -216,6 +217,7 @@ app.include_router(llm_router, prefix="/api/llm", tags=["LLM Chat"])
 app.include_router(rag_router, prefix="/api/llm", tags=["RAG (PDF Q&A)"])
 app.include_router(email_router, prefix="/api/email", tags=["Email Service"])
 app.include_router(tools_router, prefix="/api/llm", tags=["LLM with Tools (DB Query)"])
+app.include_router(hotel_upload_router, prefix="/api", tags=["Hotel Upload Management"])
 
 
 # ========== Run Application ==========

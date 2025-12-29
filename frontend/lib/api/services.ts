@@ -149,8 +149,7 @@ export const tourismApi = {
     formData.append("thumbnail", file);
     return apiClient.post<any>(
       API_CONFIG.ENDPOINTS.DESTINATION_THUMBNAIL.replace(":id", id.toString()),
-      formData,
-      { 'Content-Type': 'multipart/form-data' }
+      formData
     );
   },
 
@@ -162,8 +161,7 @@ export const tourismApi = {
     formData.append("image", file);
     return apiClient.post<any>(
       API_CONFIG.ENDPOINTS.DESTINATION_IMAGES.replace(":id", id.toString()),
-      formData,
-      { 'Content-Type': 'multipart/form-data' }
+      formData
     );
   },
 
@@ -495,6 +493,16 @@ export const hotelManagerApi = {
 
   // Rooms Management
 
+  // NOTE: For fetching rooms/room types by hotel, reuse public hotelsApi helpers.
+  // Some pages call these via hotelManagerApi for convenience.
+  async getRooms(hotelId: string): Promise<RoomType[]> {
+    return hotelsApi.getRooms(hotelId);
+  },
+
+  async getRoomTypes(hotelId: string): Promise<RoomType[]> {
+    return hotelsApi.getRoomTypes(hotelId);
+  },
+
   async createRoom(
     hotelId: string,
     roomData: Partial<RoomType>
@@ -610,7 +618,19 @@ export const hotelManagerApi = {
     const { thumbnail, ...data } = hotelData;
     formData.append("hotelData", JSON.stringify(data));
 
-    return apiClient.post<Hotel>(API_CONFIG.ENDPOINTS.ADD_HOTEL, formData);
+    // FIX: Sử dụng đúng signature của apiClient.post (3 params max)
+    return apiClient.post<Hotel>(
+      API_CONFIG.ENDPOINTS.ADD_HOTEL,
+      formData
+    );
+
+    // CODE CŨ (không đúng signature):
+    // return apiClient.post<Hotel>(
+    //   API_CONFIG.ENDPOINTS.ADD_HOTEL,
+    //   formData,
+    //   undefined,
+    //   { "Content-Type": "multipart/form-data" }
+    // );
   },
 
   // Booking Management for Hotel Manager
@@ -1337,8 +1357,7 @@ export const destinationsApi = {
     formData.append("thumbnail", file);
 
     const response = await fetch(
-      `${
-        API_CONFIG.BASE_URL
+      `${API_CONFIG.BASE_URL
       }${API_CONFIG.ENDPOINTS.DESTINATION_THUMBNAIL.replace(
         ":id",
         id.toString()
@@ -1793,6 +1812,301 @@ export const adminApi = {
       userName: activity.user || undefined,
       hotelName: activity.hotel || undefined,
     }));
+  },
+};
+
+// ============= ATTENDANCE API =============
+export const attendanceApi = {
+  /**
+   * Upload attendance with image
+   * POST /api/v1/attendance/upload
+   */
+  async uploadAttendance(formData: FormData): Promise<any> {
+    const response = await apiClient.post(API_CONFIG.ENDPOINTS.ATTENDANCE_UPLOAD, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response;
+  },
+
+  /**
+   * Get attendance logs
+   * GET /api/v1/attendance/logs
+   */
+  async getAttendanceLogs(params?: {
+    user_id?: number;
+    event_type?: string;
+    start_date?: string;
+    end_date?: string;
+    limit?: number;
+  }): Promise<any> {
+    return apiClient.get(API_CONFIG.ENDPOINTS.ATTENDANCE_LOGS, params);
+  },
+
+  /**
+   * Get my attendance logs
+   * GET /api/v1/attendance/my-logs
+   */
+  async getMyAttendance(params?: {
+    start_date?: string;
+    end_date?: string;
+    limit?: number;
+  }): Promise<any> {
+    return apiClient.get(API_CONFIG.ENDPOINTS.ATTENDANCE_MY_LOGS, params);
+  },
+
+  /**
+   * Get today's attendance
+   * GET /api/v1/attendance/today
+   */
+  async getTodayAttendance(user_id?: number): Promise<any> {
+    return apiClient.get(API_CONFIG.ENDPOINTS.ATTENDANCE_TODAY, { user_id });
+  },
+};
+
+// ============= AI INTEGRATION API =============
+export const aiApi = {
+  /**
+   * Chat with AI and get related images
+   * POST /api/v1/ai/chat
+   */
+  async chatWithImages(params: {
+    message: string;
+    user_id?: number | null;
+    hotel_id?: number | null;
+    conversation_id?: string | null;
+    include_images?: boolean;
+    max_images?: number;
+    image_similarity_threshold?: number;
+  }): Promise<{
+    response: string;
+    conversation_id: string;
+    images: Array<{
+      image_id: number;
+      image_url: string;
+      similarity_score: number;
+      entity_type?: string;
+      entity_id?: number;
+      entity_name?: string;
+      image_description?: string;
+      image_tags?: string[];
+    }>;
+    sources: string[];
+    total_images_found: number;
+  }> {
+    const response = await apiClient.post(API_CONFIG.ENDPOINTS.AI_CHAT, params);
+    return response.data;
+  },
+
+  /**
+   * Simple chat without images
+   * POST /api/v1/ai/simple-chat
+   */
+  async simpleChat(params: {
+    message: string;
+    conversation_id?: string | null;
+  }): Promise<{
+    response: string;
+    conversation_id: string;
+  }> {
+    const response = await apiClient.post(API_CONFIG.ENDPOINTS.AI_SIMPLE_CHAT, params);
+    return response.data;
+  },
+
+  /**
+   * Upload hotel images
+   * POST /api/v1/hotel/:hotel_id/images/upload
+   */
+  async uploadHotelImages(hotel_id: number, formData: FormData): Promise<{
+    success: boolean;
+    total_uploaded: number;
+    total_failed: number;
+    images: Array<{
+      success: boolean;
+      image_id: number;
+      image_url: string;
+      image_type: string;
+      hotel_id: number;
+      message: string;
+    }>;
+    errors: string[];
+    message: string;
+  }> {
+    const response = await apiClient.postFormData<{
+      success: boolean;
+      total_uploaded: number;
+      total_failed: number;
+      images: Array<{
+        success: boolean;
+        image_id: number;
+        image_url: string;
+        image_type: string;
+        hotel_id: number;
+        message: string;
+      }>;
+      errors: string[];
+      message: string;
+    }>(
+      API_CONFIG.ENDPOINTS.HOTEL_UPLOAD_IMAGES,
+      { hotel_id: hotel_id.toString() },
+      formData
+    );
+    return response;
+  },
+
+  /**
+   * Upload hotel document
+   * POST /api/v1/hotel/:hotel_id/documents/upload
+   */
+  async uploadHotelDocument(hotel_id: number, formData: FormData): Promise<{
+    success: boolean;
+    document_id: number;
+    file_url: string;
+    document_type: string;
+    hotel_id: number;
+    rag_status: string;
+    message: string;
+  }> {
+    const response = await apiClient.postFormData<{
+      success: boolean;
+      document_id: number;
+      file_url: string;
+      document_type: string;
+      hotel_id: number;
+      rag_status: string;
+      message: string;
+    }>(
+      API_CONFIG.ENDPOINTS.HOTEL_UPLOAD_DOCUMENT,
+      { hotel_id: hotel_id.toString() },
+      formData
+    );
+    return response;
+  },
+
+  /**
+   * List hotel images
+   * GET /api/v1/hotel/:hotel_id/images
+   */
+  async listHotelImages(hotel_id: number): Promise<{
+    success: boolean;
+    total: number;
+    images: Array<{
+      image_id: number;
+      image_url: string;
+      image_type: string;
+      image_description?: string;
+      image_tags?: string[];
+      is_primary?: boolean;
+      display_order?: number;
+      image_width?: number;
+      image_height?: number;
+      created_at?: string;
+    }>;
+    hotel_id: number;
+  }> {
+    return apiClient.get<{
+      success: boolean;
+      total: number;
+      images: Array<any>;
+      hotel_id: number;
+    }>(
+      API_CONFIG.ENDPOINTS.HOTEL_LIST_IMAGES,
+      { hotel_id: hotel_id.toString() }
+    );
+  },
+
+  /**
+   * List hotel documents
+   * GET /api/v1/hotel/:hotel_id/documents
+   */
+  async listHotelDocuments(hotel_id: number): Promise<{
+    success: boolean;
+    total: number;
+    documents: Array<{
+      document_id: number;
+      document_type: string;
+      file_name: string;
+      file_url: string;
+      file_size?: number;
+      mime_type?: string;
+      rag_status?: string;
+      total_chunks?: number;
+      created_at?: string;
+      rag_indexed_at?: string;
+    }>;
+    hotel_id: number;
+  }> {
+    return apiClient.get<{
+      success: boolean;
+      total: number;
+      documents: Array<any>;
+      hotel_id: number;
+    }>(
+      API_CONFIG.ENDPOINTS.HOTEL_LIST_DOCUMENTS,
+      { hotel_id: hotel_id.toString() }
+    );
+  },
+
+  /**
+   * Delete hotel image
+   * DELETE /api/v1/hotel/:hotel_id/images/:image_id
+   */
+  async deleteHotelImage(hotel_id: number, image_id: number): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    return apiClient.delete<{
+      success: boolean;
+      message: string;
+    }>(
+      API_CONFIG.ENDPOINTS.HOTEL_DELETE_IMAGE,
+      { hotel_id: hotel_id.toString(), image_id: image_id.toString() }
+    );
+  },
+
+  /**
+   * Delete hotel document
+   * DELETE /api/v1/hotel/:hotel_id/documents/:document_id
+   */
+  async deleteHotelDocument(hotel_id: number, document_id: number): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    return apiClient.delete<{
+      success: boolean;
+      message: string;
+    }>(
+      API_CONFIG.ENDPOINTS.HOTEL_DELETE_DOCUMENT,
+      { hotel_id: hotel_id.toString(), document_id: document_id.toString() }
+    );
+  },
+
+  /**
+   * Get hotel upload statistics
+   * GET /api/v1/hotel/:hotel_id/upload-stats
+   */
+  async getHotelUploadStats(hotel_id: number): Promise<{
+    hotel_id: number;
+    total_images: number;
+    total_documents: number;
+    images_by_type: Record<string, number>;
+    documents_by_type: Record<string, number>;
+    rag_indexed_docs: number;
+    last_upload: string | null;
+  }> {
+    return apiClient.get<{
+      hotel_id: number;
+      total_images: number;
+      total_documents: number;
+      images_by_type: Record<string, number>;
+      documents_by_type: Record<string, number>;
+      rag_indexed_docs: number;
+      last_upload: string | null;
+    }>(
+      API_CONFIG.ENDPOINTS.HOTEL_UPLOAD_STATS,
+      { hotel_id: hotel_id.toString() }
+    );
   },
 };
 

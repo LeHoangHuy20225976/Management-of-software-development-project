@@ -11,6 +11,22 @@ import { useAuth } from '@/lib/context/AuthContext';
 import { authApi } from '@/lib/api/auth';
 import { apiClient } from '@/lib/api/client';
 import { API_CONFIG } from '@/lib/api/config';
+import { aiApi } from '@/lib/api/services';
+
+const IMAGE_TYPES = [
+  { value: 'hotel_exterior', label: 'Ảnh bên ngoài' },
+  { value: 'room_interior', label: 'Ảnh phòng' },
+  { value: 'facility', label: 'Tiện ích' },
+  { value: 'food', label: 'Ẩm thực' },
+  { value: 'general', label: 'Chung' }
+];
+
+const DOCUMENT_TYPES = [
+  { value: 'brochure', label: 'Brochure' },
+  { value: 'policy', label: 'Chính sách' },
+  { value: 'menu', label: 'Thực đơn' },
+  { value: 'guide', label: 'Hướng dẫn' }
+];
 
 export default function HotelRegisterPage() {
   const router = useRouter();
@@ -35,6 +51,14 @@ export default function HotelRegisterPage() {
     confirmPassword: '',
     agreeTerms: false,
   });
+
+  // Media files state
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imageTypes, setImageTypes] = useState<string[]>([]);
+  const [imageDescriptions, setImageDescriptions] = useState<string[]>([]);
+  const [selectedDocuments, setSelectedDocuments] = useState<File[]>([]);
+  const [documentTypes, setDocumentTypes] = useState<string[]>([]);
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -59,7 +83,16 @@ export default function HotelRegisterPage() {
         return;
       }
     }
-    setStep(2);
+    if (step === 2) {
+      // Step 2: Media - optional, can skip
+      // No validation required
+    }
+    setStep(step + 1);
+  };
+
+  const handleBack = () => {
+    setError('');
+    setStep(step - 1);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -125,13 +158,43 @@ export default function HotelRegisterPage() {
         JSON.stringify(hotelData)
       );
 
-      await apiClient.postFormData(API_CONFIG.ENDPOINTS.ADD_HOTEL, {}, hotelFormData);
+      const hotelResponse = await apiClient.postFormData(API_CONFIG.ENDPOINTS.ADD_HOTEL, {}, hotelFormData);
+      const createdHotelId = hotelResponse?.hotel_id;
+
+      // Upload images if any
+      if (createdHotelId && selectedImages.length > 0) {
+        const imageFormData = new FormData();
+        selectedImages.forEach((file) => {
+          imageFormData.append('files', file);
+        });
+        imageFormData.append('image_types', imageTypes.join(','));
+        imageFormData.append('descriptions', imageDescriptions.join(','));
+
+        await aiApi.uploadHotelImages(createdHotelId, imageFormData).catch((err) => {
+          console.error('Failed to upload images:', err);
+          // Continue even if image upload fails
+        });
+      }
+
+      // Upload documents if any
+      if (createdHotelId && selectedDocuments.length > 0) {
+        for (let i = 0; i < selectedDocuments.length; i++) {
+          const docFormData = new FormData();
+          docFormData.append('file', selectedDocuments[i]);
+          docFormData.append('document_type', documentTypes[i]);
+
+          await aiApi.uploadHotelDocument(createdHotelId, docFormData).catch((err) => {
+            console.error('Failed to upload document:', err);
+            // Continue even if document upload fails
+          });
+        }
+      }
 
       // Clear session after setup; user will login manually next
       await authApi.logout().catch(() => authApi.clearAuthState());
 
       setSuccess(true);
-      
+
       // Redirect to login after 2 seconds
       setTimeout(() => {
         router.push('/hotel-manager/login');
@@ -177,7 +240,7 @@ export default function HotelRegisterPage() {
 
             {/* Progress Steps */}
             <div className="mb-8">
-              <div className="flex items-center justify-center space-x-4">
+              <div className="flex items-center justify-center space-x-2">
                 <div
                   className={`flex items-center ${
                     step >= 1 ? 'text-[#0071c2]' : 'text-gray-400'
@@ -191,10 +254,10 @@ export default function HotelRegisterPage() {
                     1
                   </div>
                   <span className="ml-2 font-medium hidden sm:inline">
-                    Thông tin khách sạn
+                    Thông tin KS
                   </span>
                 </div>
-                <div className="w-16 h-0.5 bg-gray-300"></div>
+                <div className="w-12 h-0.5 bg-gray-300"></div>
                 <div
                   className={`flex items-center ${
                     step >= 2 ? 'text-[#0071c2]' : 'text-gray-400'
@@ -208,7 +271,24 @@ export default function HotelRegisterPage() {
                     2
                   </div>
                   <span className="ml-2 font-medium hidden sm:inline">
-                    Thông tin quản lý
+                    Ảnh & Tài liệu
+                  </span>
+                </div>
+                <div className="w-12 h-0.5 bg-gray-300"></div>
+                <div
+                  className={`flex items-center ${
+                    step >= 3 ? 'text-[#0071c2]' : 'text-gray-400'
+                  }`}
+                >
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                      step >= 3 ? 'bg-[#0071c2] text-white' : 'bg-gray-200'
+                    }`}
+                  >
+                    3
+                  </div>
+                  <span className="ml-2 font-medium hidden sm:inline">
+                    Quản lý
                   </span>
                 </div>
               </div>
@@ -401,7 +481,183 @@ export default function HotelRegisterPage() {
                 {step === 2 && (
                   <>
                     <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                      Bước 2: Thông tin người quản lý
+                      Bước 2: Ảnh minh họa & Tài liệu
+                    </h2>
+
+                    <p className="text-sm text-gray-600 mb-6">
+                      Thêm ảnh và tài liệu giới thiệu khách sạn (không bắt buộc, có thể bỏ qua)
+                    </p>
+
+                    {/* Images Section */}
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">📸 Ảnh minh họa</h3>
+
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          setSelectedImages(files);
+                          setImageTypes(files.map(() => 'general'));
+                          setImageDescriptions(files.map(() => ''));
+                        }}
+                        className="block w-full text-sm text-gray-500
+                          file:mr-4 file:py-2 file:px-4
+                          file:rounded-md file:border-0
+                          file:text-sm file:font-semibold
+                          file:bg-blue-50 file:text-blue-700
+                          hover:file:bg-blue-100
+                          cursor-pointer mb-2"
+                        disabled={isLoading || success}
+                      />
+                      <p className="text-xs text-gray-500 mb-4">
+                        JPG, PNG, WEBP (max 50MB/file, 20 files)
+                      </p>
+
+                      {selectedImages.length > 0 && (
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                          {selectedImages.map((file, idx) => (
+                            <div key={idx} className="border rounded-lg p-3 bg-gray-50 flex gap-3">
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt={file.name}
+                                className="w-16 h-16 object-cover rounded"
+                              />
+                              <div className="flex-1 space-y-2">
+                                <p className="text-sm font-medium text-gray-900">{file.name}</p>
+                                <select
+                                  value={imageTypes[idx]}
+                                  onChange={(e) => {
+                                    const newTypes = [...imageTypes];
+                                    newTypes[idx] = e.target.value;
+                                    setImageTypes(newTypes);
+                                  }}
+                                  className="w-full text-sm px-2 py-1 border border-gray-300 rounded"
+                                  disabled={isLoading || success}
+                                >
+                                  {IMAGE_TYPES.map(t => (
+                                    <option key={t.value} value={t.value}>{t.label}</option>
+                                  ))}
+                                </select>
+                                <input
+                                  type="text"
+                                  value={imageDescriptions[idx]}
+                                  onChange={(e) => {
+                                    const newDescs = [...imageDescriptions];
+                                    newDescs[idx] = e.target.value;
+                                    setImageDescriptions(newDescs);
+                                  }}
+                                  placeholder="Mô tả (tùy chọn)"
+                                  className="w-full text-sm px-2 py-1 border border-gray-300 rounded"
+                                  disabled={isLoading || success}
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedImages(selectedImages.filter((_, i) => i !== idx));
+                                  setImageTypes(imageTypes.filter((_, i) => i !== idx));
+                                  setImageDescriptions(imageDescriptions.filter((_, i) => i !== idx));
+                                }}
+                                className="text-red-600 hover:text-red-800 text-sm"
+                              >
+                                Xóa
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Documents Section */}
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">📄 Tài liệu</h3>
+
+                      <input
+                        type="file"
+                        multiple
+                        accept=".pdf,.docx,.doc,.txt"
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          setSelectedDocuments(files);
+                          setDocumentTypes(files.map(() => 'brochure'));
+                        }}
+                        className="block w-full text-sm text-gray-500
+                          file:mr-4 file:py-2 file:px-4
+                          file:rounded-md file:border-0
+                          file:text-sm file:font-semibold
+                          file:bg-blue-50 file:text-blue-700
+                          hover:file:bg-blue-100
+                          cursor-pointer mb-2"
+                        disabled={isLoading || success}
+                      />
+                      <p className="text-xs text-gray-500 mb-4">
+                        PDF, DOCX, DOC, TXT (max 50MB/file)
+                      </p>
+
+                      {selectedDocuments.length > 0 && (
+                        <div className="space-y-3">
+                          {selectedDocuments.map((file, idx) => (
+                            <div key={idx} className="border rounded-lg p-3 bg-gray-50 flex gap-3 items-center">
+                              <div className="flex-1 space-y-2">
+                                <p className="text-sm font-medium text-gray-900">{file.name}</p>
+                                <select
+                                  value={documentTypes[idx]}
+                                  onChange={(e) => {
+                                    const newTypes = [...documentTypes];
+                                    newTypes[idx] = e.target.value;
+                                    setDocumentTypes(newTypes);
+                                  }}
+                                  className="w-full text-sm px-2 py-1 border border-gray-300 rounded"
+                                  disabled={isLoading || success}
+                                >
+                                  {DOCUMENT_TYPES.map(t => (
+                                    <option key={t.value} value={t.value}>{t.label}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedDocuments(selectedDocuments.filter((_, i) => i !== idx));
+                                  setDocumentTypes(documentTypes.filter((_, i) => i !== idx));
+                                }}
+                                className="text-red-600 hover:text-red-800 text-sm"
+                              >
+                                Xóa
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        type="button"
+                        onClick={handleBack}
+                        disabled={isLoading || success}
+                        className="flex-1 px-6 py-3 border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-semibold rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        ← Quay lại
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleNext}
+                        disabled={isLoading || success}
+                        className="flex-1 px-6 py-3 bg-[#0071c2] hover:bg-[#005999] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                      >
+                        Tiếp theo →
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {step === 3 && (
+                  <>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                      Bước 3: Thông tin người quản lý
                     </h2>
 
                     <div>
@@ -576,7 +832,7 @@ export default function HotelRegisterPage() {
                     <div className="flex flex-col sm:flex-row gap-3">
                       <button
                         type="button"
-                        onClick={() => setStep(1)}
+                        onClick={handleBack}
                         disabled={isLoading || success}
                         className="flex-1 px-6 py-3 border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-semibold rounded-lg transition-colors disabled:opacity-50"
                       >
