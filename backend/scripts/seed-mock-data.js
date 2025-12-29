@@ -702,56 +702,56 @@ async function seedDatabase() {
     console.log("💰 Tạo room prices...");
     const roomPrices = await db.RoomPrice.bulkCreate([
       // Hotel 0: Elegance Luxury
-      { type_id: roomTypes[0].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 2500000, special_price: 2200000, event: "Khuyến mãi Tết 2025", discount: 12 },
+      { type_id: roomTypes[0].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 2500000, special_price: 2200000, event: "Khuyến mãi Tết 2025", discount: 0.12 },
       { type_id: roomTypes[1].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 4500000, special_price: null, event: null, discount: 0 },
       { type_id: roomTypes[2].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 8500000, special_price: null, event: null, discount: 0 },
 
       // Hotel 1: Seaside Paradise
-      { type_id: roomTypes[3].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 3200000, special_price: 2800000, event: "Giảm giá mùa hè", discount: 13 },
-      { type_id: roomTypes[4].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 6500000, special_price: 5500000, event: "Ưu đãi Villa", discount: 15 },
+      { type_id: roomTypes[3].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 3200000, special_price: 2800000, event: "Giảm giá mùa hè", discount: 0.13 },
+      { type_id: roomTypes[4].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 6500000, special_price: 5500000, event: "Ưu đãi Villa", discount: 0.15 },
       { type_id: roomTypes[5].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 4800000, special_price: null, event: null, discount: 0 },
 
       // Hotel 2: Modern City
       { type_id: roomTypes[6].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 1800000, special_price: null, event: null, discount: 0 },
-      { type_id: roomTypes[7].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 2800000, special_price: 2500000, event: "Khuyến mãi doanh nhân", discount: 11 },
+      { type_id: roomTypes[7].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 2800000, special_price: 2500000, event: "Khuyến mãi doanh nhân", discount: 0.11 },
       { type_id: roomTypes[8].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 3500000, special_price: null, event: null, discount: 0 },
 
       // Hotel 3: Grand Palace Hanoi
       { type_id: roomTypes[9].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 2200000, special_price: null, event: null, discount: 0 },
-      { type_id: roomTypes[10].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 2800000, special_price: 2400000, event: "Ưu đãi cuối tuần", discount: 14 },
+      { type_id: roomTypes[10].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 2800000, special_price: 2400000, event: "Ưu đãi cuối tuần", discount: 0.14 },
       { type_id: roomTypes[11].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 3800000, special_price: null, event: null, discount: 0 },
       { type_id: roomTypes[12].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 6500000, special_price: null, event: null, discount: 0 },
 
       // Hotel 4: Đà Nẵng Beach
-      { type_id: roomTypes[13].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 2900000, special_price: 2500000, event: "Flash Sale", discount: 14 },
+      { type_id: roomTypes[13].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 2900000, special_price: 2500000, event: "Flash Sale", discount: 0.14 },
       { type_id: roomTypes[14].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 7200000, special_price: null, event: null, discount: 0 },
-      { type_id: roomTypes[15].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 4500000, special_price: 3900000, event: "Khuyến mãi Spa", discount: 13 },
+      { type_id: roomTypes[15].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 4500000, special_price: 3900000, event: "Khuyến mãi Spa", discount: 0.13 },
 
       // Hotel 5: Hội An
       { type_id: roomTypes[16].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 1600000, special_price: null, event: null, discount: 0 },
-      { type_id: roomTypes[17].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 1400000, special_price: 1200000, event: "Ưu đãi đặt sớm", discount: 14 },
+      { type_id: roomTypes[17].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 1400000, special_price: 1200000, event: "Ưu đãi đặt sớm", discount: 0.14 },
       { type_id: roomTypes[18].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 2600000, special_price: null, event: null, discount: 0 },
 
       // Hotel 6: Phú Quốc
-      { type_id: roomTypes[19].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 3800000, special_price: 3200000, event: "Khuyến mãi đảo ngọc", discount: 16 },
-      { type_id: roomTypes[20].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 7800000, special_price: 6500000, event: "Ưu đãi Villa biển", discount: 17 },
+      { type_id: roomTypes[19].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 3800000, special_price: 3200000, event: "Khuyến mãi đảo ngọc", discount: 0.16 },
+      { type_id: roomTypes[20].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 7800000, special_price: 6500000, event: "Ưu đãi Villa biển", discount: 0.17 },
       { type_id: roomTypes[21].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 5500000, special_price: null, event: null, discount: 0 },
       { type_id: roomTypes[22].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 12000000, special_price: null, event: null, discount: 0 },
 
       // Hotel 7: Sapa
-      { type_id: roomTypes[23].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 1200000, special_price: 1000000, event: "Khuyến mãi mùa đông", discount: 17 },
+      { type_id: roomTypes[23].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 1200000, special_price: 1000000, event: "Khuyến mãi mùa đông", discount: 0.17 },
       { type_id: roomTypes[24].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 1400000, special_price: null, event: null, discount: 0 },
-      { type_id: roomTypes[25].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 2200000, special_price: 1900000, event: "Ưu đãi gia đình", discount: 14 },
+      { type_id: roomTypes[25].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 2200000, special_price: 1900000, event: "Ưu đãi gia đình", discount: 0.14 },
 
       // Hotel 8: Vũng Tàu
       { type_id: roomTypes[26].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 1500000, special_price: null, event: null, discount: 0 },
-      { type_id: roomTypes[27].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 2200000, special_price: 1900000, event: "Khuyến mãi biển", discount: 14 },
+      { type_id: roomTypes[27].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 2200000, special_price: 1900000, event: "Khuyến mãi biển", discount: 0.14 },
       { type_id: roomTypes[28].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 3200000, special_price: null, event: null, discount: 0 },
 
       // Hotel 9: Huế
       { type_id: roomTypes[29].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 1900000, special_price: null, event: null, discount: 0 },
-      { type_id: roomTypes[30].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 2800000, special_price: 2400000, event: "Ưu đãi cố đô", discount: 14 },
-      { type_id: roomTypes[31].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 4500000, special_price: 3800000, event: "Flash Sale Hoàng Cung", discount: 16 },
+      { type_id: roomTypes[30].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 2800000, special_price: 2400000, event: "Ưu đãi cố đô", discount: 0.14 },
+      { type_id: roomTypes[31].type_id, start_date: new Date("2025-01-01"), end_date: new Date("2025-12-31"), basic_price: 4500000, special_price: 3800000, event: "Flash Sale Hoàng Cung", discount: 0.16 },
     ]);
     console.log(`✅ Đã tạo ${roomPrices.length} room prices`);
 
