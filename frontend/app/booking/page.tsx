@@ -160,18 +160,37 @@ function BookingContent() {
       return;
     }
 
-    // Create booking data matching Booking table schema
+    // Determine a concrete room_id based on the first selected room type
+    const primarySelection = selectedRoomTypes[0];
+    if (!primarySelection) {
+      alert('Thiếu loại phòng đã chọn. Vui lòng quay lại chọn phòng.');
+      return;
+    }
+
+    // Fetch rooms of hotel and pick one that matches selected type
+    let roomIdForBooking: number | null = null;
+    try {
+      const rooms = await hotelsApi.getRooms(hotel_id!);
+      const match = (rooms as any[]).find((r: any) => r.type_id === primarySelection.roomType.type_id);
+      if (match) {
+        roomIdForBooking = match.room_id;
+      }
+    } catch (err) {
+      console.warn('Không lấy được danh sách phòng, sẽ để backend kiểm tra:', err);
+    }
+
+    if (!roomIdForBooking) {
+      alert('Không tìm thấy phòng phù hợp để đặt. Vui lòng thử lại sau.');
+      return;
+    }
+
+    // Create booking payload for backend
     const bookingData = {
-      // user_id will be set by backend from auth
-      user_id: null,
-      room_id: roomType?.type_id, // TODO: Should select actual room_id, not type_id
-      status: 'pending' as const,
-      total_price: calculateTotalPrice(),
+      room_id: roomIdForBooking,
       check_in_date: formData.check_in_date,
       check_out_date: formData.check_out_date,
-      created_at: new Date().toISOString().split('T')[0],
       people: formData.people,
-    };
+    } as const;
 
     console.log('Booking data:', bookingData);
 
@@ -187,11 +206,14 @@ function BookingContent() {
           bookingDate: result.created_at || new Date().toISOString(),
           paymentStatus: result.status || 'pending',
           hotelName: hotel?.name,
-          roomType: roomType?.type,
+          roomType: primarySelection.roomType.type,
           guests: formData.people,
           checkIn: formData.check_in_date,
           checkOut: formData.check_out_date,
-          roomPrice: roomType?.price?.special_price || roomType?.price?.basic_price || 0,
+          roomPrice:
+            primarySelection.roomType.price?.special_price ||
+            primarySelection.roomType.price?.basic_price ||
+            0,
           nights: calculateNights(),
           paymentMethod: 'cash',
           guestInfo: {

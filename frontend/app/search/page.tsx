@@ -8,6 +8,7 @@ import { Button } from '@/components/common/Button';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { hotelsApi } from '@/lib/api/services';
+import { ROUTES } from '@/lib/routes';
 import type { Hotel, SearchFilters } from '@/types';
 
 const MapView = dynamic(() => import('@/components/search/MapView'), {
@@ -273,7 +274,17 @@ export default function SearchPage() {
             ) : (
               <div className="grid grid-cols-1 gap-6">
                 {hotels.map((hotel) => (
-                  <Link key={hotel.hotel_id} href={`/hotel/${hotel.hotel_id}`}>
+                  <Link
+                    key={hotel.hotel_id}
+                    href={{
+                      pathname: ROUTES.HOTEL_DETAILS(String(hotel.hotel_id)),
+                      query: {
+                        ...(filters.checkIn ? { check_in: filters.checkIn } : {}),
+                        ...(filters.checkOut ? { check_out: filters.checkOut } : {}),
+                        ...(filters.guests ? { guests: String(filters.guests) } : {}),
+                      },
+                    }}
+                  >
                     <Card hover padding="none" className="overflow-hidden group">
                       <div className="md:flex">
                         <div className="md:w-1/3 relative h-64 md:h-auto">

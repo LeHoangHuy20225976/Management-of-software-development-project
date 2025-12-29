@@ -1,7 +1,7 @@
 'use client';
 
 import { use, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Card } from '@/components/common/Card';
@@ -22,6 +22,7 @@ export default function HotelDetailPage({
 }) {
   const resolvedParams = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const [hotel, setHotel] = useState<Hotel | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomTypeWithPrice[]>([]);
@@ -88,6 +89,22 @@ export default function HotelDetailPage({
     loadHotel();
     loadReviews();
   }, [resolvedParams.hotel_id]);
+
+  // Prefill search dates and guests from query params if provided
+  useEffect(() => {
+    const ci = searchParams.get('check_in') || '';
+    const co = searchParams.get('check_out') || '';
+    const gRaw = searchParams.get('guests');
+    const g = gRaw ? parseInt(gRaw) : undefined;
+
+    if (ci || co || g) {
+      setSearchDates(prev => ({
+        checkIn: ci || prev.checkIn,
+        checkOut: co || prev.checkOut,
+        guests: g ?? prev.guests,
+      }));
+    }
+  }, [searchParams]);
 
   const loadReviews = async () => {
     try {
