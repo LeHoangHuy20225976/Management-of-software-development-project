@@ -72,9 +72,9 @@ services:
       JWT_SECRET: lehoanghuynoob
       DB_LOGGING: false
       NODE_ENV: development
-      REDIS_HOST: redis
+      REDIS_HOST: hotel_redis
       REDIS_PORT: 6379
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://hotel_redis:6379
       MINIO_ENDPOINT: minio
       MINIO_PORT: 9000
       MINIO_PUBLIC_ENDPOINT: localhost
@@ -85,7 +85,9 @@ services:
       APP_PASS: ${APP_PASS}
       GMAIL_USER: ${GMAIL_USER}
       RESET_PASSWORD_URL: http://localhost:3000/reset-password?token=
-      SEED_ADDITIONAL_DATA: "true"
+      SEED_HOTEL_FACILITIES: "true"
+      AI_SERVICE_URL: http://host.docker.internal:8003
+      AI_CV_SERVICE_URL: http://host.docker.internal:8001
     ports:
       - "4000:4000"
     depends_on:

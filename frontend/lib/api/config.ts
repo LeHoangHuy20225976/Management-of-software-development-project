@@ -152,6 +152,25 @@ export const API_CONFIG = {
     BOOKING_CHECKIN: "/api/v1/bookings/:id/checkin",
     BOOKING_CHECKOUT: "/api/v1/bookings/:id/checkout",
 
+    // AI Integration
+    AI_CHAT: '/api/v1/ai/chat',
+    AI_SIMPLE_CHAT: '/api/v1/ai/simple-chat',
+
+    // Hotel Upload
+    HOTEL_UPLOAD_IMAGES: '/api/v1/hotel/:hotel_id/images/upload',
+    HOTEL_UPLOAD_DOCUMENT: '/api/v1/hotel/:hotel_id/documents/upload',
+    HOTEL_LIST_IMAGES: '/api/v1/hotel/:hotel_id/images',
+    HOTEL_LIST_DOCUMENTS: '/api/v1/hotel/:hotel_id/documents',
+    HOTEL_DELETE_IMAGE: '/api/v1/hotel/:hotel_id/images/:image_id',
+    HOTEL_DELETE_DOCUMENT: '/api/v1/hotel/:hotel_id/documents/:document_id',
+    HOTEL_UPLOAD_STATS: '/api/v1/hotel/:hotel_id/upload-stats',
+
+    // Attendance
+    ATTENDANCE_UPLOAD: '/api/v1/attendance/upload',
+    ATTENDANCE_LOGS: '/api/v1/attendance/logs',
+    ATTENDANCE_MY_LOGS: '/api/v1/attendance/my-logs',
+    ATTENDANCE_TODAY: '/api/v1/attendance/today',
+
     // Notifications
     NOTIFICATION_TEST: "/api/v1/notifications/test",
     NOTIFICATION_BOOKING_CONFIRM: "/api/v1/notifications/booking-confirmation",
